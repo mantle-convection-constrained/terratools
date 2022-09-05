@@ -50,6 +50,12 @@ ensure_single_trailing_newline()
 {
   f=$1
 
+  # Add a newline to the end of the file
+  # Seems to be necessary on new Macs
+  cp $f $f.tmp
+  echo "" >> $f.tmp
+  mv $f.tmp $f
+
   # Remove newlines at end of file
   # Check that the current line only contains newlines
   # If it doesn't match, print it
@@ -67,6 +73,7 @@ ensure_single_trailing_newline()
 
   diff -q $f $f.tmp >/dev/null || mv $f.tmp $f
   rm -f $f.tmp $f.tmpi
+
 }
 export -f ensure_single_trailing_newline
 find terratools contrib tests \( -name '*.bash' -o -name '*.py' -o -name '*.txt' -o -name '*.tex' \) -print | xargs -n 1 -P 10 -I {} bash -c 'ensure_single_trailing_newline "$@"' _ {}
