@@ -5,3 +5,7 @@
 __pycache__
 *.pyc
 
+# Build things
+dist/
+terratools.egg-info/
+
