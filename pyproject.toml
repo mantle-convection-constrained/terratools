@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terratools"
+version = "0.0.1"
+authors = [
+  { name="James Panton", email="pantonjc@cardiff.ac.uk" },
+  { name="Andy Nowacki", email="A.Nowacki@leeds.ac.uk" }
+]
+description = "Tools to read, analyse and visualise models written by the TERRA mantle convection code."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [ "numpy" ]
+
+[project.urls]
+"Homepage" = "https://github.com/mantle-convection-constrained/terra_tools"
+"Bug Tracker" = "https://github.com/mantle-convection-constrained/terra_tools/issues"
+"Documentation" = "https://readthedocs.org/projects/terra-tools"
