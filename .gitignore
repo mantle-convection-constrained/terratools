@@ -1,0 +1,7 @@
+# OS things
+.DS_Store
+
+# Python temporary files
+__pycache__
+*.pyc
+
