@@ -4,13 +4,40 @@ name: test
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  linux:
+  indent:
+    name: indent
+    runs-on: [ubuntu-20.04]
+
+    strategy:
+      matrix:
+        python-versions: ['3.10']
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-versions }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-versions }}
+    - name: make indent
+      run: |
+        ./contrib/utilities/indent
+        git diff > changes-astyle.diff
+    - name: archive indent results
+      uses: actions/upload-artifact@v2
+      with:
+        name: changes-astyle.diff
+        path: changes-astyle.diff
+    - name: check indentation
+      run: |
+        git diff --exit-code
+
+  test:
     name: test
     runs-on: [ubuntu-20.04]
 
     strategy:
       matrix:
-        python-versions: ['3.7', '3.8', '3.9', '3.10']
+        python-versions: ['3.8', '3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v2
@@ -20,16 +47,7 @@ jobs:
         python-version: ${{ matrix.python-versions }}
     - name: setup
       run: |
-        # pycddlib requires libgmp3-dev
-        sudo apt update && sudo apt install --yes \
-         numdiff \
-         libgmp3-dev \
-         texlive \
-         texlive-latex-extra
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        pip install pycddlib # this is optional
-        pip install autograd # this is optional
         python --version
     - name: test
       run: |
