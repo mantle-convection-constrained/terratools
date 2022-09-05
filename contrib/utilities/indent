@@ -5,7 +5,7 @@
 ## ---------------------------------------------------------------------
 
 
-if test ! -d terra_tools -o ! -d docs -o ! -d contrib ; then
+if test ! -d terratools -o ! -d docs -o ! -d contrib ; then
   echo "*** This script must be run from the top-level directory of TerraTools."
   exit 1
 fi
@@ -17,7 +17,7 @@ echo "--- Indenting all TerraTools header and source files"
 
 
 # remove execute permission on source files:
-find terra_tools contrib tests \( -name '*.py' \) -print | xargs -n 50 -P 10 chmod -x
+find terratools contrib tests \( -name '*.py' \) -print | xargs -n 50 -P 10 chmod -x
 
 # convert dos formatted files to unix file format by stripping out
 # carriage returns (15=0x0D):
@@ -29,7 +29,7 @@ dos_to_unix()
     rm -f $f.tmp
 }
 export -f dos_to_unix
-find terra_tools contrib tests \( -name '*.py' \) -print | xargs -n 1 -P 10 -I {} bash -c 'dos_to_unix "$@"' _ {}
+find terratools contrib tests \( -name '*.py' \) -print | xargs -n 1 -P 10 -I {} bash -c 'dos_to_unix "$@"' _ {}
 
 
 # Remove trailing whitespace from files
@@ -43,7 +43,7 @@ remove_trailing_whitespace()
     rm -f $f.tmp
 }
 export -f remove_trailing_whitespace
-find terra_tools contrib tests \( -name '*.bash' -o -name '*.py' -o -name '*.txt' -o -name '*.tex' \) -print | xargs -n 1 -P 10 -I {} bash -c 'remove_trailing_whitespace "$@"' _ {}
+find terratools contrib tests \( -name '*.bash' -o -name '*.py' -o -name '*.txt' -o -name '*.tex' \) -print | xargs -n 1 -P 10 -I {} bash -c 'remove_trailing_whitespace "$@"' _ {}
 
 # Ensure only a single newline at end of files
 ensure_single_trailing_newline()
@@ -69,6 +69,6 @@ ensure_single_trailing_newline()
   rm -f $f.tmp $f.tmpi
 }
 export -f ensure_single_trailing_newline
-find terra_tools contrib tests \( -name '*.bash' -o -name '*.py' -o -name '*.txt' -o -name '*.tex' \) -print | xargs -n 1 -P 10 -I {} bash -c 'ensure_single_trailing_newline "$@"' _ {}
+find terratools contrib tests \( -name '*.bash' -o -name '*.py' -o -name '*.txt' -o -name '*.tex' \) -print | xargs -n 1 -P 10 -I {} bash -c 'ensure_single_trailing_newline "$@"' _ {}
 
 exit 0
