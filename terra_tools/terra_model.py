@@ -8,4 +8,3 @@ class TerraModel():
     def __init__(self, nlayers):
         self.nlayers = nlayers
         self.radii = np.linspace(3480, 6370, self.nlayers)
-
