@@ -21,7 +21,9 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 numpy = "^1.23"
+scipy = "^1.7"
 netcdf4 = "^1"
+matplotlib = "^3.5"
 
 [tool.poetry.dev-dependencies]
 
