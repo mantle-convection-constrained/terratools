@@ -9,3 +9,6 @@ __pycache__
 dist/
 terratools.egg-info/
 
+# example_output
+examples/output-*
+

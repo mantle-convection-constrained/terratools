@@ -23,6 +23,7 @@ if __name__ == "__main__":
     frequency = 1.  # Hz
 
     depths = np.linspace(0., 2880.e3, 1001)
+
     Vps = np.empty_like(depths)
     Vss = np.empty_like(depths)
     QSs = np.empty_like(depths)
@@ -47,13 +48,13 @@ if __name__ == "__main__":
 
     p0 = Q7g.anelastic_properties(elastic_Vp=1.,
                                   elastic_Vs=1.,
-                                  depth=depths,
+                                  pressure=pressures,
                                   temperature=temperatures,
                                   frequency=frequency)
 
     p1 = Q7g.anelastic_properties(elastic_Vp=1.,
                                   elastic_Vs=1.,
-                                  depth=depths,
+                                  pressure=pressures,
                                   temperature=temperatures+dT,
                                   frequency=frequency)
 

@@ -1,6 +1,7 @@
 import numpy as np
 from collections import namedtuple
-from .profiles import prem_pressure, peridotite_solidus
+from .profiles import peridotite_solidus
+from copy import deepcopy
 
 AnelasticProperties = namedtuple('AnelasticProperties',
                                  ['V_P', 'V_S',
@@ -15,15 +16,14 @@ class AttenuationModelGoes(object):
     and for detailing her favoured model.
     """
 
-    def __init__(self, pz_function, T_solidus_function,
+    def __init__(self, T_solidus_function,
                  model_mixing_function, Q_models):
-        self.pz_function = pz_function
         self.T_solidus_function = T_solidus_function
         self.model_mixing_function = model_mixing_function
         self.Q_models = Q_models
 
     def anelastic_properties(self, elastic_Vp, elastic_Vs,
-                             depth, temperature, frequency,
+                             pressure, temperature, frequency,
                              dT_Q_constant_above_solidus=0):
         """
         Calculates the anelastic Vp and Vs, QS, and QK according to the model
@@ -31,15 +31,12 @@ class AttenuationModelGoes(object):
 
         The effects of anelasticity on shear wave velocity are incorporated
         using a model for the S-wave quality factor QS that varies with
-        temperature T and depth z as
+        temperature T and pressure P as
         QS(z,T) = Qo ω a exp(a ξ Tm / T), where
         ω is frequency,
         a is exponential frequency dependence,
-        ξ is a depth scaling factor and
+        ξ is a pressure scaling factor and
         Tm is the dry solidus melting temperature.
-
-        The solidus is provided by the function peridotite_solidus.
-        The conversion from pressure to depth is from PREM (Dziewonski et al.)
 
         To avoid step-changes in QS at the top and base of
         the mantle, transition regions 2.2 GPa wide are implemented.
@@ -63,7 +60,7 @@ class AttenuationModelGoes(object):
         ---------
         elastic_Vp : the elastic P-wave velocity
         elastic_Vs : the elastic S-wave velocity
-        depth : the depth in m
+        pressure : the pressure in Pa
         temperature : the temperature in K
         frequency: the frequency of the seismic waves in Hz
         Q_model: a dictionary containing the parameters for the
@@ -81,7 +78,6 @@ class AttenuationModelGoes(object):
         V_P, V_S, Q_S, Q_K, Q_P
         """
 
-        pressure = self.pz_function(depth)
         fractions = self.model_mixing_function(pressure, temperature)
 
         try:
@@ -91,7 +87,7 @@ class AttenuationModelGoes(object):
             if dT_Q_constant_above_solidus < temperature - Tm:
                 Q_temperature = Tm + dT_Q_constant_above_solidus
             else:
-                Q_temperature = temperature
+                Q_temperature = deepcopy(temperature)
 
             QS = 0.
             QK = 0.
@@ -99,13 +95,13 @@ class AttenuationModelGoes(object):
             for i, f in enumerate(fractions):
                 Q_mod = self.Q_models[i]
                 QS += f * (Q_mod['Q0'] *
-                        np.power(frequency, Q_mod['a']) *
-                        np.exp(Q_mod['a']*Q_mod['g']*Tm/Q_temperature))
+                           np.power(frequency, Q_mod['a']) *
+                           np.exp(Q_mod['a']*Q_mod['g']*Tm/Q_temperature))
                 QK += f * Q_mod['QK']
                 alpha += f * Q_mod['a']
 
         except TypeError:
-            Q_temperature = temperature
+            Q_temperature = deepcopy(temperature)
             Tm = self.T_solidus_function(pressure)
             idx = np.argwhere(temperature > Tm + dT_Q_constant_above_solidus)
             Q_temperature[idx] = Tm[idx] + dT_Q_constant_above_solidus
@@ -171,7 +167,7 @@ def mantle_domain_fractions(pressure, temperature):
 
         elif pressure < pressure_tztop + P_smooth_halfwidth:
             f = ((pressure - (pressure_tztop - P_smooth_halfwidth))
-                / (2.*P_smooth_halfwidth))
+                 / (2.*P_smooth_halfwidth))
             fractions[:2] = [1. - f, f]
 
         elif pressure < pressure_tzbase - P_smooth_halfwidth:
@@ -179,7 +175,7 @@ def mantle_domain_fractions(pressure, temperature):
 
         elif pressure < pressure_tzbase + P_smooth_halfwidth:
             f = ((pressure - (pressure_tzbase - P_smooth_halfwidth))
-                / (2.*P_smooth_halfwidth))
+                 / (2.*P_smooth_halfwidth))
             fractions[1:] = [1. - f, f]
 
         else:
@@ -214,7 +210,7 @@ def mantle_domain_fractions(pressure, temperature):
 
 # Q4g - low T dependence (after Goes et al. 2004)
 # Order of models is upper mantle, transition zone, lower mantle
-Q4g = AttenuationModelGoes(prem_pressure(), peridotite_solidus,
+Q4g = AttenuationModelGoes(peridotite_solidus,
                            mantle_domain_fractions,
                            Q_models=[{'Q0': 0.1, 'g': 38., 'a': 0.15,
                                       'QK': 1000.},
@@ -224,7 +220,7 @@ Q4g = AttenuationModelGoes(prem_pressure(), peridotite_solidus,
                                       'QK': 1000.}])
 
 # Q6g - strong T dependence (after Goes et al. 2004
-Q6g = AttenuationModelGoes(prem_pressure(), peridotite_solidus,
+Q6g = AttenuationModelGoes(peridotite_solidus,
                            mantle_domain_fractions,
                            Q_models=[{'Q0': 0.1, 'g': 38., 'a': 0.15,
                                       'QK': 1000.},
@@ -235,7 +231,7 @@ Q6g = AttenuationModelGoes(prem_pressure(), peridotite_solidus,
 
 # Q7g - intermediate T dependence
 # (most consistent with Matas and Bukuwinski 2007)
-Q7g = AttenuationModelGoes(prem_pressure(), peridotite_solidus,
+Q7g = AttenuationModelGoes(peridotite_solidus,
                            mantle_domain_fractions,
                            Q_models=[{'Q0': 0.1, 'g': 38., 'a': 0.15,
                                       'QK': 1000.},
