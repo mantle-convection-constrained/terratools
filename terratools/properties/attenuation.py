@@ -18,6 +18,18 @@ class AttenuationModelGoes(object):
 
     def __init__(self, T_solidus_function,
                  model_mixing_function, Q_models):
+        """
+        Parameters
+        ----------
+        T_solidus_function: function
+            A function returning the temperature of the solidus
+            as a function of pressure.
+        model_mixing_function: function
+            A function returning the amounts of different materials
+            as a function of pressure and temperature.
+        Q_models: List of dictionaries
+            Parameters for the attenuation models - one for each material.
+        """
         self.T_solidus_function = T_solidus_function
         self.model_mixing_function = model_mixing_function
         self.Q_models = Q_models
@@ -26,28 +38,27 @@ class AttenuationModelGoes(object):
                              pressure, temperature, frequency,
                              dT_Q_constant_above_solidus=0):
         """
-        Calculates the anelastic Vp and Vs, QS, and QK according to the model
-        used in Maguire et al., 2016.
+        Calculates the anelastic Vp and Vs, QS, and QK
+        according to the model used by Maguire et al., 2016.
 
         The effects of anelasticity on shear wave velocity are incorporated
         using a model for the S-wave quality factor QS that varies with
-        temperature T and pressure P as
-        QS(z,T) = Qo ω a exp(a ξ Tm / T), where
-        ω is frequency,
+        pressure P and temperature T as
+        QS(w,z,T) = Qo w a exp(a ksi Tm(z) / T), where
+        w is frequency,
         a is exponential frequency dependence,
-        ξ is a pressure scaling factor and
+        ksi is a scaling factor and
         Tm is the dry solidus melting temperature.
-
-        To avoid step-changes in QS at the top and base of
-        the mantle, transition regions 2.2 GPa wide are implemented.
-        At a reference temperature of 750K, the center of the ol-wd transition
-        is at 11.1 GPa. At the same reference temperature, the center
-        of the postspinel transition is at 26.1 GPa. Clapeyron slopes of
-        2.4e6 Pa/K and -2.2e6 Pa/K are applied.
-
         QK is chosen to be temperature independent.
 
-        The anelastic seismic velocities are then calculated as follows:
+        Optionally, different Q models can be used that correspond to
+        different mantle materials. A mixing model is used to
+        determine the fractions of the different materials as a function
+        of pressure and temperature.
+        The bulk QS, QK and alpha are given by the linearly weighted sum
+        of the material QS, QK and alpha.
+
+        The anelastic seismic velocities are calculated as follows:
         lmda = 4/3 * (elastic_Vs/elastic_Vp)^2
         1/QP = (1. - lmda)/QK + lmda/QS
 
@@ -56,23 +67,25 @@ class AttenuationModelGoes(object):
         anelastic_Vp = elastic_Vp*(1 - invQP/(2tan(pi*alpha/2)))
         anelastic_Vs = elastic_Vs*(1 - invQS/(2tan(pi*alpha/2)))
 
-        Arguments
-        ---------
-        elastic_Vp : the elastic P-wave velocity
-        elastic_Vs : the elastic S-wave velocity
-        pressure : the pressure in Pa
-        temperature : the temperature in K
-        frequency: the frequency of the seismic waves in Hz
-        Q_model: a dictionary containing the parameters for the
-        attenuation model
-        dT_Q_constant_above_solidus: if the temperature
-        > (solidus temperature + dT),
-        the value of QS, QK and a are frozen at the values corresponding to
-        (solidus temperature + dT).
+        Parameters
+        ----------
+        elastic_Vp : float or numpy array
+            The elastic P-wave velocity
+        elastic_Vs : float or numpy array
+            The elastic S-wave velocity
+        pressure : float or numpy array
+            The pressure in Pa
+        temperature : float or numpy array
+            The temperature in K
+        frequency: float
+            The frequency of the seismic waves in Hz
+        dT_Q_constant_above_solidus: float
+            if the temperature > (solidus temperature + dT),
+            the value of QS, QK and a are frozen at the values
+            corresponding to (solidus temperature + dT).
 
         Returns
         -------
-
         An instance of an AnelasticProperties named tuple.
         Has the following attributes:
         V_P, V_S, Q_S, Q_K, Q_P
@@ -152,7 +165,29 @@ def mantle_domain_fractions(pressure, temperature):
     """
     This function defines the proportions of
     upper mantle, transition zone, and lower mantle
-    domains as a function of pressure and temperature
+    domains as a function of pressure and temperature.
+
+    To avoid step-changes in QS at the top and base of
+    the mantle, transition regions 2.2 GPa wide are implemented.
+    At a reference temperature of 750K, the center of the ol-wd transition
+    is at 11.1 GPa. At the same reference temperature, the center
+    of the postspinel transition is at 26.1 GPa. Clapeyron slopes of
+    2.4e6 Pa/K and -2.2e6 Pa/K are applied.
+
+    Parameters
+    ----------
+    pressure: float or numpy array
+        Pressure (Pa)
+    temperature: float or numpy array
+        Temperature (K)
+
+    Returns
+    -------
+    fractions: 1D or 2D numpy array
+        An array containing the effective fractions of
+        upper mantle, transition zone and lower mantle material.
+        If 2D, the fractions[i,j] corresponds to the ith
+        P-T point and jth material.
     """
 
     P_smooth_halfwidth = 1.1e9
