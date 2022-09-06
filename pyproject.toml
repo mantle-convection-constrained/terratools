@@ -1,29 +1,30 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = [ "terratools" ]
-
-[project]
+[tool.poetry]
 name = "terratools"
-version = "0.0.1"
-authors = [
-  { name="James Panton", email="pantonjc@cardiff.ac.uk" },
-  { name="Andy Nowacki", email="A.Nowacki@leeds.ac.uk" }
-]
+version = "0.1.0"
 description = "Tools to read, analyse and visualise models written by the TERRA mantle convection code."
+authors = [
+  "James Panton <pantonjc@cardiff.ac.uk>", 
+  "Andy Nowacki <a.nowacki@leeds.ac.uk>",
+  "Bob Myhill <bob.myhill@bristol.ac.uk>",
+]
+license = "MIT"
 readme = "README.md"
-license = { file="LICENSE" }
-requires-python = ">=3.8"
+homepage = "https://github.com/mantle-convection-constrained/terratools"
+repository = "https://github.com/mantle-convection-constrained/terratools"
+documentation = "https://readthedocs.org/projects/terratools"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = [ "numpy" ]
 
-[project.urls]
-"Homepage" = "https://github.com/mantle-convection-constrained/terratools"
-"Bug Tracker" = "https://github.com/mantle-convection-constrained/terratools/issues"
-"Documentation" = "https://readthedocs.org/projects/terratools"
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "^1.23"
+netcdf4 = "^1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
