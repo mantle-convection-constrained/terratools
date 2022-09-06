@@ -24,6 +24,6 @@ classifiers = [
 dependencies = [ "numpy" ]
 
 [project.urls]
-"Homepage" = "https://github.com/mantle-convection-constrained/terra_tools"
-"Bug Tracker" = "https://github.com/mantle-convection-constrained/terra_tools/issues"
-"Documentation" = "https://readthedocs.org/projects/terra-tools"
+"Homepage" = "https://github.com/mantle-convection-constrained/terratools"
+"Bug Tracker" = "https://github.com/mantle-convection-constrained/terratools/issues"
+"Documentation" = "https://readthedocs.org/projects/terratools"
