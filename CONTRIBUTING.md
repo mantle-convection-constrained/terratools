@@ -8,14 +8,14 @@ guide on the process of contributing to an open-source project
 ## Bug reports
 It is a great help to the community if you report any bugs that you
 may find. We keep track of all open issues related to TerraTools
-[here](https://github.com/mantle-convection-constrained/terra_tools/issues). 
+[here](https://github.com/mantle-convection-constrained/terratools/issues). 
 
 Please follow these simple instructions before opening a new bug report:
 
 - Do a quick search in the list of open and closed issues for a duplicate of
   your issue.
 - If you did not find an answer, open a new
-  [issue](https://github.com/mantle-convection-constrained/terra_tools/issues/new) and explain your
+  [issue](https://github.com/mantle-convection-constrained/terratools/issues/new) and explain your
   problem in as much detail as possible.
 - Attach as much as possible of the following information to your issue:
   - a minimal set of instructions that reproduce the issue,
