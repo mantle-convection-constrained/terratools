@@ -13,8 +13,53 @@ def make_build_files(project_name, molar_composition,
                      option_file,
                      solutions, excludes):
     """
+    This function makes a collection of PerpleX build files
+    (which are the input files used by other PerpleX programs).
 
+    The benefit of this function over build is that it
+    (a) specifically considers only input files for 2D Gibbs
+    minimization, and (b) can split a P-T domain into an arbitrary
+    number of chunks, defined by P and T dividing lines. This
+    removes some problems with memory limits when trying to create
+    phase diagrams over all P and T space.
 
+    Parameters
+    ----------
+    project_name: string
+        A string used to define the project directory and
+        build file names.
+
+    molar_composition: dictionary
+        A dictionary containing the molar amounts of the
+        components in the thermodynamic data files
+        (often MGO, FEO etc...). Sometimes the datafiles
+        have components in mixed case (MgO, FeO etc).
+
+    pressure_bounds: list of floats
+        A list of pressures that partition the build files.
+        Should be of at least length two
+        (minimum and maximum pressure).
+
+    temperature_bounds: list of floats
+        A list of temperatures that partition the build files.
+        Should be of at least length two
+        (minimum and maximum temperature).
+
+    endmember_file: string
+        Path to the endmember thermodynamic data file
+        (usually *ver.dat)
+
+    solution_file: string
+        Path to the solution file (usually ?_solution_model.dat)
+
+    option_file: string
+        Path to the PerpleX option file (usually perplex_option.dat).
+
+    solutions: list of strings
+        List of solutions to be considered in the minimization
+
+    excludes: list of strings
+        List of endmembers excluded in the minimization
     """
 
     # Create project directory
@@ -77,7 +122,20 @@ def make_build_files(project_name, molar_composition,
 
 def run_build_files(path_to_project, path_to_perplex):
     """
+    Runs PerpleX-vertex (Gibbs minimization)
+    and PerpleX-pssect (postscript plotting) on the
+    collection of build files created by
+    the make_build_files function.
 
+    Parameters
+    ----------
+    path_to_project: string
+        The path to the project defined by the
+        project_name parameter in make_build_files.
+
+    path_to_perplex: string
+        The path to the directory containing the
+        PerpleX executables (vertex and pssect).
     """
     working_directory = os.getcwd()
     os.chdir(path_to_project)
@@ -108,16 +166,66 @@ def run_build_files(path_to_project, path_to_perplex):
     os.chdir(working_directory)
 
 
-def perplex_to_terra_grid(path_to_project,
-                          pressure_bounds,
-                          temperature_bounds,
-                          pressures,
-                          temperatures,
-                          attenuation_model,
-                          frequency,
-                          path_to_perplex):
+def perplex_to_grid(path_to_project,
+                    pressure_bounds,
+                    temperature_bounds,
+                    pressures,
+                    temperatures,
+                    path_to_perplex):
     """
+    Runs PerpleX-werami on the files created by
+    run_build_files. Returns a 3D numpy array
+    where out[i,j,k] is property k at
+    the ith pressure and jth temperature.
+    The properties k are pressure, temperature
+    (both duplicated as a formatting check),
+    density, Vp and Vs.
 
+    Attempts are made to fill NaN elements
+    (from vertex / werami failures) by running werami
+    on individual points, taking a 3x3 block mean,
+    and by linear extrapolation in the lowest
+    pressure row.
+
+    Parameters
+    ----------
+    path_to_project: string
+        The path to the project defined by the
+        project_name parameter in make_build_files.
+
+    pressure_bounds: list of floats
+        A list of pressures that partition the build files.
+        Should be of at least length two
+        (minimum and maximum pressure).
+
+    temperature_bounds: list of floats
+        A list of temperatures that partition the build files.
+        Should be of at least length two
+        (minimum and maximum temperature).
+
+    pressures: numpy array
+        Equally spaced pressures defining the
+        property grid. Most easily created using
+        numpy.linspace().
+
+    temperatures: numpy array
+        Equally spaced temperatures defining the
+        property grid. Most easily created using
+        numpy.linspace().
+
+    path_to_perplex: string
+        The path to the directory containing the
+        PerpleX executables (vertex and pssect).
+
+    Returns
+    -------
+    out: 3D numpy array
+        An array of thermodynamic properties.
+        out[i,j,k] is property k at
+        the ith pressure and jth temperature.
+        The properties k are pressure, temperature
+        (both duplicated as a formatting check),
+        density, Vp and Vs.
     """
 
     working_directory = os.getcwd()
@@ -184,14 +292,15 @@ def perplex_to_terra_grid(path_to_project,
 
             out[Tidx[0]:Tidx[-1]+1, Pidx[0]:Pidx[-1]+1, 2:] = data[:, :, 2:]
 
+    # Make pressure the first axis
     out = np.swapaxes(out, 0, 1)
 
     # check all nans are filled
     nan_indices = np.unique(np.argwhere(np.isnan(out))[:, 0])
 
     if len(nan_indices) > 0:
-        print('meemum has not been able to replace all nans.')
-        print('using cell interpolation on remaining cells.')
+        print('The program werami has not been able to replace all nans.')
+        print('Using cell interpolation on remaining cells.')
 
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
 
@@ -212,7 +321,7 @@ def perplex_to_terra_grid(path_to_project,
 
     nan_indices = np.unique(np.argwhere(np.isnan(out))[:, 0])
     if len(nan_indices) > 0:
-        print('NaNs could not be filled.')
+        print('The following data with nans could not be filled:')
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
         for (i, j) in nan_cells:
             print(out[i, j])

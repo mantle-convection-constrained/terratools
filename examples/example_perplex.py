@@ -7,7 +7,7 @@ from datetime import datetime
 
 from terratools.properties.perplex import make_build_files
 from terratools.properties.perplex import run_build_files
-from terratools.properties.perplex import perplex_to_terra_grid
+from terratools.properties.perplex import perplex_to_grid
 from terratools.properties.attenuation import Q7g
 
 if __name__ == "__main__":
@@ -67,11 +67,10 @@ if __name__ == "__main__":
         # Create the property grid at the desired resolution
         pressures = np.linspace(0., 145.e9, 146)
         temperatures = np.linspace(300., 3300., 121)
-        grid = perplex_to_terra_grid(project_name,
-                                     pressure_bounds, temperature_bounds,
-                                     pressures, temperatures,
-                                     Q7g, 1.,
-                                     perplex_path)
+        grid = perplex_to_grid(project_name,
+                               pressure_bounds, temperature_bounds,
+                               pressures, temperatures,
+                               perplex_path)
 
         out = grid
 
