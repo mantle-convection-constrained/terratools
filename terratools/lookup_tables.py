@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-import scipy.interpolate as interp
+from scipy.interpolate import interp2d
 import os
 
 
@@ -125,6 +125,68 @@ class SeismicLookupTable:
                 self.table[iputl,6],self.table[iputu,6],tnorm,pnorm)
         self.Dens=int_linear(self.table[ipltl,7],self.table[ipltu,7],
                 self.table[iputl,7],self.table[iputu,7],tnorm,pnorm)
+                
+        
+    def interp_grid(self,press,temps,prop):
+        """
+        Inputs: press = pressures
+                temps = temperatures
+                prop   = property eg. Vs
+        Returns: interpolated values of a given table property
+                 on a grid defined by press and temps
+              
+        eg. basalt.interp([pressures],[temperature],basalt.Vs)
+        """
+        
+        grid=interp2d(self.pres,self.temp,prop)
+        out=grid(press,temps)
+        
+        return out
+            
+
+        
+    def interp_points(self,press,temps,field):
+        """
+        Inputs: press = pressures
+                temps = temperatures (press and temps must be of equal length)
+                prop   = property eg. Vs
+        Returns:
+        For a given table property (eg. Vs) return interpolated values
+        for pressures and temperatures
+        eg. basalt.interp_points(list(zip(pressures,temperature)),basalt.Vs)
+        """
+        grid=interp2d(self.pres,self.temp,field)
+        
+        
+        out=np.zeros(len(press))
+        for i in range(len(press)):
+            out[i]=grid(press[i],temps[i])
+            
+        return out
+        
+        
+        
+        
+def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
+    """
+    Input: bas = value for basaltic composition
+           lhz = value for lherzolite composition
+           hzb = value for harzburgite composition
+           bas_fr = basalt fraction
+           lhz_fr = lherzolite fraction
+           hzb_fr = harzburgite fraction
+    Returns: hmean = harmonic mean of input values
+    """
+    m1=(1./bas)*bas_fr
+    m2=(1./lhz)*lhz_fr
+    m3=(1./hzb)*hzb_fr
+
+    hmean=1/(m1+m2+m3)
+
+    return hmean
+    
+    
+
 
 #class MultiComponent:
 #    def __init__(self, hzb_tab, lhz_tab, bas_tab, pt):

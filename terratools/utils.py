@@ -58,9 +58,9 @@ def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
            hzb_fr = harzburgite fraction
     Returns: hmean = harmonic mean of input values
     """
-    m1=1./bas
-    m2=1./lhz
-    m3=1./hzb
+    m1=(1./bas)*bas_fr
+    m2=(1./lhz)*lhz_fr
+    m3=(1./hzb)*hzb_fr
 
     hmean=1/(m1+m2+m3)
 
