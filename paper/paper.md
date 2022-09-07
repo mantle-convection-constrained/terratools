@@ -44,15 +44,14 @@ bibliography: paper.bib
 
 # Summary
 
-Fluid-like convection of Earth’s rocky mantle drives processes such as plate tectonics that shape the surface and explains the evolution of our planet on the longest time scales. Because of this computer simulations of mantle convection have become important for our understanding of the Earth and large scale simulation codes have been created by the community [refs?]. One example is TERRA [@baumgardner1985; @bunger1997], a large parallel programme using the the finite element method to simulate convection including [key features]. While TERRA is written in Fortran and runs on supercomputers, handling its output is non- trivial because the output reflects the structured grid of finite element mesh and the parallel decomposition used to execute the code and processing the data often needs integration with other tools. Here we describe TerraTools, a Python package designed to [key things]. The package has been developed to aid in research associated with a large collaborative grant [issues about this - usability and stuff].
+Fluid-like convection of Earth’s rocky mantle drives processes such as plate tectonics that shape the surface and explains the evolution of our planet on the longest time scales. Because of this computer simulations of mantle convection have become important for our understanding of the Earth and large scale simulation codes have been created by the community [refs?]. One example is TERRA [@baumgardner1985; @bunge1997], a large parallel programme using the the finite element method to simulate convection including [key features]. While TERRA is written in Fortran and runs on supercomputers, handling its output is non- trivial because the output reflects the structured grid of finite element mesh and the parallel decomposition used to execute the code and processing the data often needs integration with other tools. Here we describe TerraTools, a Python package designed to [key things]. The package has been developed to aid in research associated with a large collaborative grant [issues about this - usability and stuff].
 
 # Statement of need
 
-`TerraTools` is needed.
+`TerraTools` statement of need goes here.
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+We acknowledge funding from NERC Large Grant `Mantle Circulation Constrained (MC$^2)` (NE/T012595/1).
 
 # References
