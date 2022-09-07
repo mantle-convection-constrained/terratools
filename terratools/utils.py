@@ -13,9 +13,11 @@ def norm_vals(v,vu,vl):
     else:
         vnorm=(v-vl)/vrange
 
+#    vnorm=np.nan_to_num(vnorm,copy=False,posinf=0.5,neginf=0.5,nan=0.5)
+
+
     return vnorm
-  
-  
+
 
 def int_linear(v1,v2,v3,v4,tn,pn):
     """
@@ -45,7 +47,8 @@ def int_linear(v1,v2,v3,v4,tn,pn):
     return vinterp
 
 
-def harmonic_mean_comp(self,bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
+
+def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
     """
     Input: bas = value for basaltic composition
            lhz = value for lherzolite composition
