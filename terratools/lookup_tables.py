@@ -56,7 +56,7 @@ class SeismicLookupTable:
         """
         Inputs: pval=pressure at point
                 tval=temperature at point
-        Returns: Indices of 4 points in seismic tables
+        Returns: Vp, Vs, Vp_an, Vs_an, Vphi, Dens
         For a given temperature and pressure, find the locations of the
         upper and lower bounds in a seismic conversion table.
          """
@@ -113,20 +113,22 @@ class SeismicLookupTable:
         pnorm=norm_vals(pval,pu,pl)
 
 
-        self.Vp=int_linear(self.table[ipltl,2],self.table[ipltu,2],
+        Vp=int_linear(self.table[ipltl,2],self.table[ipltu,2],
                 self.table[iputl,2],self.table[iputu,2],tnorm,pnorm)
-        self.Vs=int_linear(self.table[ipltl,3],self.table[ipltu,3],
+        Vs=int_linear(self.table[ipltl,3],self.table[ipltu,3],
                 self.table[iputl,3],self.table[iputu,3],tnorm,pnorm)
-        self.Vp_an=int_linear(self.table[ipltl,4],self.table[ipltu,4],
+        Vp_an=int_linear(self.table[ipltl,4],self.table[ipltu,4],
                 self.table[iputl,4],self.table[iputu,4],tnorm,pnorm)
-        self.Vs_an=int_linear(self.table[ipltl,5],self.table[ipltu,5],
+        Vs_an=int_linear(self.table[ipltl,5],self.table[ipltu,5],
                 self.table[iputl,5],self.table[iputu,5],tnorm,pnorm)
-        self.Vphi=int_linear(self.table[ipltl,6],self.table[ipltu,6],
+        Vphi=int_linear(self.table[ipltl,6],self.table[ipltu,6],
                 self.table[iputl,6],self.table[iputu,6],tnorm,pnorm)
-        self.Dens=int_linear(self.table[ipltl,7],self.table[ipltu,7],
+        Dens=int_linear(self.table[ipltl,7],self.table[ipltu,7],
                 self.table[iputl,7],self.table[iputu,7],tnorm,pnorm)
-                
-        
+
+        return Vp, Vs, Vp_an, Vs_an, Vphi, Dens
+
+
     def interp_grid(self,press,temps,prop):
         """
         Inputs: press = pressures
@@ -134,17 +136,17 @@ class SeismicLookupTable:
                 prop   = property eg. Vs
         Returns: interpolated values of a given table property
                  on a grid defined by press and temps
-              
+
         eg. basalt.interp([pressures],[temperature],basalt.Vs)
         """
-        
+
         grid=interp2d(self.pres,self.temp,prop)
         out=grid(press,temps)
-        
-        return out
-            
 
-        
+        return out
+
+
+
     def interp_points(self,press,temps,field):
         """
         Inputs: press = pressures
@@ -155,18 +157,21 @@ class SeismicLookupTable:
         for pressures and temperatures
         eg. basalt.interp_points(list(zip(pressures,temperature)),basalt.Vs)
         """
+        #To allow single p-t points to be passed in
+        press=[press] if np.size(press)==1 else press
+        temps=[temps] if np.size(temps)==1 else temps
+
         grid=interp2d(self.pres,self.temp,field)
-        
-        
-        out=np.zeros(len(press))
-        for i in range(len(press)):
+
+        out=np.zeros(np.size(press))
+        for i in range(np.size(press)):
             out[i]=grid(press[i],temps[i])
-            
+
         return out
-        
-        
-        
-        
+
+
+
+
 def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
     """
     Input: bas = value for basaltic composition
@@ -176,6 +181,10 @@ def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
            lhz_fr = lherzolite fraction
            hzb_fr = harzburgite fraction
     Returns: hmean = harmonic mean of input values
+
+    bas, lhz, hzb must be of equal length
+    This routine assumes 3 component mechanical mixture
+
     """
     m1=(1./bas)*bas_fr
     m2=(1./lhz)*lhz_fr
@@ -184,8 +193,8 @@ def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
     hmean=1/(m1+m2+m3)
 
     return hmean
-    
-    
+
+
 
 
 #class MultiComponent:
