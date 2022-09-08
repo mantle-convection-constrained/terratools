@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp2d, interp1d
 import os
 
 
@@ -9,6 +9,8 @@ class SeismicLookupTable:
     def __init__(self,table_path):
         """
         Inputs: table_path = '/path/to/data/table/'
+
+        Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
         """
         try:
             self.table=np.genfromtxt(f'{table_path}')
@@ -59,6 +61,8 @@ class SeismicLookupTable:
         Returns: Vp, Vs, Vp_an, Vs_an, Vphi, Dens
         For a given temperature and pressure, find the locations of the
         upper and lower bounds in a seismic conversion table.
+
+        Example: vp, vs, vp_an, vs_an, vphi, dens = basalt.get_vals(P,T)
          """
 
 
@@ -129,18 +133,18 @@ class SeismicLookupTable:
         return Vp, Vs, Vp_an, Vs_an, Vphi, Dens
 
 
-    def interp_grid(self,press,temps,prop):
+    def interp_grid(self,press,temps,field):
         """
         Inputs: press = pressures
                 temps = temperatures
-                prop   = property eg. Vs
+                field = data field (eg. basalt.Vs)
         Returns: interpolated values of a given table property
                  on a grid defined by press and temps
 
         eg. basalt.interp([pressures],[temperature],basalt.Vs)
         """
 
-        grid=interp2d(self.pres,self.temp,prop)
+        grid=interp2d(self.pres,self.temp,field)
         out=grid(press,temps)
 
         return out
@@ -151,11 +155,12 @@ class SeismicLookupTable:
         """
         Inputs: press = pressures
                 temps = temperatures (press and temps must be of equal length)
-                prop   = property eg. Vs
+                field   = data field (eg. basalt.Vs)
         Returns:
         For a given table property (eg. Vs) return interpolated values
         for pressures and temperatures
-        eg. basalt.interp_points(list(zip(pressures,temperature)),basalt.Vs)
+
+        Example: bas_vs = basalt.interp_points(pressure(s),temperature(s),basalt.Vs)
         """
         #To allow single p-t points to be passed in
         press=[press] if np.size(press)==1 else press
@@ -174,9 +179,9 @@ class SeismicLookupTable:
 
 def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
     """
-    Input: bas = value for basaltic composition
-           lhz = value for lherzolite composition
-           hzb = value for harzburgite composition
+    Input: bas = data for basaltic composition (eg. basalt.Vs)
+           lhz = data for lherzolite composition
+           hzb = data for harzburgite composition
            bas_fr = basalt fraction
            lhz_fr = lherzolite fraction
            hzb_fr = harzburgite fraction
@@ -194,7 +199,30 @@ def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
 
     return hmean
 
+def linear_interp_1d(vals1, vals2, c1, c2, cnew):
+    """
+    Inputs: v1 = data for composition 1
+            v2 = data for composition 2
+            c1 = C-value for composition 1
+            c2 = C-value for composition 2
+            cnew  = C-value(s) for new composition(s)
 
+    Returns: interpolated values for compostions cnew
+    """
+
+    #Normalise table c-values
+    cmin=min(c1,c2)
+    cmax=max(c1,c2)
+    if c1==cmin :
+        v1=vals1
+        v2=vals2
+    else:
+        v1=vals2
+        v2=vals1
+    interpolated = interp1d(np.array([cmin,cmax]),[v1.flatten(),v2.flatten()],
+                            fill_value='extrapolate',axis=0)
+
+    return interpolated(cnew)
 
 
 #class MultiComponent:
