@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp2d, griddata
 import os
 
 
@@ -15,6 +15,9 @@ class SeismicLookupTable:
         except:
             self.table=np.genfromtxt(f'{table_path}',skip_header=1)
 
+
+        self.P = self.table[:,0]
+        self.T = self.table[:,1]
         self.pres=np.unique(self.table[:,0])
         self.temp=np.unique(self.table[:,1])
         self.t_max=np.max(self.temp)
@@ -31,6 +34,9 @@ class SeismicLookupTable:
         self.Dens=np.zeros((len(self.temp),len(self.pres)))
         self.Qs=np.zeros((len(self.temp),len(self.pres)))
         self.T_sol=np.zeros((len(self.temp),len(self.pres)))
+        self.fields = {'vp': 2, 'vs': 3, 'vp_ani': 4, 'vs_ani': 5, 'vphi': 6, 'density': 7, 'qs': 8, 't_sol': 9}
+
+
         for i, p in enumerate(self.pres):
             self.Vp[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),2]
             self.Vs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),3]
@@ -129,45 +135,58 @@ class SeismicLookupTable:
         return Vp, Vs, Vp_an, Vs_an, Vphi, Dens
 
 
-    def interp_grid(self,press,temps,prop):
+    def interp_grid(self,press,temps,field):
         """
-        Inputs: press = pressures
-                temps = temperatures
-                prop   = property eg. Vs
+        Given a range of pressures and temperatures, return a 2D 
+        grid of values of the field of choice.
+
+
+        Inputs: press = pressures along P axis 
+                temps = temperatures along T axis
+                field = property to interpolate eg. Vs
         Returns: interpolated values of a given table property
                  on a grid defined by press and temps
 
-        eg. basalt.interp([pressures],[temperature],basalt.Vs)
+        eg. basalt.interp([pressures],[temperature],'Vs')
         """
 
-        grid=interp2d(self.pres,self.temp,prop)
-        out=grid(press,temps)
+        # get column index for field of interest
+        i_field = self.fields[field.lower()]
+
+        # set up interp2d object
+        grid = interp2d(self.P,self.T,self.table[:,i_field], kind='linear')
+
+        out = grid(press, temps)
 
         return out
 
 
 
-    def interp_points(self,press,temps,field):
+    def interp_points(self,points,field):
         """
-        Inputs: press = pressures
-                temps = temperatures (press and temps must be of equal length)
-                prop   = property eg. Vs
+        Takes in pressure, temperature points in a 2D array and returns 
+        a 1D array of interpolated points to those pressures and
+        temperatures. 
+
+
+        Inputs: points = pressure-temperature points in a 2D array.
+                         The first column should be pressure and the 
+                         second column temperature. 
+                field = property to interpolate eg. Vs
+
         Returns:
         For a given table property (eg. Vs) return interpolated values
         for pressures and temperatures
-        eg. basalt.interp_points(list(zip(pressures,temperature)),basalt.Vs)
+        eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
         """
-        #To allow single p-t points to be passed in
-        press=[press] if np.size(press)==1 else press
-        temps=[temps] if np.size(temps)==1 else temps
 
-        grid=interp2d(self.pres,self.temp,field)
+        # get column index for field of interest
+        i_field = self.fields[field.lower()]
 
-        out=np.zeros(np.size(press))
-        for i in range(np.size(press)):
-            out[i]=grid(press[i],temps[i])
+        # set up interp2d object
+        grid = griddata((self.P,self.T),self.table[:,i_field], points, method='linear')
 
-        return out
+        return grid
 
 
 
