@@ -2,6 +2,16 @@
 
 fulldir=`pwd`
 
+# use numdiff but fall back to diff if not found:
+which numdiff >/dev/null
+if [ $? -eq 0 ]
+then
+  diffcmd="numdiff -r 2e-5 -s ' \t\n[],'"
+else
+  diffcmd="diff"
+  echo "WARNING: numdiff not found, please install! Falling back to diff."
+fi
+
 if [ -z $PYTHON ]
 then
   PYTHON=python
@@ -80,6 +90,16 @@ done
 
 
 $PYTHON -m unittest discover ./tests || (echo "ERROR: unittests failed"; exit 1) || exit 1
+echo ""
+
+echo "*** checking examples/ ..."
+cd examples
+for test in `ls example*.py`
+do
+    #[ $test == "skipped_test.py" ] && echo "  *** skipping $test !" && continue
+    testit $test $fulldir || exit 1
+done
+cd ..
 echo ""
 
 echo "*** ./test.sh done"

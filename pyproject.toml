@@ -21,12 +21,12 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 numpy = "^1.23"
+scipy = "^1.7"
 netcdf4 = "^1"
-stripy = "^2.1.0"
+matplotlib = "^3.5"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.5.0"
-matplotlib = "^3.5.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
