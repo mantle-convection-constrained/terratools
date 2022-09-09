@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d, griddata
+from scipy.interpolate import interp2d, griddata, interp1d
 import os
 
 
@@ -227,17 +227,9 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
     Returns: interpolated values for compostions cnew
     """
-
-    #Normalise table c-values
-    cmin=min(c1,c2)
-    cmax=max(c1,c2)
-    if c1==cmin :
-        v1=vals1
-        v2=vals2
-    else:
-        v1=vals2
-        v2=vals1
-    interpolated = interp1d(np.array([cmin,cmax]),[v1.flatten(),v2.flatten()],
+    
+    interpolated = interp1d(np.array([c1,c2]),[vals1.flatten(),vals2.flatten()],
                             fill_value='extrapolate',axis=0)
+              
 
     return interpolated(cnew)
