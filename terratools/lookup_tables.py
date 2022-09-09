@@ -137,11 +137,11 @@ class SeismicLookupTable:
 
     def interp_grid(self,press,temps,field):
         """
-        Given a range of pressures and temperatures, return a 2D 
+        Given a range of pressures and temperatures, return a 2D
         grid of values of the field of choice.
 
 
-        Inputs: press = pressures along P axis 
+        Inputs: press = pressures along P axis
                 temps = temperatures along T axis
                 field = property to interpolate eg. Vs
         Returns: interpolated values of a given table property
@@ -164,14 +164,14 @@ class SeismicLookupTable:
 
     def interp_points(self,points,field):
         """
-        Takes in pressure, temperature points in a 2D array and returns 
+        Takes in pressure, temperature points in a 2D array and returns
         a 1D array of interpolated points to those pressures and
-        temperatures. 
+        temperatures.
 
 
         Inputs: points = pressure-temperature points in a 2D array.
-                         The first column should be pressure and the 
-                         second column temperature. 
+                         The first column should be pressure and the
+                         second column temperature.
                 field = property to interpolate eg. Vs
 
         Returns:
