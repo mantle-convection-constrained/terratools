@@ -242,16 +242,3 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
     return interpolated(cnew)
 
-
-#class MultiComponent:
-#    def __init__(self, hzb_tab, lhz_tab, bas_tab, pt):
-#        """
-#        Inputs: hzb_tab = harzburgite table
-#                lhz_tab = lherzolite table
-#                bas_tab = basalt table
-#                pt      = array with dimensions (n,2) where column 0
-#                          is pressures and column 1 is temperatures
-#        """
-#
-#
-#        ipx = np.where(np.abs(bas_tab[:,0]-pt[:,0]) == np.min(np.abs(self.table[:,0]-pval)))[0]
