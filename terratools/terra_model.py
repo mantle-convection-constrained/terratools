@@ -9,6 +9,7 @@ convection simulation.
 
 import netCDF4
 import numpy as np
+import re
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -96,10 +97,56 @@ class FieldDimensionError(Exception):
 class TerraModel:
     """
     Class holding a TERRA model at a single point in time.
+
+    A TerraModel contains the coordinates of each lateral point, the
+    radii of each layer, and zero or more fields at each of these points.
+
+    Fields are either 2D (for scalar fields like temperature) or 3D
+    (for multicomponent arrays like flow velocity) NumPy arrays.
+
+    There are two kinds of methods which give you information about
+    the contents of a TerraModel:
+
+    1. Methods starting with ``get_`` return a reference to something held
+       within the model.  Hence things returned
+       by ``get``ters can be modified and the TerraModel instance is also
+       modified.  For example, ``get_field("vp")`` returns the array containing
+       the P-wave velocity for the whole model, and you can update any values
+       within it.  You should **not** change the shape or length of any arrays
+       returned from ``get_`` methods, as this will make the internal state
+       of a TerraModel inconsistent.
+
+    2. Methods which are simply a noun (like ``number_of_compositions``)
+       return a value and this cannot be used to change the model.
+
+    Model coordinates
+    -----------------
+    TerraModels have a number of layers, and within each layer there are
+    a number of lateral points, of which there are always the same number.
+    Points on each layer at the same point index always have the same
+    coordinates.
+
+    Use ``TerraModel.get_lateral_points()`` to obtain the longitude and
+    latitude of the lateral points.
+
+    ``TerraModel.get_radii()`` returns instead the radii (in km) of
+    each of the layers in the model.
+
+    Model fields
+    ------------
+    Models fields (as returned by ``TerraModel.get_field``) are simply
+    NumPy arrays.  The first index is the layer index, and the second
+    is the point index.
+
+    As an example, if for a model ``m`` you obtain the temperature field
+    with a call ``temp = m.get_field("t")``, the lateral coordinates
+    ``lon, lat = m.get_lateral_points()`` and the radii ``r = m.get_radii()``,
+    the temperature at ``lon[ip], lat[ip]`` and radius ``r[ir]`` is given
+    by ``temp[ir,ip]``.
     """
 
-    def __init__(self, r, lon, lat, fields={}, c_histogram=False,
-        c_histogram_names=None, lookup_tables=None):
+    def __init__(self, lon, lat, r,
+            fields={}, c_histogram_names=None, lookup_tables=None):
         """
         Construct a TerraModel.
 
@@ -128,20 +175,16 @@ class TerraModel:
         when using multicomponent composition histograms; one for
         each proportion.  Note that this is not enforced, however.
 
-        :param r: Radius of nodes in radial direction.  Must increase monotonically.
         :param lon: Position in longitude of lateral points (degrees)
         :param lat: Position in latitude of lateral points (degrees).  lon and
             lat must be the same length
+        :param r: Radius of nodes in radial direction.  Must increase monotonically.
         :param fields: dict whose keys are the names of field, and whose
             values are numpy arrays of dimension (nlayers, npts) for
             scalar fields, and (nlayers, npts, ncomps) for a field
             with ``ncomps`` components at each point
-        :param c_histogram: Whether the set of compositions define
-            a 'composition histogram' representing a mechanical mixture
-            of compositions, or a set of endmember compositions between
-            which we should interpolate
         :param c_histogram_names: The names of each composition of the
-            composition histogram
+            composition histogram, passed as a ``c_hist`` field
         :param lookup_tables: An iterable of SeismicLookupTable corresponding
             to the number of compositions for this model
         """
@@ -159,14 +202,10 @@ class TerraModel:
         self._radius = np.array(r, dtype=COORDINATE_TYPE)
 
         # Check for monotonicity of radius
-        if not np.all(self._radius[1:] - self._radius[:-1] > 0) and \
-                not np.all(self._radius[1:] - self._radius[:-1] < 0):
+        if not np.all(self._radius[1:] - self._radius[:-1] > 0):
             raise ValueError("radii must increase or decrease monotonically")
 
-        # If True, we are using a composition histogram approach and
-        # composition is a 'vector' field
-        self._c_histogram = None
-        # The names of the compositions
+        # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
 
         # All the fields are held within _fields, either as scalar or
@@ -186,7 +225,7 @@ class TerraModel:
             elif _is_vector_field(key):
                 expected_ncomps = _expected_vector_field_ncomps(key)
                 if expected_ncomps is None:
-                    _check_field_shape(self, val, key, scalar=False)
+                    self._check_field_shape(val, key, scalar=False)
                 else:
                     if array.shape != (nlayers, npts, expected_ncomps):
                         raise FieldDimensionError(self, val, key)
@@ -195,6 +234,15 @@ class TerraModel:
                 raise FieldNameError(key)
 
             self.set_field(key, array)
+
+
+    def __repr__(self):
+        return f"""TerraModel:
+           number of radii: {self._nlayers}
+             radius limits: {(np.min(self._radius), np.max(self._radius))}
+  number of lateral points: {self._npts}
+                    fields: {[name for name in self.field_names()]}
+         composition names: {self.get_composition_names()}"""
 
 
     def field_names(self):
@@ -206,7 +254,7 @@ class TerraModel:
         return self._fields.keys()
 
 
-    def get_value(self, lon, lat, r, field, depth=False):
+    def evaluate(self, lon, lat, r, field, depth=False):
         """
         Evaluate the value of field at radius r km, latitude lat degrees
         and longitude lon degrees.
@@ -225,10 +273,13 @@ class TerraModel:
 
         array = self.get_field(field)
 
+        raise NotImplementedError
+
 
     def set_field(self, field, values):
         """
-        Create a new field within a TerraModel from a predefined array.
+        Create a new field within a TerraModel from a predefined array,
+        replacing any existing field data.
 
         :param field: Name of field
         :param array: numpy.array containing the field.  For scalars it
@@ -252,10 +303,41 @@ class TerraModel:
         :param ncomps: Number of components for a multicomponent field.
         """
         _check_field_name(name)
-        if ncomps is not None:
-            self.set_field(name, np.zeros((self._nlayers, self._npts), dtype=VALUE_TYPE))
+        if ncomps is not None and ncomps < 1:
+            raise ValueError(f"ncomps cannot be less than 1 (is {ncomps})")
+
+        is_vector = _is_vector_field(name)
+        ncomps_expected = _expected_vector_field_ncomps(name) if is_vector else None
+
+        nlayers = self._nlayers
+        npts = self._npts
+
+        if is_vector:
+            # For a vector field, either we have not set ncomps and we use the
+            # expected number, or there is no expected number and we use what is
+            # passed in.  Fields without an expected number of components
+            # cannot be made unless ncomps is set.
+            if ncomps_expected is None:
+                if ncomps is None:
+                    raise ValueError(f"Field {name} has no expected number " +
+                        "of components, so ncomps must be passed")
+                self.set_field(name, np.zeros((nlayers, npts), dtype=VALUE_TYPE))
+            else:
+                if ncomps is not None:
+                    if ncomps != ncomps_expected:
+                        raise ValueError(f"Field {name} should have " +
+                            f"{ncomps_expected} fields, but {ncomps} requested")
+                else:
+                    ncomps = ncomps_expected
+
+            self.set_field(name,
+                np.zeros((nlayers, npts, ncomps), dtype=VALUE_TYPE))
+
         else:
-            self.set_field(name, np.zeros((self._nlayers, self._npts, ncomps), dtype=VALUE_TYPE))
+            # Scalar field; should not ask for ncomps at all
+            if ncomps is not None:
+                raise ValueError(f"Scalar field {name} cannot have {ncomps} components")
+            self.set_field(name, np.zeros((nlayers, npts), dtype=VALUE_TYPE))
 
 
     def has_field(self, field):
@@ -290,7 +372,10 @@ class TerraModel:
     def _check_field_shape(self, array, name, scalar=True):
         """
         If the first two dimensions of array are not (nlayers, npts),
-        raise an error.
+        raise an error, and likewise raise an error if the array is
+        not rank-2 or rank-3.
+
+        :raises: FieldDimensionError
         """
         if len(array.shape) not in (2, 3):
             raise FieldDimensionError(self, array, name)
@@ -312,7 +397,7 @@ class TerraModel:
             return None
 
 
-    def composition_names(self):
+    def get_composition_names(self):
         """
         If a model contains a composition histogram field ('c_hist'),
         return the names of the compositions; otherwise return None.
@@ -320,7 +405,7 @@ class TerraModel:
         :returns: list of composition names
         """
         if self.has_field("c_hist"):
-            return self._composition_names
+            return self._c_hist_names
         else:
             return None
 
@@ -386,6 +471,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _fields = {}
     _lat = np.empty((npts_total,), dtype=COORDINATE_TYPE)
     _lon = np.empty((npts_total,), dtype=COORDINATE_TYPE)
+    _c_hist_names = None
 
     npts_pointer = 0
     for (file_number, file) in enumerate(files):
@@ -475,26 +561,49 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 else:
                     fields_read.add(field_name)
 
+                # List of variables to read
+                vars_to_read = _variable_names_from_field(field_name)
+                ncomps = len(vars_to_read)
+                # Convert field names to composition names
+                _c_hist_names = [re.sub("Frac$", "", s).lower() for s in vars_to_read]
 
+                c_hist = np.empty((nlayers, npts_total, ncomps), dtype=VALUE_TYPE)
+
+                for (i, local_var) in enumerate(vars_to_read):
+                    c_hist[:,npts_range,i] = nc[local_var][:]
+
+                _fields["c_hist"] = c_hist
 
         npts_pointer += npts
 
-    # Remove duplicate points
+    # Check for need to sort points in increasing radius
+    must_flip_radii = len(_r) > 1 and _r[1] < _r[0]
+    if must_flip_radii:
+        _r = np.flip(_r)
+
+    # Remove duplicate points and ensure radii increase
     _, unique_indices = np.unique(np.stack((_lon, _lat)), axis=1, return_index=True)
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
     for (field_name, array) in _fields.items():
         ndims = array.ndim
         if ndims == 2:
-            _fields[field_name] = array[:,unique_indices]
+            if must_flip_radii:
+                _fields[field_name] = array[::-1,unique_indices]
+            else:
+                _fields[field_name] = array[:,unique_indices]
         elif ndims == 3:
-            _fields[field_name] = array[:,unique_indices,:]
+            if must_flip_radii:
+                _fields[field_name] = array[::-1,unique_indices,:]
+            else:
+                _fields[field_name] = array[:,unique_indices,:]
         else:
             # Shouldn't be able to happen
             raise ValueError(
                 f"field {field_name} has an unexpected number of dimensions ({ndims})")
 
-    return TerraModel(r=_r, lon=_lon, lat=_lat, fields=_fields)
+    return TerraModel(r=_r, lon=_lon, lat=_lat, fields=_fields,
+        c_histogram_names=_c_hist_names)
 
 
 def _is_valid_field_name(field):
@@ -504,7 +613,7 @@ def _is_valid_field_name(field):
     return field in _ALL_FIELDS.keys()
 
 
-def _variable_name_from_field(field):
+def _variable_names_from_field(field):
     """
     Return the netCDF variable name(s) of a field from the TerraModel field name.
     The values returned are tuples.
