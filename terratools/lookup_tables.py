@@ -37,7 +37,7 @@ class SeismicLookupTable:
         self.Dens=np.zeros((len(self.temp),len(self.pres)))
         self.Qs=np.zeros((len(self.temp),len(self.pres)))
         self.T_sol=np.zeros((len(self.temp),len(self.pres)))
-        self.fields = {'vp': [2, 'km/s'], 'vs': [3, 'km/s'], 'vp_ani': [4, 'km/s'], 'vs_ani': [5, 'km/s'], 
+        self.fields = {'vp': [2, 'km/s'], 'vs': [3, 'km/s'], 'vp_ani': [4, 'km/s'], 'vs_ani': [5, 'km/s'],
                        'vphi': [6, 'km/s'], 'density': [7, '$kg/m^3$'], 'qs': [8, 'Hz'], 't_sol': [9, 'K']}
 
 
@@ -194,15 +194,15 @@ class SeismicLookupTable:
 
     def plot_table(self, ax, field, cmap='viridis_r'):
         """
-        Plots the lookup table as a grid with values coloured by 
+        Plots the lookup table as a grid with values coloured by
         value for the field given.
 
-        Inputs: ax = matplotlib axis object to plot on. 
+        Inputs: ax = matplotlib axis object to plot on.
                 field = property to plot e.g. Vp.
                 cmap = matplotlib colourmap. default is cividis
 
         Returns:
-        
+
         """
 
         # get column index for field of interest
@@ -229,12 +229,12 @@ class SeismicLookupTable:
         """
         Plots the lookup table as contours using matplotlibs tricontourf.
 
-        Inputs: ax = matplotlib axis object to plot on. 
+        Inputs: ax = matplotlib axis object to plot on.
                 field = property to plot e.g. Vp.
                 cmap = matplotlib colourmap. default is cividis
 
         Returns:
-        
+
         """
 
         # get column index for field of interest
