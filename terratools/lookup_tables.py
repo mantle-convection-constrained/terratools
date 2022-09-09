@@ -2,6 +2,7 @@ import numpy as np
 from .utils import norm_vals, int_linear
 from scipy.interpolate import interp2d, griddata
 import os
+import matplotlib.pyplot as plt
 
 
 
@@ -20,6 +21,8 @@ class SeismicLookupTable:
         self.T = self.table[:,1]
         self.pres=np.unique(self.table[:,0])
         self.temp=np.unique(self.table[:,1])
+        self.n_uniq_p = len(self.pres)
+        self.n_uniq_t = len(self.temp)
         self.t_max=np.max(self.temp)
         self.t_min=np.min(self.temp)
         self.p_max=np.max(self.pres)
@@ -34,7 +37,8 @@ class SeismicLookupTable:
         self.Dens=np.zeros((len(self.temp),len(self.pres)))
         self.Qs=np.zeros((len(self.temp),len(self.pres)))
         self.T_sol=np.zeros((len(self.temp),len(self.pres)))
-        self.fields = {'vp': 2, 'vs': 3, 'vp_ani': 4, 'vs_ani': 5, 'vphi': 6, 'density': 7, 'qs': 8, 't_sol': 9}
+        self.fields = {'vp': [2, 'km/s'], 'vs': [3, 'km/s'], 'vp_ani': [4, 'km/s'], 'vs_ani': [5, 'km/s'], 
+                       'vphi': [6, 'km/s'], 'density': [7, '$kg/m^3$'], 'qs': [8, 'Hz'], 't_sol': [9, 'K']}
 
 
         for i, p in enumerate(self.pres):
@@ -151,7 +155,7 @@ class SeismicLookupTable:
         """
 
         # get column index for field of interest
-        i_field = self.fields[field.lower()]
+        i_field = self.fields[field.lower()][0]
 
         # set up interp2d object
         grid = interp2d(self.P,self.T,self.table[:,i_field], kind='linear')
@@ -181,14 +185,71 @@ class SeismicLookupTable:
         """
 
         # get column index for field of interest
-        i_field = self.fields[field.lower()]
+        i_field = self.fields[field.lower()][0]
 
         # set up interp2d object
         grid = griddata((self.P,self.T),self.table[:,i_field], points, method='linear')
 
         return grid
 
+    def plot_table(self, ax, field, cmap='viridis_r'):
+        """
+        Plots the lookup table as a grid with values coloured by 
+        value for the field given.
 
+        Inputs: ax = matplotlib axis object to plot on. 
+                field = property to plot e.g. Vp.
+                cmap = matplotlib colourmap. default is cividis
+
+        Returns:
+        
+        """
+
+        # get column index for field of interest
+        i_field = self.fields[field.lower()][0]
+        units = self.fields[field.lower()][1]
+        data = self.table[:,i_field]
+
+        # temperature on x axis
+        data = data.reshape((self.n_uniq_p, self.n_uniq_t)).T
+        print(data.shape)
+
+        chart = ax.imshow(data, origin = 'lower', extent = [self.p_min, self.p_max, self.t_min, self.t_max],
+                          cmap=cmap, aspect='auto')
+
+        # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
+
+        plt.colorbar(chart, ax=ax, label=f'{field} ({units})')
+        ax.set_ylabel('Temperature (K)')
+        ax.set_xlabel('Pressure (Pa)')
+        ax.set_title(f'P-T graph for {field}')
+
+
+    def plot_table_contour(self, ax, field, cmap='viridis_r'):
+        """
+        Plots the lookup table as contours using matplotlibs tricontourf.
+
+        Inputs: ax = matplotlib axis object to plot on. 
+                field = property to plot e.g. Vp.
+                cmap = matplotlib colourmap. default is cividis
+
+        Returns:
+        
+        """
+
+        # get column index for field of interest
+        i_field = self.fields[field.lower()][0]
+        units = self.fields[field.lower()][1]
+        data = self.table[:,i_field]
+
+        chart = ax.tricontourf(self.P,self.T,self.table[:,i_field], cmap=cmap)
+
+        # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
+
+        plt.colorbar(chart, ax=ax, label=f'{field} ({units})')
+        ax.set_ylabel('Temperature (K)')
+        ax.set_xlabel('Pressure (Pa)')
+        ax.set_title(f'P-T graph for {field}')
 
 
 def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
