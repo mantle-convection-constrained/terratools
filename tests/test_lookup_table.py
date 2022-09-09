@@ -2,14 +2,14 @@ from cgitb import lookup
 import unittest
 import numpy as np
 from terratools.lookup_tables import SeismicLookupTable
+import pathlib 
 
-# lookup_tab_path = './data/test_lookup_table.txt'
-
+TESTDATA_PATH = pathlib.Path(__file__).parent.joinpath('data','test_lookup_table.txt')
 class TestLookup(unittest.TestCase):
 
     def setUp(self):
-        self.lookup_tab_path = './data/test_lookup_table.txt'
-        self.tab = SeismicLookupTable(self.lookup_tab_path)
+        self.lookup_tab_path = './tests/data/test_lookup_table.txt'
+        self.tab = SeismicLookupTable(TESTDATA_PATH)
 
     def test_read_file(self):
         
