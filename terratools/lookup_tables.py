@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d, griddata
+from scipy.interpolate import interp2d, griddata, interp1d
 import os
 import matplotlib.pyplot as plt
 
@@ -10,6 +10,8 @@ class SeismicLookupTable:
     def __init__(self,table_path):
         """
         Inputs: table_path = '/path/to/data/table/'
+
+        Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
         """
         try:
             self.table=np.genfromtxt(f'{table_path}')
@@ -69,6 +71,8 @@ class SeismicLookupTable:
         Returns: Vp, Vs, Vp_an, Vs_an, Vphi, Dens
         For a given temperature and pressure, find the locations of the
         upper and lower bounds in a seismic conversion table.
+
+        Example: vp, vs, vp_an, vs_an, vphi, dens = basalt.get_vals(P,T)
          """
 
 
@@ -254,9 +258,9 @@ class SeismicLookupTable:
 
 def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
     """
-    Input: bas = value for basaltic composition
-           lhz = value for lherzolite composition
-           hzb = value for harzburgite composition
+    Input: bas = data for basaltic composition (eg. basalt.Vs)
+           lhz = data for lherzolite composition
+           hzb = data for harzburgite composition
            bas_fr = basalt fraction
            lhz_fr = lherzolite fraction
            hzb_fr = harzburgite fraction
@@ -274,18 +278,19 @@ def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
 
     return hmean
 
+def linear_interp_1d(vals1, vals2, c1, c2, cnew):
+    """
+    Inputs: v1 = data for composition 1
+            v2 = data for composition 2
+            c1 = C-value for composition 1
+            c2 = C-value for composition 2
+            cnew  = C-value(s) for new composition(s)
+
+    Returns: interpolated values for compostions cnew
+    """
+
+    interpolated = interp1d(np.array([c1,c2]),[vals1.flatten(),vals2.flatten()],
+                            fill_value='extrapolate',axis=0)
 
 
-
-#class MultiComponent:
-#    def __init__(self, hzb_tab, lhz_tab, bas_tab, pt):
-#        """
-#        Inputs: hzb_tab = harzburgite table
-#                lhz_tab = lherzolite table
-#                bas_tab = basalt table
-#                pt      = array with dimensions (n,2) where column 0
-#                          is pressures and column 1 is temperatures
-#        """
-#
-#
-#        ipx = np.where(np.abs(bas_tab[:,0]-pt[:,0]) == np.min(np.abs(self.table[:,0]-pval)))[0]
+    return interpolated(cnew)
