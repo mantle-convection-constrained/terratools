@@ -241,4 +241,3 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
                             fill_value='extrapolate',axis=0)
 
     return interpolated(cnew)
-
