@@ -227,9 +227,9 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
     Returns: interpolated values for compostions cnew
     """
-    
+
     interpolated = interp1d(np.array([c1,c2]),[vals1.flatten(),vals2.flatten()],
                             fill_value='extrapolate',axis=0)
-              
+
 
     return interpolated(cnew)
