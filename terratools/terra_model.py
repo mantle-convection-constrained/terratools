@@ -28,8 +28,10 @@ _SCALAR_FIELDS = {
     'p': 'Pressure field [GPa]',
     'vp': 'P-wave velocity (elastic) [km/s]',
     'vs': 'S-wave velocity (elastic) [km/s]',
+    'vphi': 'Bulk sound velocity (elastic) [km/s]',
     'vp_an': 'P-wave velocity (anelastic) [km/s]',
     'vs_an': 'S-wave velocity (anelastic) [km/s]',
+    'vphi_an': 'Bulk sound velocity (anelastic) [km/s]',
     'density': 'Density [g/cm^3]',
     'qp': 'P-wave quality factor [unitless]',
     'qs': 'S-wave quality factor [unitless]',
@@ -59,6 +61,12 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     't': ("Temperature",),
     'c_hist': ("BasaltFrac", "LherzFrac"),
     'u_xyz': ("Velocity_x", "Velocity_y", "Velocity_z"),
+    'vp': ("Vp",),
+    'vs': ("Vs",),
+    'vphi': ("V_bulk",),
+    'vp_an': ("Vp_anelastic",),
+    'vs_an': ("Vs_anelastic",),
+    'Density': ("Density",),
 }
 
 # Mapping of variable names in NetCDF files to field names
