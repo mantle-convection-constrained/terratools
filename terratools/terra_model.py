@@ -87,7 +87,8 @@ class NoFieldError(Exception):
 
 class FieldDimensionError(Exception):
     """
-    Exception type raised when trying to access a field which is not present
+    Exception type raised when trying to set a field when the dimensions
+    do not match the coordinates in the model
     """
     def __init__(self, model, array, name=""):
         self.message = f"Field array {name} has incorrect first two dimensions. " + \
@@ -144,6 +145,14 @@ class TerraModel:
     ``lon, lat = m.get_lateral_points()`` and the radii ``r = m.get_radii()``,
     the temperature at ``lon[ip], lat[ip]`` and radius ``r[ir]`` is given
     by ``temp[ir,ip]``.
+
+    Nearest neighbours
+    ------------------
+    The nearest lateral point index to an arbitrary geographic location
+    can be obtained by ``m.nearest_index(lon, lat)``, whilst the nearest
+    ``n`` neighbours can be obtained with ``m.nearest_indices(lon, lat, n)``.
+    ``m.nearest_neighbours(lon, lat, n)`` also returns the distances to
+    each near-neighbour.
     """
 
     def __init__(self, lon, lat, r,
