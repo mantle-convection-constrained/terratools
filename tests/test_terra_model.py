@@ -291,6 +291,21 @@ class TestTerraModelNearestIndex(unittest.TestCase):
         r = [10, 20]
         model = TerraModel(lon, lat, r)
         self.assertEqual(model.nearest_index(0, 0), 2)
+        self.assertCountEqual(model.nearest_index([0, 0.1], [0, 0.1]), [2, 2], 2)
+
+    def test_nearest_indices_zero_n(self):
+        with self.assertRaises(ValueError):
+            dummy_model().nearest_indices(0, 0, 0)
+
+    def test_nearest_indices(self):
+        lon = [20, 22, 0.1, 25]
+        lat = [20, 22, 0.1, 24]
+        r = [10, 20]
+        model = TerraModel(lon, lat, r)
+        self.assertCountEqual(model.nearest_indices(0, 0, n=3), [2, 0, 1])
+        indices = model.nearest_indices([0, 0.1], [0, 0.1], n=4)
+        for inds in indices:
+            self.assertCountEqual(inds, [2, 0, 1, 3], 4)
 
 
 if __name__ == '__main__':

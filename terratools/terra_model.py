@@ -433,11 +433,12 @@ class TerraModel:
         """
         return self._radius
 
+
     def nearest_index(self, lon, lat):
         """
         Return the index or indices of the lateral point(s) nearest to the
         one or more points supplied.  lon and lat may either both be a scalar or
-        both an array of points; behvaiour is undefined if the a mix is
+        both an array of points; behaviour is undefined if a mix is
         provided.
 
         :param lon: Longitude of point(s) of interest (degrees)
@@ -445,6 +446,34 @@ class TerraModel:
         :returns: the index or indices of the nearest lateral point.
             This is a scalar for scalar input, and an array for array input.
         """
+        scalar_input = False
+        if np.isscalar(lon) and np.isscalar(lat):
+            scalar_input = True
+
+        indices = self.nearest_indices(lon, lat, 1)
+        if scalar_input:
+            return indices[0]
+        else:
+            return np.array([idx[0] for idx in indices])
+
+
+    def nearest_indices(self, lon, lat, n):
+        """
+        Return the indices of the lateral point(s) nearest to the
+        one or more points supplied.  lon and lat may either both be a scalar or
+        both an array of points; behaviour is undefined if a mix is
+        provided.
+
+        :param lon: Longitude of point(s) of interest (degrees)
+        :param lat: Latitude of point(s) of interest (degrees)
+        :param n: Number of nearest neighbours to find
+        :returns: the indices of the nearest n lateral points.
+            This is vector for scalar input, and a vector of vectors for array
+            input.
+        """
+        if n < 1:
+            raise ValueError("n must be 1 or more")
+
         scalar_input = False
 
         if np.isscalar(lon) and np.isscalar(lat):
@@ -457,13 +486,13 @@ class TerraModel:
         lon_radians = np.radians(lon)
         lat_radians = np.radians(lat)
         coords = np.array([[lat, lon] for lon, lat in zip(lon_radians, lat_radians)])
-        indices = self._knn_tree.kneighbors(coords, n_neighbors=1,
+        indices = self._knn_tree.kneighbors(coords, n_neighbors=n,
             return_distance=False)
 
         if scalar_input:
-            return indices[0][0]
+            return indices[0]
         else:
-            return np.array([idx[0] for idx in indices])
+            return indices
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
