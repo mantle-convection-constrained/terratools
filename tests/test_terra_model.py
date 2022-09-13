@@ -261,6 +261,7 @@ class TestTerraModelNewField(unittest.TestCase):
         self.assertTrue(
             fields_are_equal(model.get_field("c_hist"), np.zeros((nlayers, npts, 2))))
 
+
 class TestTerraModelRepr(unittest.TestCase):
     def test_repr(self):
         npts = 3
@@ -281,6 +282,15 @@ class TestTerraModelRepr(unittest.TestCase):
   number of lateral points: 3
                     fields: ['t', 'c_hist']
          composition names: ['a', 'b']""")
+
+
+class TestTerraModelNearestIndex(unittest.TestCase):
+    def test_nearest_index(self):
+        lon = [20, 22, 0.1, 25]
+        lat = [20, 22, 0.1, 24]
+        r = [10, 20]
+        model = TerraModel(lon, lat, r)
+        self.assertEqual(model.nearest_index(0, 0), 2)
 
 
 if __name__ == '__main__':
