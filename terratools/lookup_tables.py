@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d, griddata, interp1d
+from scipy.interpolate import interp2d, interp1d
 import os
 import matplotlib.pyplot as plt
 
@@ -39,8 +39,6 @@ class SeismicLookupTable:
         self.Dens=np.zeros((len(self.temp),len(self.pres)))
         self.Qs=np.zeros((len(self.temp),len(self.pres)))
         self.T_sol=np.zeros((len(self.temp),len(self.pres)))
-        self.fields = {'vp': [2, 'km/s'], 'vs': [3, 'km/s'], 'vp_ani': [4, 'km/s'], 'vs_ani': [5, 'km/s'],
-                       'vphi': [6, 'km/s'], 'density': [7, '$kg/m^3$'], 'qs': [8, 'Hz'], 't_sol': [9, 'K']}
 
 
         for i, p in enumerate(self.pres):
@@ -53,7 +51,9 @@ class SeismicLookupTable:
             self.Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
             self.T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
 
-
+        self.fields = {'vp': [2, self.Vp, 'km/s'], 'vs': [3,self.Vs, 'km/s'], 'vp_ani': [4, self.Vp_an, 'km/s'],
+                      'vs_ani': [5, self.Vs_an, 'km/s'], 'vphi': [6, self.Vphi, 'km/s'],
+                      'density': [7, self.Dens, '$kg/m^3$'], 'qs': [8, self.Qs, 'Hz'], 't_sol': [9, self.T_sol, 'K']}
 
 
 
@@ -145,56 +145,46 @@ class SeismicLookupTable:
 
     def interp_grid(self,press,temps,field):
         """
-        Given a range of pressures and temperatures, return a 2D
-        grid of values of the field of choice.
-
-
-        Inputs: press = pressures along P axis
-                temps = temperatures along T axis
-                field = property to interpolate eg. Vs
+        Routine for re-gridding lookup tables into new pressure-temperature space
+        Inputs: press = pressures
+                temps = temperatures
+                field = data field (eg. basalt.Vs)
         Returns: interpolated values of a given table property
-                 on a grid defined by press and temps
+                on a grid defined by press and temps
 
         eg. basalt.interp([pressures],[temperature],'Vs')
         """
 
-        # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
+        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
-        # set up interp2d object
-        grid = interp2d(self.P,self.T,self.table[:,i_field], kind='linear')
-
-        out = grid(press, temps)
-
-        return out
+        return grid(press,temps)
 
 
 
-    def interp_points(self,points,field):
+    def interp_points(self,press,temps,field):
         """
-        Takes in pressure, temperature points in a 2D array and returns
-        a 1D array of interpolated points to those pressures and
-        temperatures.
-
-
-        Inputs: points = pressure-temperature points in a 2D array.
-                         The first column should be pressure and the
-                         second column temperature.
-                field = property to interpolate eg. Vs
-
+        Inputs: press = pressures
+                temps = temperatures (press and temps must be of equal length)
+                prop   = property eg. Vs
         Returns:
         For a given table property (eg. Vs) return interpolated values
         for pressures and temperatures
         eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
         """
+        
+        #If integers are passed in then convert to indexable lists
+        press = [press] if type(press)==int or type(press)==float else press
+        temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
+        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
-        # set up interp2d object
-        grid = griddata((self.P,self.T),self.table[:,i_field], points, method='linear')
 
-        return grid
+        out=np.zeros(len(press))
+        for i in range(len(press)):
+            out[i]=grid(press[i],temps[i])
+
+        return out
+
 
     def plot_table(self, ax, field, cmap='viridis_r'):
         """

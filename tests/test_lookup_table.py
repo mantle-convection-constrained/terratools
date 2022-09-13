@@ -26,7 +26,7 @@ class TestLookup(unittest.TestCase):
         p_test=15
         t_test=15
 
-        self.assertAlmostEqual(self.tab.interp_points([p_test, t_test], 'Vp'), np.array([15]),
+        self.assertAlmostEqual(self.tab.interp_points(p_test, t_test, 'Vp'), np.array([15]),
                                msg='interpolation for single point failed')
 
     def test_interpolate_grid(self):
