@@ -196,10 +196,13 @@ class TerraModel:
         npts = len(lon)
         if len(lat) != npts:
             raise ValueError("length of lon and lat must be the same")
-        self._npts = npts
 
+        # Number of lateral points
+        self._npts = npts
+        # Longitude and latitude in degrees of lateral points
         self._lon = np.array(lon, dtype=COORDINATE_TYPE)
         self._lat = np.array(lat, dtype=COORDINATE_TYPE)
+        # Radius of each layer
         self._radius = np.array(r, dtype=COORDINATE_TYPE)
 
         # Check for monotonicity of radius
@@ -456,7 +459,6 @@ class TerraModel:
         else:
             return np.array([idx[0] for idx in indices])
 
-
     def nearest_indices(self, lon, lat, n):
         """
         Return the indices of the lateral point(s) nearest to the
@@ -475,6 +477,40 @@ class TerraModel:
             raise ValueError("n must be 1 or more")
 
         scalar_input = False
+        if np.isscalar(lon) and np.isscalar(lat):
+            scalar_input = True
+
+        indices, _ = self.nearest_neighbors(lon, lat, n)
+
+        return indices
+
+
+    def nearest_neighbors(self, lon, lat, n):
+        """
+        Return the indices of the lateral point(s) nearest to the
+        one or more points supplied, and the distances from the test point
+        to each point.  lon and lat may either both be a scalar or
+        both an array of points; behaviour is undefined if a mix is
+        provided.
+
+        Distances are in radians about the centre of the sphere; to
+        convert to great circle distances, multiply by the radius of
+        interest.
+
+        :param lon: Longitude of point(s) of interest (degrees)
+        :param lat: Latitude of point(s) of interest (degrees)
+        :param n: Number of nearest neighbours to find
+        :returns: (indices, distances), where the first item contains the
+            indices of the nearest n lateral points and the second item gives
+            the distances in radians about the centre on the sphere on
+            which the points all lie.
+            These are vectors for scalar input, and a vector of vectors for array
+            input.
+        """
+        if n < 1:
+            raise ValueError("n must be 1 or more")
+
+        scalar_input = False
 
         if np.isscalar(lon) and np.isscalar(lat):
             scalar_input = True
@@ -486,13 +522,12 @@ class TerraModel:
         lon_radians = np.radians(lon)
         lat_radians = np.radians(lat)
         coords = np.array([[lat, lon] for lon, lat in zip(lon_radians, lat_radians)])
-        indices = self._knn_tree.kneighbors(coords, n_neighbors=n,
-            return_distance=False)
+        distances, indices = self._knn_tree.kneighbors(coords, n_neighbors=n)
 
         if scalar_input:
-            return indices[0]
+            return indices[0], distances[0]
         else:
-            return indices
+            return indices, distances
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
