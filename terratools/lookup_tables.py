@@ -191,6 +191,9 @@ class SeismicLookupTable:
         eg. basalt.interp([pressures],[temperature],'Vs')
         """
 
+        press = [press] if type(press)==int or type(press)==float else press
+        temps = [temps] if type(temps)==int or type(temps)==float else temps
+
         _check_bounds(press,self.pres,'pressure')
         _check_bounds(temps,self.temp,'temperature')
 
