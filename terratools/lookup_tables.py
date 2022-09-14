@@ -18,6 +18,18 @@ class SeismicLookupTable:
         This also sets up interpolator objects (eg self.vp_interp)
         for rapid querying of points.
 
+        Currently the input table must be of the following strucutre:
+
+        Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus
+
+        ascending by pressure then temperature, ie:
+        P    T
+        0.0 500 ......
+        0.0 1000
+        0.0 1500
+        1e8 500
+        1e8 1000 .....etc
+
         Inputs: table_path = '/path/to/data/table.dat'
 
         Returns:
@@ -179,6 +191,9 @@ class SeismicLookupTable:
         eg. basalt.interp([pressures],[temperature],'Vs')
         """
 
+        _check_bounds(press,self.pres,'pressure')
+        _check_bounds(temps,self.temp,'temperature')
+
         grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
         return grid(press,temps)
@@ -199,6 +214,9 @@ class SeismicLookupTable:
         #If integers are passed in then convert to indexable lists
         press = [press] if type(press)==int or type(press)==float else press
         temps = [temps] if type(temps)==int or type(temps)==float else temps
+
+        _check_bounds(press,self.pres,'pressure')
+        _check_bounds(temps,self.temp,'temperature')
 
         grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
@@ -310,3 +328,18 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
 
     return interpolated(cnew)
+
+
+
+
+def _check_bounds(input,check,TP):
+    """
+    Inputs: input=vals of interest
+            check= range of table vals
+    """
+
+    if np.any(input[:]>np.max(check)):
+        print(f'One or more of your {TP} inputs exceeds the table range, reverting to maximum table value')
+
+    if np.any(input[:]<np.min(check)):
+        print(f'One or more of your {TP} inputs is below the table range, reverting to minimum table value')
