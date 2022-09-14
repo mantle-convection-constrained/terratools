@@ -1,15 +1,38 @@
 import numpy as np
 from .utils import norm_vals, int_linear
-from scipy.interpolate import interp2d, griddata, interp1d
+from scipy.interpolate import interp2d, interp1d
 import os
 import matplotlib.pyplot as plt
+
 
 
 
 class SeismicLookupTable:
     def __init__(self,table_path):
         """
-        Inputs: table_path = '/path/to/data/table/'
+        Calling will create a dictionary (self.fields) containing
+        fields given in seismic lookup table. Under each field are:
+        [0] : Table Index
+        [1] : Field gridded in T-P space
+        [2] : Units
+        This also sets up interpolator objects (eg self.vp_interp)
+        for rapid querying of points.
+
+        Currently the input table must be of the following strucutre:
+
+        Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus
+
+        ascending by pressure then temperature, ie:
+        P    T
+        0.0 500 ......
+        0.0 1000
+        0.0 1500
+        1e8 500
+        1e8 1000 .....etc
+
+        Inputs: table_path = '/path/to/data/table.dat'
+
+        Returns:
 
         Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
         """
@@ -31,30 +54,43 @@ class SeismicLookupTable:
         self.p_min=np.min(self.pres)
         self.pstep=np.size(self.temp)
 
-        self.Vp=np.zeros((len(self.temp),len(self.pres)))
-        self.Vs=np.zeros((len(self.temp),len(self.pres)))
-        self.Vp_an=np.zeros((len(self.temp),len(self.pres)))
-        self.Vs_an=np.zeros((len(self.temp),len(self.pres)))
-        self.Vphi=np.zeros((len(self.temp),len(self.pres)))
-        self.Dens=np.zeros((len(self.temp),len(self.pres)))
-        self.Qs=np.zeros((len(self.temp),len(self.pres)))
-        self.T_sol=np.zeros((len(self.temp),len(self.pres)))
-        self.fields = {'vp': [2, 'km/s'], 'vs': [3, 'km/s'], 'vp_ani': [4, 'km/s'], 'vs_ani': [5, 'km/s'],
-                       'vphi': [6, 'km/s'], 'density': [7, '$kg/m^3$'], 'qs': [8, 'Hz'], 't_sol': [9, 'K']}
+        #Initialise arrays for storing table columns in Temp-Pressure space
+        Vp=np.zeros((len(self.temp),len(self.pres)))
+        Vs=np.zeros((len(self.temp),len(self.pres)))
+        Vp_an=np.zeros((len(self.temp),len(self.pres)))
+        Vs_an=np.zeros((len(self.temp),len(self.pres)))
+        Vphi=np.zeros((len(self.temp),len(self.pres)))
+        Dens=np.zeros((len(self.temp),len(self.pres)))
+        Qs=np.zeros((len(self.temp),len(self.pres)))
+        T_sol=np.zeros((len(self.temp),len(self.pres)))
 
-
+        #Fill arrays with table data
         for i, p in enumerate(self.pres):
-            self.Vp[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),2]
-            self.Vs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),3]
-            self.Vp_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),4]
-            self.Vs_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),5]
-            self.Vphi[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),6]
-            self.Dens[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),7]
-            self.Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
-            self.T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
+            Vp[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),2]
+            Vs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),3]
+            Vp_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),4]
+            Vs_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),5]
+            Vphi[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),6]
+            Dens[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),7]
+            Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
+            T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
 
 
+        #Creat dictionary which holds the interpolator objects
+        self.fields = {'vp': [2, Vp, 'km/s'], 'vs': [3,Vs, 'km/s'], 'vp_ani': [4, Vp_an, 'km/s'],
+                      'vs_ani': [5, Vs_an, 'km/s'], 'vphi': [6, Vphi, 'km/s'],
+                      'density': [7, Dens, '$kg/m^3$'], 'qs': [8, Qs, 'Hz'], 't_sol': [9, T_sol, 'K']}
 
+
+        #Setup interpolator objects. These can be used for rapid querying of many individual points
+        self.vp_interp = interp2d(self.pres,self.temp,Vp)
+        self.vs_interp = interp2d(self.pres,self.temp,Vs)
+        self.vp_an_interp = interp2d(self.pres,self.temp,Vp_an)
+        self.vs_an_interp = interp2d(self.pres,self.temp,Vs_an)
+        self.vphi_interp = interp2d(self.pres,self.temp,Vphi)
+        self.density_interp = interp2d(self.pres,self.temp,Dens)
+        self.qs_interp = interp2d(self.pres,self.temp,Qs)
+        self.t_sol_interp = interp2d(self.pres,self.temp,T_sol)
 
 
 #################################################
@@ -145,56 +181,55 @@ class SeismicLookupTable:
 
     def interp_grid(self,press,temps,field):
         """
-        Given a range of pressures and temperatures, return a 2D
-        grid of values of the field of choice.
-
-
-        Inputs: press = pressures along P axis
-                temps = temperatures along T axis
-                field = property to interpolate eg. Vs
+        Routine for re-gridding lookup tables into new pressure-temperature space
+        Inputs: press = pressures
+                temps = temperatures
+                field = data field (eg. basalt.Vs)
         Returns: interpolated values of a given table property
-                 on a grid defined by press and temps
+                on a grid defined by press and temps
 
         eg. basalt.interp([pressures],[temperature],'Vs')
         """
 
-        # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
+        press = [press] if type(press)==int or type(press)==float else press
+        temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        # set up interp2d object
-        grid = interp2d(self.P,self.T,self.table[:,i_field], kind='linear')
+        _check_bounds(press,self.pres,'pressure')
+        _check_bounds(temps,self.temp,'temperature')
 
-        out = grid(press, temps)
+        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
-        return out
+        return grid(press,temps)
 
 
 
-    def interp_points(self,points,field):
+    def interp_points(self,press,temps,field):
         """
-        Takes in pressure, temperature points in a 2D array and returns
-        a 1D array of interpolated points to those pressures and
-        temperatures.
-
-
-        Inputs: points = pressure-temperature points in a 2D array.
-                         The first column should be pressure and the
-                         second column temperature.
-                field = property to interpolate eg. Vs
-
+        Inputs: press = pressures
+                temps = temperatures (press and temps must be of equal length)
+                prop   = property eg. Vs
         Returns:
         For a given table property (eg. Vs) return interpolated values
         for pressures and temperatures
         eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
         """
 
-        # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
+        #If integers are passed in then convert to indexable lists
+        press = [press] if type(press)==int or type(press)==float else press
+        temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        # set up interp2d object
-        grid = griddata((self.P,self.T),self.table[:,i_field], points, method='linear')
+        _check_bounds(press,self.pres,'pressure')
+        _check_bounds(temps,self.temp,'temperature')
 
-        return grid
+        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
+
+
+        out=np.zeros(len(press))
+        for i in range(len(press)):
+            out[i]=grid(press[i],temps[i])
+
+        return out
+
 
     def plot_table(self, ax, field, cmap='viridis_r'):
         """
@@ -210,23 +245,25 @@ class SeismicLookupTable:
         """
 
         # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
-        units = self.fields[field.lower()][1]
-        data = self.table[:,i_field]
+        units = self.fields[field.lower()][2]
+        data = self.fields[field.lower()][1]
 
         # temperature on x axis
-        data = data.reshape((self.n_uniq_p, self.n_uniq_t)).T
+        data=data.transpose()
         print(data.shape)
 
-        chart = ax.imshow(data, origin = 'lower', extent = [self.p_min, self.p_max, self.t_min, self.t_max],
+
+
+        chart = ax.imshow(data, origin = 'lower', extent = [self.t_min, self.t_max, self.p_min, self.p_max],
                           cmap=cmap, aspect='auto')
 
         # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
 
         plt.colorbar(chart, ax=ax, label=f'{field} ({units})')
-        ax.set_ylabel('Temperature (K)')
-        ax.set_xlabel('Pressure (Pa)')
+        ax.set_xlabel('Temperature (K)')
+        ax.set_ylabel('Pressure (Pa)')
         ax.set_title(f'P-T graph for {field}')
+        ax.invert_yaxis()
 
 
     def plot_table_contour(self, ax, field, cmap='viridis_r'):
@@ -294,3 +331,18 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
 
     return interpolated(cnew)
+
+
+
+
+def _check_bounds(input,check,TP):
+    """
+    Inputs: input=vals of interest
+            check= range of table vals
+    """
+
+    if np.any(input[:]>np.max(check)):
+        print(f'One or more of your {TP} inputs exceeds the table range, reverting to maximum table value')
+
+    if np.any(input[:]<np.min(check)):
+        print(f'One or more of your {TP} inputs is below the table range, reverting to minimum table value')
