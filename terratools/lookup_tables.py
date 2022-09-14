@@ -10,7 +10,17 @@ import matplotlib.pyplot as plt
 class SeismicLookupTable:
     def __init__(self,table_path):
         """
-        Inputs: table_path = '/path/to/data/table/'
+        Calling will create a dictionary (self.fields) containing
+        fields given in seismic lookup table. Under each field are:
+        [0] : Table Index
+        [1] : Field gridded in T-P space
+        [2] : Units
+        This also sets up interpolator objects (eg self.vp_interp)
+        for rapid querying of points.
+
+        Inputs: table_path = '/path/to/data/table.dat'
+
+        Returns:
 
         Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
         """
