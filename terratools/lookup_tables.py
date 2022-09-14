@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 
 
+
 class SeismicLookupTable:
     def __init__(self,table_path):
         """
@@ -31,30 +32,43 @@ class SeismicLookupTable:
         self.p_min=np.min(self.pres)
         self.pstep=np.size(self.temp)
 
-        self.Vp=np.zeros((len(self.temp),len(self.pres)))
-        self.Vs=np.zeros((len(self.temp),len(self.pres)))
-        self.Vp_an=np.zeros((len(self.temp),len(self.pres)))
-        self.Vs_an=np.zeros((len(self.temp),len(self.pres)))
-        self.Vphi=np.zeros((len(self.temp),len(self.pres)))
-        self.Dens=np.zeros((len(self.temp),len(self.pres)))
-        self.Qs=np.zeros((len(self.temp),len(self.pres)))
-        self.T_sol=np.zeros((len(self.temp),len(self.pres)))
+        #Initialise arrays for storing table columns in Temp-Pressure space
+        Vp=np.zeros((len(self.temp),len(self.pres)))
+        Vs=np.zeros((len(self.temp),len(self.pres)))
+        Vp_an=np.zeros((len(self.temp),len(self.pres)))
+        Vs_an=np.zeros((len(self.temp),len(self.pres)))
+        Vphi=np.zeros((len(self.temp),len(self.pres)))
+        Dens=np.zeros((len(self.temp),len(self.pres)))
+        Qs=np.zeros((len(self.temp),len(self.pres)))
+        T_sol=np.zeros((len(self.temp),len(self.pres)))
 
-
+        #Fill arrays with table data
         for i, p in enumerate(self.pres):
-            self.Vp[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),2]
-            self.Vs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),3]
-            self.Vp_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),4]
-            self.Vs_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),5]
-            self.Vphi[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),6]
-            self.Dens[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),7]
-            self.Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
-            self.T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
+            Vp[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),2]
+            Vs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),3]
+            Vp_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),4]
+            Vs_an[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),5]
+            Vphi[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),6]
+            Dens[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),7]
+            Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
+            T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
 
-        self.fields = {'vp': [2, self.Vp, 'km/s'], 'vs': [3,self.Vs, 'km/s'], 'vp_ani': [4, self.Vp_an, 'km/s'],
-                      'vs_ani': [5, self.Vs_an, 'km/s'], 'vphi': [6, self.Vphi, 'km/s'],
-                      'density': [7, self.Dens, '$kg/m^3$'], 'qs': [8, self.Qs, 'Hz'], 't_sol': [9, self.T_sol, 'K']}
 
+        #Creat dictionary which holds the interpolator objects
+        self.fields = {'vp': [2, Vp, 'km/s'], 'vs': [3,Vs, 'km/s'], 'vp_ani': [4, Vp_an, 'km/s'],
+                      'vs_ani': [5, Vs_an, 'km/s'], 'vphi': [6, Vphi, 'km/s'],
+                      'density': [7, Dens, '$kg/m^3$'], 'qs': [8, Qs, 'Hz'], 't_sol': [9, T_sol, 'K']}
+
+
+        #Setup interpolator objects. These can be used for rapid querying of many individual points
+        self.vp_interp = interp2d(self.pres,self.temp,Vp)
+        self.vs_interp = interp2d(self.pres,self.temp,Vs)
+        self.vp_an_interp = interp2d(self.pres,self.temp,Vp_an)
+        self.vs_an_interp = interp2d(self.pres,self.temp,Vs_an)
+        self.vphi_interp = interp2d(self.pres,self.temp,Vphi)
+        self.density_interp = interp2d(self.pres,self.temp,Dens)
+        self.qs_interp = interp2d(self.pres,self.temp,Qs)
+        self.t_sol_interp = interp2d(self.pres,self.temp,T_sol)
 
 
 #################################################
@@ -171,7 +185,7 @@ class SeismicLookupTable:
         for pressures and temperatures
         eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
         """
-        
+
         #If integers are passed in then convert to indexable lists
         press = [press] if type(press)==int or type(press)==float else press
         temps = [temps] if type(temps)==int or type(temps)==float else temps
@@ -200,23 +214,25 @@ class SeismicLookupTable:
         """
 
         # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
-        units = self.fields[field.lower()][1]
-        data = self.table[:,i_field]
+        units = self.fields[field.lower()][2]
+        data = self.fields[field.lower()][1]
 
         # temperature on x axis
-        data = data.reshape((self.n_uniq_p, self.n_uniq_t)).T
+        data=data.transpose()
         print(data.shape)
 
-        chart = ax.imshow(data, origin = 'lower', extent = [self.p_min, self.p_max, self.t_min, self.t_max],
+
+
+        chart = ax.imshow(data, origin = 'lower', extent = [self.t_min, self.t_max, self.p_min, self.p_max],
                           cmap=cmap, aspect='auto')
 
         # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
 
         plt.colorbar(chart, ax=ax, label=f'{field} ({units})')
-        ax.set_ylabel('Temperature (K)')
-        ax.set_xlabel('Pressure (Pa)')
+        ax.set_xlabel('Temperature (K)')
+        ax.set_ylabel('Pressure (Pa)')
         ax.set_title(f'P-T graph for {field}')
+        ax.invert_yaxis()
 
 
     def plot_table_contour(self, ax, field, cmap='viridis_r'):
