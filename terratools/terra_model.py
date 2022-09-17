@@ -10,6 +10,7 @@ convection simulation.
 import netCDF4
 import numpy as np
 import re
+from sklearn.neighbors import NearestNeighbors
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -86,7 +87,8 @@ class NoFieldError(Exception):
 
 class FieldDimensionError(Exception):
     """
-    Exception type raised when trying to access a field which is not present
+    Exception type raised when trying to set a field when the dimensions
+    do not match the coordinates in the model
     """
     def __init__(self, model, array, name=""):
         self.message = f"Field array {name} has incorrect first two dimensions. " + \
@@ -143,6 +145,14 @@ class TerraModel:
     ``lon, lat = m.get_lateral_points()`` and the radii ``r = m.get_radii()``,
     the temperature at ``lon[ip], lat[ip]`` and radius ``r[ir]`` is given
     by ``temp[ir,ip]``.
+
+    Nearest neighbours
+    ------------------
+    The nearest lateral point index to an arbitrary geographic location
+    can be obtained by ``m.nearest_index(lon, lat)``, whilst the nearest
+    ``n`` neighbours can be obtained with ``m.nearest_indices(lon, lat, n)``.
+    ``m.nearest_neighbours(lon, lat, n)`` also returns the distances to
+    each near-neighbour.
     """
 
     def __init__(self, lon, lat, r,
@@ -195,15 +205,21 @@ class TerraModel:
         npts = len(lon)
         if len(lat) != npts:
             raise ValueError("length of lon and lat must be the same")
-        self._npts = npts
 
+        # Number of lateral points
+        self._npts = npts
+        # Longitude and latitude in degrees of lateral points
         self._lon = np.array(lon, dtype=COORDINATE_TYPE)
         self._lat = np.array(lat, dtype=COORDINATE_TYPE)
+        # Radius of each layer
         self._radius = np.array(r, dtype=COORDINATE_TYPE)
 
         # Check for monotonicity of radius
         if not np.all(self._radius[1:] - self._radius[:-1] > 0):
             raise ValueError("radii must increase or decrease monotonically")
+
+        # Fit a nearest-neighbour search tree
+        self._knn_tree = _fit_nn_tree(self._lon, self._lat)
 
         # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
@@ -430,6 +446,99 @@ class TerraModel:
         return self._radius
 
 
+    def nearest_index(self, lon, lat):
+        """
+        Return the index or indices of the lateral point(s) nearest to the
+        one or more points supplied.  lon and lat may either both be a scalar or
+        both an array of points; behaviour is undefined if a mix is
+        provided.
+
+        :param lon: Longitude of point(s) of interest (degrees)
+        :param lat: Latitude of point(s) of interest (degrees)
+        :returns: the index or indices of the nearest lateral point.
+            This is a scalar for scalar input, and an array for array input.
+        """
+        scalar_input = False
+        if np.isscalar(lon) and np.isscalar(lat):
+            scalar_input = True
+
+        indices = self.nearest_indices(lon, lat, 1)
+        if scalar_input:
+            return indices[0]
+        else:
+            return np.array([idx[0] for idx in indices])
+
+    def nearest_indices(self, lon, lat, n):
+        """
+        Return the indices of the lateral point(s) nearest to the
+        one or more points supplied.  lon and lat may either both be a scalar or
+        both an array of points; behaviour is undefined if a mix is
+        provided.
+
+        :param lon: Longitude of point(s) of interest (degrees)
+        :param lat: Latitude of point(s) of interest (degrees)
+        :param n: Number of nearest neighbours to find
+        :returns: the indices of the nearest n lateral points.
+            This is vector for scalar input, and a vector of vectors for array
+            input.
+        """
+        if n < 1:
+            raise ValueError("n must be 1 or more")
+
+        scalar_input = False
+        if np.isscalar(lon) and np.isscalar(lat):
+            scalar_input = True
+
+        indices, _ = self.nearest_neighbors(lon, lat, n)
+
+        return indices
+
+
+    def nearest_neighbors(self, lon, lat, n):
+        """
+        Return the indices of the lateral point(s) nearest to the
+        one or more points supplied, and the distances from the test point
+        to each point.  lon and lat may either both be a scalar or
+        both an array of points; behaviour is undefined if a mix is
+        provided.
+
+        Distances are in radians about the centre of the sphere; to
+        convert to great circle distances, multiply by the radius of
+        interest.
+
+        :param lon: Longitude of point(s) of interest (degrees)
+        :param lat: Latitude of point(s) of interest (degrees)
+        :param n: Number of nearest neighbours to find
+        :returns: (indices, distances), where the first item contains the
+            indices of the nearest n lateral points and the second item gives
+            the distances in radians about the centre on the sphere on
+            which the points all lie.
+            These are vectors for scalar input, and a vector of vectors for array
+            input.
+        """
+        if n < 1:
+            raise ValueError("n must be 1 or more")
+
+        scalar_input = False
+
+        if np.isscalar(lon) and np.isscalar(lat):
+            scalar_input = True
+            lon = np.array([lon])
+            lat = np.array([lat])
+        elif len(lon) != len(lat):
+            raise ValueError("lon and lat must be the same length")
+
+        lon_radians = np.radians(lon)
+        lat_radians = np.radians(lat)
+        coords = np.array([[lat, lon] for lon, lat in zip(lon_radians, lat_radians)])
+        distances, indices = self._knn_tree.kneighbors(coords, n_neighbors=n)
+
+        if scalar_input:
+            return indices[0], distances[0]
+        else:
+            return indices, distances
+
+
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
     """
     Read a TerraModel from a set of NetCDF files.
@@ -651,3 +760,24 @@ def _expected_vector_field_ncomps(field):
     or None if it may take any value
     """
     return _VECTOR_FIELD_NCOMPS[field]
+
+
+def _fit_nn_tree(lon, lat):
+    """
+    Fit a nearest neighbour lookup tree to a set of longitude and
+    latitude points on the surface of a sphere, where the input
+    is in degrees.
+
+    Rough timing suggests that using the geographic coordinates and
+    Haversine distance takes ~440 µs per lookup, whereas using
+    Cartesian coordinates and a Euclidian distance leads to
+    lookups taking ~15 ms.
+
+    # FIXME: Properly test which distance metrics and tree types
+    #        are fastest.
+    """
+    lon_radians = np.radians(lon)
+    lat_radians = np.radians(lat)
+    coords = np.array([[lat, lon] for lat, lon in zip(lat_radians, lon_radians)])
+    tree = NearestNeighbors(n_neighbors=1, metric="haversine").fit(coords)
+    return tree
