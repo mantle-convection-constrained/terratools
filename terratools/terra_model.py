@@ -12,6 +12,8 @@ import numpy as np
 import re
 from sklearn.neighbors import NearestNeighbors
 
+from . import geographic
+
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
 # Precision of values in TerraModel
@@ -270,26 +272,93 @@ class TerraModel:
         return self._fields.keys()
 
 
-    def evaluate(self, lon, lat, r, field, depth=False):
+    def evaluate(self, lon, lat, r, field, method="triangle", depth=False):
         """
         Evaluate the value of field at radius r km, latitude lat degrees
         and longitude lon degrees.
 
-        :param lon: Longitude in degrees
-        :param lat: Latitude in degrees
-        :param r: Radius in km
+        Note that if r is below the bottom of the model the value at the
+        lowest layer is returned; and likewise if r is above the top
+        of the model, the value at the highest layer is returned.
+
+        There are two evaluation methods:
+
+        1. 'triangle': Finds the triangle surrounding the point of
+           interest and performs interpolation between the values at
+           each vertex of the triangle
+        2. 'nearest': Just returns the value of the closest point of
+           the TerraModel
+
+        In either case, linear interpolation is performed between the two
+        surrounding layers of the model.
+
+        :param lon: Longitude in degrees of point of interest
+        :param lat: Latitude in degrees of points of interest
+        :param r: Radius in km of point of interest
         :param field: String giving the name of the field of interest
+        :param method: String giving the name of the evaluation method; a
+            choice of 'triangle' (default) or 'nearest'.
         :param depth: If True, treat r as a depth rather than a radius
         :returns: value of the field at that point
         """
         _check_field_name(field)
         self._check_has_field(field)
-        if depth:
-            r = np.max(self._radius) - r
 
+        if method not in ("triangle", "nearest"):
+            raise ValueError("method must be one of 'triangle' or 'nearest'")
+
+        radii = self.get_radii()
+
+        if depth:
+            r = radii[-1] - r
+
+        lons, lats = self.get_lateral_points()
         array = self.get_field(field)
 
-        raise NotImplementedError
+        # Find bounding layers
+        ilayer1, ilayer2 = _bounding_indices(r, radii)
+        r1, r2 = radii[ilayer1], radii[ilayer2]
+
+        if method == "triangle":
+            # Get three nearest points, which should be the surrounding
+            # triangle
+            idx1, idx2, idx3 = self.nearest_indices(lon, lat, 3)
+
+            # For the two layers, laterally interpolate the field
+            # Note that this relies on NumPy's convention on indexing, where
+            # indexing an array with fewer indices than dimensions acts
+            # as if the missing, trailing dimensions were indexed with `:`.
+            # (E.g., `np.ones((1,2,3))[0,0]` is `[1., 1., 1.]`.)
+            val_layer1 = geographic.triangle_interpolation(
+                lon, lat,
+                lons[idx1], lats[idx1], array[ilayer1,idx1],
+                lons[idx2], lats[idx2], array[ilayer1,idx2],
+                lons[idx3], lats[idx3], array[ilayer1,idx3]
+            )
+
+            if ilayer1 == ilayer2:
+                return val_layer1
+
+            val_layer2 = geographic.triangle_interpolation(
+                lon, lat,
+                lons[idx1], lats[idx1], array[ilayer2,idx1],
+                lons[idx2], lats[idx2], array[ilayer2,idx2],
+                lons[idx3], lats[idx3], array[ilayer2,idx3]
+            )
+
+        elif method == "nearest":
+            index = self.nearest_index(lon, lat)
+            val_layer1 = array[ilayer1,index]
+
+            if ilayer1 == ilayer2:
+                return val_layer1
+
+            val_layer2 = array[ilayer2,index]
+
+        # Linear interpolation between the adjacent layers
+        value = ((r2 - r)*val_layer1 + (r - r1)*val_layer2)/(r2 - r1)
+
+        return value
 
 
     def set_field(self, field, values):
@@ -317,6 +386,7 @@ class TerraModel:
 
         :param name: Name of new field.
         :param ncomps: Number of components for a multicomponent field.
+        :returns: the new field
         """
         _check_field_name(name)
         if ncomps is not None and ncomps < 1:
@@ -354,6 +424,8 @@ class TerraModel:
             if ncomps is not None:
                 raise ValueError(f"Scalar field {name} cannot have {ncomps} components")
             self.set_field(name, np.zeros((nlayers, npts), dtype=VALUE_TYPE))
+
+        return self.get_field(name)
 
 
     def has_field(self, field):
@@ -468,6 +540,7 @@ class TerraModel:
         else:
             return np.array([idx[0] for idx in indices])
 
+
     def nearest_indices(self, lon, lat, n):
         """
         Return the indices of the lateral point(s) nearest to the
@@ -537,6 +610,29 @@ class TerraModel:
             return indices[0], distances[0]
         else:
             return indices, distances
+
+
+    def nearest_layer(self, radius, depth=False):
+        """
+        Find the layer nearest to the given radius.
+
+        :param radius: Radius of interest in km.
+        :param depth: If True, treat input radius as a depth instead,
+            and return index and depth rather than index and radius.
+        :returns: layer index and radius of layer in km if depth is False
+            (the default); otherwise return layer index and depth in km
+        """
+        radii = self.get_radii()
+        surface_radius = radii[-1]
+        if depth:
+            radius = surface_radius - radius
+
+        index = _nearest_index(radius, radii)
+
+        if depth:
+            return index, surface_radius - radii[index]
+        else:
+            return index, radii[index]
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
@@ -761,7 +857,6 @@ def _expected_vector_field_ncomps(field):
     """
     return _VECTOR_FIELD_NCOMPS[field]
 
-
 def _fit_nn_tree(lon, lat):
     """
     Fit a nearest neighbour lookup tree to a set of longitude and
@@ -781,3 +876,54 @@ def _fit_nn_tree(lon, lat):
     coords = np.array([[lat, lon] for lat, lon in zip(lat_radians, lon_radians)])
     tree = NearestNeighbors(n_neighbors=1, metric="haversine").fit(coords)
     return tree
+
+def _nearest_index(value, values):
+    """
+    Return the index of the nearest value in ``values``.  If
+    ``value`` is smaller or greater than all ``values``, respectively
+    return the minimum or maximum.
+
+    Requires that ``values`` is sorted in increasing order.
+    """
+    nvals = len(values)
+    index = np.searchsorted(values, value)
+
+    # Outside the range
+    if index == nvals:
+        return nvals - 1
+    elif index == 0:
+        return index
+
+    # Need to decide whether the one above or below is closer
+    if value - values[index-1] > values[index] - value:
+        return index
+    else:
+        return index - 1
+
+def _bounding_indices(value, values):
+    """
+    Return the indices of ``values`` ``i1`` and ``i2`` where
+    ``values[i1] <= value < values[i2]``.
+
+    If ``value`` is less or greater than the smallest and largest
+    values, respectively return the same index for both.
+    In other words, the returned index is 0 when value is below all
+    values, and ``len(values)-1`` when it is above.
+
+    If value is exactly the same as one of the values, return the
+    corresponding index twice also.
+
+    Requires that ``values`` is sorted in increasing order.
+    """
+    nvals = len(values)
+    index = np.searchsorted(values, value)
+
+    # We are above or below the range of values
+    if index == 0:
+        return index, index
+    elif index == nvals:
+        return index - 1, index - 1
+    elif values[index] == value:
+        return index, index
+    else:
+        return index - 1, index

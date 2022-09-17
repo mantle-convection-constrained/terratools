@@ -128,7 +128,7 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
         ),
         sin_lat1*sin_lat2 + cos_lat1*cos_lat2*cos_lon2_lon1
     )
-    
+
     return distance
 
 def azimuth(lon1, lat1, lon2, lat2, radians=False):
@@ -252,7 +252,7 @@ def triangle_interpolation(lon, lat, lon1, lat1, val1, lon2, lat2, val2,
 
     :param lon: Longitude of point of interest within the outer triangle.
     :param lat: Latitude of piont of interest.
-        :param lon1: Longitude of first point
+    :param lon1: Longitude of first point
     :param lat1: Latitude of first point of surrounding triangle
     :param lon2: Longitude of second point of surrounding triangle
     :param lat2: Latitude of second point of surrounding triangle
