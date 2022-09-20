@@ -3,6 +3,9 @@ import unittest
 import numpy as np
 import os
 
+from cartopy.mpl.geoaxes import GeoAxesSubplot
+from matplotlib.figure import Figure
+
 from terratools import terra_model
 from terratools.terra_model import TerraModel
 
@@ -41,7 +44,6 @@ def read_test_lateral_points():
     -2° to 2 ° in longitude and latitude"""
     dir = os.path.dirname(__file__)
     file = os.path.join(dir, "data", "TERRA_grid_lon-2_2_lat-2_2.txt")
-    print(file)
     data = np.loadtxt(file, dtype=np.float32)
     lon = data[:,0]
     lat = data[:,1]
@@ -406,7 +408,6 @@ class TestTerraModelEvaluate(unittest.TestCase):
         u_xyz[0,0,:] = [1, 2, 3]
         u_xyz[0,1,:] = [10, 20, 30]
         u_xyz[0,2,:] = [-2, -4, 10]
-        print(model.evaluate(1.9, 0.1, 1, "u_xyz"))
         self.assertTrue(np.all(model.evaluate(1.9, 0.1, 1, "u_xyz", method="nearest") == [-2, -4, 10]))
 
 
@@ -438,6 +439,37 @@ class TestBoundingIndices(unittest.TestCase):
     def test_equal(self):
         self.assertCountEqual(terra_model._bounding_indices(-3, [-4, -3, -2]),
             (1, 1), 2)
+
+
+class TestPlotLayer(unittest.TestCase):
+    def test_errors(self):
+        model = dummy_model(with_fields=True)
+
+        with self.assertRaises(ValueError):
+            model.plot_layer("t")
+
+        with self.assertRaises(ValueError):
+            model.plot_layer("t", index=-1)
+        with self.assertRaises(ValueError):
+            model.plot_layer("t", index=len(model.get_radii())+1)
+
+    def test_plot_layer_radius(self):
+        model = dummy_model(with_fields=True)
+        fig, ax = model.plot_layer("t", 4000, show=False)
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, GeoAxesSubplot)
+
+    def test_plot_layer_depth(self):
+        model = dummy_model(with_fields=True)
+        fig, ax = model.plot_layer("t", 100, depth=True, show=False)
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, GeoAxesSubplot)
+
+    def test_plot_layer_index(self):
+        model = dummy_model(with_fields=True)
+        fig, ax = model.plot_layer("t", index=2, depth=True, show=False)
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, GeoAxesSubplot)
 
 
 if __name__ == '__main__':
