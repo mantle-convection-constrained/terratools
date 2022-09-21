@@ -13,6 +13,7 @@ import re
 from sklearn.neighbors import NearestNeighbors
 
 from . import geographic
+from . import plot
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -641,6 +642,56 @@ class TerraModel:
             return index, surface_radius - radii[index]
         else:
             return index, radii[index]
+
+
+    def plot_layer(self, field, radius=None, index=None, depth=False,
+            delta=None, extent=(-180, 180, -90, 90), method="nearest", show=True):
+        """
+        Create a heatmap of the values of a particular field at the model
+        layer nearest to ``radius`` km.
+
+        :param field: Name of field of interest
+        :param radius: Radius in km at which to show map.  The nearest
+            model layer to this radius is shown.
+        :param index: Rather than using a certain radius, plot the
+            field exactly at a layer index
+        :param depth: If True, interpret the radius as a depth instead
+        :param delta: Grid spacing of plot in degrees
+        :param extent: Tuple giving the longitude and latitude extent of
+            plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+            in degrees
+        :param method: May be one of: "nearest" (plot nearest value to each
+            plot grid point); or "mean" (mean value in each pixel)
+        :param show: If True (the default), show the plot
+        :returns: figure and axis handles
+        """
+        if radius is None and index is None:
+            raise ValueError("Either radius or index must be given")
+        if index is None:
+            layer_index, layer_radius = self.nearest_layer(radius, depth)
+        else:
+            radii = self.get_radii()
+            nlayers = len(radii)
+            if index < 0 or index >= nlayers:
+                raise ValueError(f"index must be between 0 and {nlayers}")
+
+            layer_index = index
+            layer_radius = radii[index]
+
+        lon, lat = self.get_lateral_points()
+        values = self.get_field(field)[layer_index]
+        label = _SCALAR_FIELDS[field]
+
+        fig, ax = plot.layer_grid(lon, lat, layer_radius, values,
+            delta=delta, extent=extent, label=label)
+
+        if depth:
+            ax.set_title(f"Depth {int(layer_radius)} km")
+
+        if show:
+            fig.show()
+
+        return fig, ax
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
