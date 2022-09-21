@@ -254,10 +254,13 @@ def triangle_interpolation(lon, lat, lon1, lat1, val1, lon2, lat2, val2,
     :param lat: Latitude of piont of interest.
     :param lon1: Longitude of first point
     :param lat1: Latitude of first point of surrounding triangle
+    :param val1: Value at first point of surrounding triangle
     :param lon2: Longitude of second point of surrounding triangle
     :param lat2: Latitude of second point of surrounding triangle
+    :param val1: Value at second point of surrounding triangle
     :param lon3: Longitude of third point of surrounding triangle
     :param lat3: Latitude of third point of surrounding triangle
+    :param val1: Value at third point of surrounding triangle
     :param radians: Whether input is in radians
     :param tol: Angle tolerance (always in radians) for collinearity test
         of three points
