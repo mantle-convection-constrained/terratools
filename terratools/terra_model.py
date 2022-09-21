@@ -780,13 +780,14 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 # Convert field names to composition names
                 _c_hist_names = [re.sub("Frac$", "", s).lower() for s in vars_to_read]
 
-                c_hist = np.empty((nlayers, npts_total, ncomps), dtype=VALUE_TYPE)
+                if field_name not in _fields.keys():
+                    _fields[field_name] = np.empty(
+                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE)
 
                 for (i, local_var) in enumerate(vars_to_read):
-                    c_hist[:,npts_range,i] = nc[local_var][:]
+                    _fields["c_hist"][:,npts_range,i] = nc[local_var][:]
 
-                _fields["c_hist"] = c_hist
-
+        nc.close()
         npts_pointer += npts
 
     # Check for need to sort points in increasing radius
@@ -794,10 +795,14 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     if must_flip_radii:
         _r = np.flip(_r)
 
-    # Remove duplicate points and ensure radii increase
+    # Remove duplicate points
     _, unique_indices = np.unique(np.stack((_lon, _lat)), axis=1, return_index=True)
+    # np.unique returns indices which sort the values, so sort the
+    # indices to preserve the original point order, except the duplicates
+    unique_indices = np.sort(unique_indices)
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
+
     for (field_name, array) in _fields.items():
         ndims = array.ndim
         if ndims == 2:
