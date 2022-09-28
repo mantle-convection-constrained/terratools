@@ -1,5 +1,4 @@
 import numpy as np
-from .utils import norm_vals, int_linear
 from scipy.interpolate import interp2d, interp1d
 import os
 import matplotlib.pyplot as plt
