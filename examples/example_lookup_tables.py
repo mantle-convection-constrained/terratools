@@ -38,12 +38,15 @@ if __name__ == "__main__":
     Cnew=0.15; Chzb=0.0; Clhz=0.2
     #vp_Cnew is vp at the defined temperatures and pressures for C=0.15 mterial.
     vp_Cnew=lookup_tables.linear_interp_1d(vp_hzb,vp_lhz,0.0,0.2,Cnew)
+
+    print(f"vp_Cnew = {vp_Cnew}")    
     
     #Plot
     fig,ax = plt.subplots(figsize=(4,7))
     plot_multi(ax,[vp_hzb,vp_lhz,vp_Cnew],pressures,["C=0","C=0.2","C=0.15"],"Pressure (Pa)")
     plt.show()
-    
+    plt.close()
+ 
     #In this second example, we will add a third composition (bas (C=1.0)) and find the 
     #Seismic properties for a mechanical mixure of known proportions of hzb, lhz and bas.
 
@@ -61,6 +64,7 @@ if __name__ == "__main__":
     plot_multi(ax2,[vp_hzb,vp_lhz,vp_bas,vp_mm],pressures,["hzb","lhz","bas","Mechanical Mixture"],
           "Pressure (Pa)")
     plt.show()
+    plt.close()
 
 
     
