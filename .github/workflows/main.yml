@@ -47,6 +47,9 @@ jobs:
         python-version: ${{ matrix.python-versions }}
     - name: setup
       run: |
+        # cartopy requires libgeos-dev
+        sudo apt update && sudo apt install --yes \
+         libgeos-dev
         python -m pip install --upgrade pip
         python --version
     - name: test
