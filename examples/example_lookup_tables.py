@@ -43,7 +43,9 @@ if __name__ == "__main__":
     
     #Plot
     fig,ax = plt.subplots(figsize=(4,7))
-    plot_multi(ax,[vp_hzb,vp_lhz,vp_Cnew],pressures,["C=0","C=0.2","C=0.15"],"Pressure (Pa)")
+    plot_multi(ax,[vp_hzb,vp_lhz,vp_Cnew],
+            pressures,["C=0","C=0.2","C=0.15"],
+            "Pressure (Pa)")
     plt.show()
     plt.close()
  
@@ -61,7 +63,9 @@ if __name__ == "__main__":
     
     
     fig,ax2 = plt.subplots(figsize=(4,7))
-    plot_multi(ax2,[vp_hzb,vp_lhz,vp_bas,vp_mm],pressures,["hzb","lhz","bas","Mechanical Mixture"],
+    plot_multi(ax2,[vp_hzb,vp_lhz,vp_bas,vp_mm],
+            pressures,[f"hzb (frac={hzbfrac})",f"lhz (frac={lhzfrac})",
+                        f"bas (frac={basfrac})","Mechanical Mixture"],
           "Pressure (Pa)")
     plt.show()
     plt.close()
