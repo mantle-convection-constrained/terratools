@@ -213,28 +213,52 @@ class SeismicLookupTable:
         ax.set_xlabel('Pressure (Pa)')
         ax.set_title(f'P-T graph for {field}')
 
-
-def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
-    """
-    Input: bas = data for basaltic composition (eg. basalt.Vs)
-           lhz = data for lherzolite composition
-           hzb = data for harzburgite composition
-           bas_fr = basalt fraction
-           lhz_fr = lherzolite fraction
-           hzb_fr = harzburgite fraction
-    Returns: hmean = harmonic mean of input values
-
-    bas, lhz, hzb must be of equal length
-    This routine assumes 3 component mechanical mixture
+class MultiTables(self, lookuptables):
 
     """
-    m1=(1./bas)*bas_fr
-    m2=(1./lhz)*lhz_fr
-    m3=(1./hzb)*hzb_fr
+    Class to take in and process multiple tables at once.
 
-    hmean=1/(m1+m2+m3)
+    :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
+                 and the associated lookup table filename to be read in or array of values. 
+    :type tables: dictionary  
+    """
 
-    return hmean
+    def __init__():
+        self._tables = lookuptables 
+
+    def evaluate(self, P, T, fractions, field):
+        """
+        Returns the harmonic mean of a parameter over several lookup 
+        tables weighted by their fraction.
+        
+        :param P: pressure value to evaluate.
+        :type P: float
+        :param T: temperature value to evaluate. 
+        :type T: float
+        :param fractions: relative proportions of 
+                          compositions. The keys in 
+                          the dictionary need to be 
+                          the same as the tables 
+                          attribute.
+        :type fractions: dictionary
+        :param field: property to evaluate, e.g. 'vs'. 
+        :type field: str
+        :return: property 'prop' evaluated at T and P.
+        :rtype: float
+        """
+
+        values = []
+        fracs = []
+        for key in self._tables:
+            frac = fractions[key]
+            value = SeismicLookupTable(self._tables[key]).interp_points(P,T,field)
+            values.append(value)
+            fracs.append(frac)
+
+        value = _harmonic_mean(fracs = fracs, values = values)
+
+        return value 
+
 
 def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     """
@@ -267,3 +291,28 @@ def _check_bounds(input,check,TP):
 
     if np.any(input[:]<np.min(check)):
         print(f'One or more of your {TP} inputs is below the table range, reverting to minimum table value')
+
+
+
+def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
+    """
+    Input: bas = data for basaltic composition (eg. basalt.Vs)
+           lhz = data for lherzolite composition
+           hzb = data for harzburgite composition
+           bas_fr = basalt fraction
+           lhz_fr = lherzolite fraction
+           hzb_fr = harzburgite fraction
+    Returns: hmean = harmonic mean of input values
+
+    bas, lhz, hzb must be of equal length
+    This routine assumes 3 component mechanical mixture
+
+    """
+    m1=(1./bas)*bas_fr
+    m2=(1./lhz)*lhz_fr
+    m3=(1./hzb)*hzb_fr
+
+    hmean=1/(m1+m2+m3)
+
+    return hmean
+
