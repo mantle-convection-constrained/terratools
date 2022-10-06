@@ -2,4 +2,18 @@ site_name: TerraTools
 nav:
     - Home: index.md
     - About: about.md
-theme: mkdocs
+    - API: 
+        - 'TerraModel': 'api/terra_model.md'
+
+theme:
+  name: "material"
+
+plugins:
+- search
+- mkdocstrings:
+    handlers:
+        python:
+            options:
+                selection_opt: true
+                rendering_opt: "value"
+                docstring_style: "sphinx"
