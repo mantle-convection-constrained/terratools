@@ -4,6 +4,8 @@ nav:
     - About: about.md
     - API: 
         - 'TerraModel': 'api/terra_model.md'
+        - properties:
+            - 'attenuation': 'api/properties/attenuation.md'
 
 theme:
   name: "material"
