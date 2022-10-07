@@ -213,7 +213,7 @@ class SeismicLookupTable:
         ax.set_xlabel('Pressure (Pa)')
         ax.set_title(f'P-T graph for {field}')
 
-class MultiTables(self, lookuptables):
+class MultiTables():
 
     """
     Class to take in and process multiple tables at once.
@@ -223,7 +223,7 @@ class MultiTables(self, lookuptables):
     :type tables: dictionary  
     """
 
-    def __init__():
+    def __init__(self, lookuptables):
         self._tables = lookuptables 
 
     def evaluate(self, P, T, fractions, field):
@@ -255,9 +255,38 @@ class MultiTables(self, lookuptables):
             values.append(value)
             fracs.append(frac)
 
-        value = _harmonic_mean(fracs = fracs, values = values)
+        value = _harmonic_mean(data = values, fractions = fracs)
 
         return value 
+
+
+
+def _harmonic_mean(data, fractions):
+    """
+    Our own harmonic mean function. scipy.stats does have one
+    but will only work on 1D arrays whereas this will take the 
+    mean of 2D arrays such as lookup tables also. 
+
+    Input: data = list of floats of the data to be averaged
+                    can be 1D array of values for each composition
+                    or can be 3D array with the 0 axis holding the 
+                    different data.  
+        fractions = list of floats representing relative 
+                    relative weights of the data.
+    Returns: hmean = harmonic mean of input values. Either a 
+                        scaler or a 2D array depending on input.
+
+    if averaging lookup tables, they must have the same shape.
+    """
+
+    m_total = np.zeros(data[0].shape)
+
+    for i in range(len(fractions)):
+        m_total += (1/data[i]) * fractions[i]
+
+    hmean = np.sum(fractions)/(m_total)
+
+    return hmean
 
 
 def linear_interp_1d(vals1, vals2, c1, c2, cnew):
@@ -294,25 +323,5 @@ def _check_bounds(input,check,TP):
 
 
 
-def harmonic_mean_comp(bas,lhz,hzb,bas_fr,lhz_fr,hzb_fr):
-    """
-    Input: bas = data for basaltic composition (eg. basalt.Vs)
-           lhz = data for lherzolite composition
-           hzb = data for harzburgite composition
-           bas_fr = basalt fraction
-           lhz_fr = lherzolite fraction
-           hzb_fr = harzburgite fraction
-    Returns: hmean = harmonic mean of input values
 
-    bas, lhz, hzb must be of equal length
-    This routine assumes 3 component mechanical mixture
-
-    """
-    m1=(1./bas)*bas_fr
-    m2=(1./lhz)*lhz_fr
-    m3=(1./hzb)*hzb_fr
-
-    hmean=1/(m1+m2+m3)
-
-    return hmean
 
