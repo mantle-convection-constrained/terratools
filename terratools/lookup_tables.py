@@ -224,6 +224,9 @@ class MultiTables():
 
     def __init__(self, lookuptables):
         self._tables = lookuptables 
+        self._lookup_tables = {}
+        for key in self._tables:
+            self._lookup_tables[key] = SeismicLookupTable(self._tables[key])
 
     def evaluate(self, P, T, fractions, field):
         """
@@ -250,7 +253,7 @@ class MultiTables():
         fracs = []
         for key in self._tables:
             frac = fractions[key]
-            value = SeismicLookupTable(self._tables[key]).interp_points(P,T,field)
+            value = self._lookup_tables[key].interp_points(P,T,field)
             values.append(value)
             fracs.append(frac)
 
@@ -318,6 +321,7 @@ def _check_bounds(input,check):
     :param check: range of table pressure or temperature
     :type check: 1D array of floats
     :return: output
+    :rtype: nd array of floats
     """
 
     if np.any(input > np.max(check)):
