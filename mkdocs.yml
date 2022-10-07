@@ -2,6 +2,9 @@ site_name: TerraTools
 nav:
     - Home: index.md
     - About: about.md
+    - TerraTools fundamentals:
+        - Model interrogation: model.md
+        - Physical properties: properties.md
     - Code Reference: reference/
     - Bibliography: zz_bibliography.md
 
