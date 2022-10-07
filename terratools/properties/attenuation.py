@@ -1,7 +1,12 @@
+"""
+Provides models that return quality factors and anelastic seismic velocities.
+"""
+
 import numpy as np
 from collections import namedtuple
 from .profiles import peridotite_solidus
 from copy import deepcopy
+
 
 AnelasticProperties = namedtuple(
     "AnelasticProperties", ["V_P", "V_S", "Q_S", "Q_K", "Q_P", "T_solidus"]
@@ -14,10 +19,22 @@ class AttenuationModelGoes(object):
     of Goes et al. (2004) and Maguire et al. (2016).
     Thanks to Saskia Goes for her detailed instructions
     and for detailing her favoured model.
+
+    Optionally, different Q models can be used that correspond to
+    different mantle materials. A mixing model function should be passed
+    to the constructor that takes pressure and temperature as inputs and
+    returns the fractions of the different materials.
+
+    This class has an anelastic_properties method to calculate
+    anelastic QS, QK, Vp and Vs. The effective QS, QK and alpha
+    (frequency dependence) are given by the linearly weighted sum
+    of the QS, QK and alpha calculated for each material.
     """
 
     def __init__(self, T_solidus_function, model_mixing_function, Q_models):
         """
+        Constructor for the AttenuationModelGoes class.
+
         :param function T_solidus_function:
             A function returning the temperature of the solidus
             as a function of pressure.
@@ -53,13 +70,6 @@ class AttenuationModelGoes(object):
         ksi is a scaling factor and
         Tm is the dry solidus melting temperature.
         QK is chosen to be temperature independent.
-
-        Optionally, different Q models can be used that correspond to
-        different mantle materials. A mixing model is used to
-        determine the fractions of the different materials as a function
-        of pressure and temperature.
-        The bulk QS, QK and alpha are given by the linearly weighted sum
-        of the material QS, QK and alpha.
 
         The anelastic seismic velocities are calculated as follows:
         lmda = 4/3 * (elastic_Vs/elastic_Vp)^2
@@ -173,9 +183,10 @@ def mantle_domain_fractions(pressure, temperature):
     upper mantle, transition zone, and lower mantle
     domains as a function of pressure and temperature.
 
-    To avoid step-changes in QS at the top and base of
-    the mantle, transition regions 2.2 GPa wide are implemented.
-    At a reference temperature of 750K, the center of the ol-wd transition
+    To avoid step-changes in fractions at the top and base of
+    the mantle transition zone, transition regions 2.2 GPa wide
+    are implemented. At a reference temperature of 750K,
+    the center of the ol-wd transition
     is at 11.1 GPa. At the same reference temperature, the center
     of the postspinel transition is at 26.1 GPa. Clapeyron slopes of
     2.4e6 Pa/K and -2.2e6 Pa/K are applied.
@@ -246,37 +257,104 @@ def mantle_domain_fractions(pressure, temperature):
     return fractions
 
 
-# Q4g - low T dependence (after Goes et al. 2004)
-# Order of models is upper mantle, transition zone, lower mantle
-Q4g = AttenuationModelGoes(
-    peridotite_solidus,
-    mantle_domain_fractions,
-    Q_models=[
-        {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 3.5, "g": 20.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 35.0, "g": 10.0, "a": 0.15, "QK": 1000.0},
-    ],
-)
+class Q4Goes(AttenuationModelGoes):
+    """
+    Implements the weak T dependence attenuation model
+    (after Goes et al. 2004).
 
-# Q6g - strong T dependence (after Goes et al. 2004
-Q6g = AttenuationModelGoes(
-    peridotite_solidus,
-    mantle_domain_fractions,
-    Q_models=[
-        {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 0.5, "g": 30.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 3.5, "g": 20.0, "a": 0.15, "QK": 1000.0},
-    ],
-)
+    The model uses the
+    [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
+    [mantle_domain_fractions][terratools.properties.attenuation.mantle_domain_fractions]
+    functions to determine the attenuation
+    and proportions of upper mantle, transition zone and lower mantle
+    materials as a function of pressure and temperature.
 
-# Q7g - intermediate T dependence
-# (most consistent with Matas and Bukuwinski 2007)
-Q7g = AttenuationModelGoes(
-    peridotite_solidus,
-    mantle_domain_fractions,
-    Q_models=[
-        {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 0.5, "g": 30.0, "a": 0.15, "QK": 1000.0},
-        {"Q0": 1.5, "g": 26.0, "a": 0.15, "QK": 1000.0},
-    ],
-)
+    The values for the Q models are as follows:
+
+    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
+    - transition zone: Q0=3.5, g=20.0, a=0.15, QK=1000.0,
+    - lower mantle: Q0=35.0, g=10.0, a=0.15, QK=1000.0.
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            peridotite_solidus,
+            mantle_domain_fractions,
+            Q_models=[
+                {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 3.5, "g": 20.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 35.0, "g": 10.0, "a": 0.15, "QK": 1000.0},
+            ],
+        )
+
+
+class Q6Goes(AttenuationModelGoes):
+    """
+    Implements the strong T dependence attenuation model
+    (after Goes et al. 2004).
+
+    The model uses the
+    [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
+    [mantle_domain_fractions][terratools.properties.attenuation.mantle_domain_fractions]
+    functions to determine the attenuation
+    and proportions of upper mantle, transition zone and lower mantle
+    materials as a function of pressure and temperature.
+
+    The values for the Q models are as follows:
+
+    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
+    - transition zone: Q0=0.5, g=30.0, a=0.15, QK=1000.0,
+    - lower mantle: Q0=3.5, g=20.0, a=0.15, QK=1000.0.
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            peridotite_solidus,
+            mantle_domain_fractions,
+            Q_models=[
+                {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 0.5, "g": 30.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 3.5, "g": 20.0, "a": 0.15, "QK": 1000.0},
+            ],
+        )
+
+
+class Q7Goes(AttenuationModelGoes):
+    """
+    Implements the intermediate strength T dependence attenuation model
+    (after Goes et al. 2004). This model is most consistent with
+    Matas and Bukowinski (2007).
+
+    The model uses the
+    [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
+    [mantle_domain_fractions][terratools.properties.attenuation.mantle_domain_fractions]
+    functions to determine the attenuation
+    and proportions of upper mantle, transition zone and lower mantle
+    materials as a function of pressure and temperature.
+
+    The values for the Q models are as follows:
+
+    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
+    - transition zone: Q0=0.5, g=30.0, a=0.15, QK=1000.0,
+    - lower mantle: Q0=1.5, g=26.0, a=0.15, QK=1000.0.
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            peridotite_solidus,
+            mantle_domain_fractions,
+            Q_models=[
+                {"Q0": 0.1, "g": 38.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 0.5, "g": 30.0, "a": 0.15, "QK": 1000.0},
+                {"Q0": 1.5, "g": 26.0, "a": 0.15, "QK": 1000.0},
+            ],
+        )
+
+
+# Objects instantiated from attenuation classes
+Q4g = Q4Goes()
+Q6g = Q6Goes()
+Q7g = Q7Goes()

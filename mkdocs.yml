@@ -5,13 +5,20 @@ nav:
     - API: 
         - 'TerraModel': 'api/terra_model.md'
         - properties:
-            - 'attenuation': 'api/properties/attenuation.md'
+            - 'Profiles': 'api/properties/profiles.md'
+            - 'Attenuation': 'api/properties/attenuation.md'
+            - 'PerpleX': 'api/properties/perplex.md'
+            - 'Utilities': 'api/properties/utilities.md'
 
 theme:
   name: "material"
 
 plugins:
 - search
+- autorefs
+- bibtex:
+    bib_file: "docs/references.bib"
+    bib_by_default: true
 - mkdocstrings:
     handlers:
         python:
@@ -19,3 +26,6 @@ plugins:
                 selection_opt: true
                 rendering_opt: "value"
                 docstring_style: "sphinx"
+
+markdown_extensions:
+  - footnotes

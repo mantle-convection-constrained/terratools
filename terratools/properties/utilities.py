@@ -5,6 +5,11 @@ import pkgutil
 def read_table(filename):
     """
     Reads a table from a packaged dataset within terratools.
+
+    :param string filename: path to file
+
+    :return: The table in the file in numpy array form.
+    :rtype: numpy array
     """
     datastream = pkgutil.get_data('terratools', filename)
     datalines = [line.strip()
@@ -20,6 +25,17 @@ def read_table(filename):
 
 
 def Simon_Glatzel_fn(Pr, Tr):
+    """
+    Takes a reference pressure and temperature,
+    and returns a Simon-Glatzel function
+    f(P, a, b) = (Tr ((P - Pr)/a + 1)^b).
+
+    :param float Pr: Reference pressure (Pa)
+    :param float Tr: Reference temperature (K)
+
+    :return: The Simon-Glatzel function
+    :rtype: function
+    """
     def Simon_Glatzel(P, a, b):
         return Tr * np.power(((P - Pr)/a + 1.), b)
     return Simon_Glatzel

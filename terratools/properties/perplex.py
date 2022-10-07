@@ -23,43 +23,44 @@ def make_build_files(project_name, molar_composition,
     removes some problems with memory limits when trying to create
     phase diagrams over all P and T space.
 
-    Parameters
-    ----------
-    project_name: string
-        A string used to define the project directory and
+    :param project_name: A string used to define the project directory and
         build file names.
+    :type project_name: string
 
-    molar_composition: dictionary
+    :param molar_composition:
         A dictionary containing the molar amounts of the
         components in the thermodynamic data files
         (often MGO, FEO etc...). Sometimes the datafiles
         have components in mixed case (MgO, FeO etc).
+    :type molar_composition: dictionary
 
-    pressure_bounds: list of floats
+    :param pressure_bounds:
         A list of pressures that partition the build files.
         Should be of at least length two
         (minimum and maximum pressure).
+    :type pressure_bounds: list of floats
 
-    temperature_bounds: list of floats
+    :param temperature_bounds:
         A list of temperatures that partition the build files.
         Should be of at least length two
         (minimum and maximum temperature).
+    :type temperature_bounds: list of floats
 
-    endmember_file: string
-        Path to the endmember thermodynamic data file
-        (usually *ver.dat)
+    :param endmember_file: Path to the endmember thermodynamic data file
+    (usually *ver.dat)
+    :type endmember_file: string
 
-    solution_file: string
-        Path to the solution file (usually ?_solution_model.dat)
+    :param solution_file: Path to the solution file (usually ?_solution_model.dat)
+    :type solution_file: string
 
-    option_file: string
-        Path to the PerpleX option file (usually perplex_option.dat).
+    :param option_file: Path to the PerpleX option file (usually perplex_option.dat).
+    :type option_file: string
 
-    solutions: list of strings
-        List of solutions to be considered in the minimization
+    :param solutions: List of solutions to be considered in the minimization
+    :type solutions: list of strings
 
-    excludes: list of strings
-        List of endmembers excluded in the minimization
+    :param excludes: List of endmembers excluded in the minimization
+    :type excludes: list of strings
     """
 
     # Create project directory
@@ -127,15 +128,15 @@ def run_build_files(path_to_project, path_to_perplex):
     collection of build files created by
     the make_build_files function.
 
-    Parameters
-    ----------
-    path_to_project: string
+    :param path_to_project:
         The path to the project defined by the
         project_name parameter in make_build_files.
+    :type path_to_project: string
 
-    path_to_perplex: string
+    :param path_to_perplex:
         The path to the directory containing the
         PerpleX executables (vertex and pssect).
+    :type path_to_perplex: string
     """
     working_directory = os.getcwd()
     os.chdir(path_to_project)
@@ -187,45 +188,44 @@ def perplex_to_grid(path_to_project,
     and by linear extrapolation in the lowest
     pressure row.
 
-    Parameters
-    ----------
-    path_to_project: string
-        The path to the project defined by the
-        project_name parameter in make_build_files.
+    :param project_name: A string used to define the project directory and
+        build file names.
+    :type project_name: string
 
-    pressure_bounds: list of floats
+    :param pressure_bounds:
         A list of pressures that partition the build files.
         Should be of at least length two
         (minimum and maximum pressure).
+    :type pressure_bounds: list of floats
 
-    temperature_bounds: list of floats
+    :param temperature_bounds:
         A list of temperatures that partition the build files.
         Should be of at least length two
         (minimum and maximum temperature).
+    :type temperature_bounds: list of floats
 
-    pressures: numpy array
-        Equally spaced pressures defining the
+    :param pressures: Equally spaced pressures defining the
         property grid. Most easily created using
         numpy.linspace().
+    :type pressures: numpy array
 
-    temperatures: numpy array
-        Equally spaced temperatures defining the
+    :param temperatures: Equally spaced temperatures defining the
         property grid. Most easily created using
         numpy.linspace().
+    :type temperatures: numpy array
 
-    path_to_perplex: string
+    :param path_to_perplex:
         The path to the directory containing the
         PerpleX executables (vertex and pssect).
+    :type path_to_perplex: string
 
-    Returns
-    -------
-    out: 3D numpy array
-        An array of thermodynamic properties.
+    :return: An array of thermodynamic properties.
         out[i,j,k] is property k at
         the ith pressure and jth temperature.
         The properties k are pressure, temperature
         (both duplicated as a formatting check),
         density, Vp and Vs.
+    :rtype: 3D numpy array
     """
 
     working_directory = os.getcwd()
