@@ -63,10 +63,10 @@ class AttenuationModelGoes(object):
         The effects of anelasticity on shear wave velocity are incorporated
         using a model for the S-wave quality factor QS that varies with
         pressure P and temperature T as
-        QS(w,z,T) = Qo w a exp(a ksi Tm(z) / T), where
+        QS(w,z,T) = Qo w a exp(a g Tm(z) / T), where
         w is frequency,
         a is exponential frequency dependence,
-        ksi is a scaling factor and
+        g is a scaling factor and
         Tm is the dry solidus melting temperature.
         QK is chosen to be temperature independent.
 
@@ -268,11 +268,14 @@ class Q4Goes(AttenuationModelGoes):
     and proportions of upper mantle, transition zone and lower mantle
     materials as a function of pressure and temperature.
 
-    The values for the Q models are as follows:
+    The parameter values for the Q4 attenuation models are given in the
+    following table:
 
-    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
-    - transition zone: Q0=3.5, g=20.0, a=0.15, QK=1000.0,
-    - lower mantle: Q0=35.0, g=10.0, a=0.15, QK=1000.0.
+    | Layer           | $Q_0$ | $g$  | $\\alpha$ | $Q_K$  |
+    | --------------- | ----- | ---- | --------- | ------ |
+    | upper mantle    | 0.1   | 38.0 | 0.15      | 1000.0 |
+    | transition zone | 3.5   | 20.0 | 0.15      | 1000.0 |
+    | lower mantle    | 35.0  | 10.0 | 0.15      | 1000.0 |
 
     """
 
@@ -300,11 +303,14 @@ class Q6Goes(AttenuationModelGoes):
     and proportions of upper mantle, transition zone and lower mantle
     materials as a function of pressure and temperature.
 
-    The values for the Q models are as follows:
+    The parameter values for the Q6 attenuation models are given in the
+    following table:
 
-    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
-    - transition zone: Q0=0.5, g=30.0, a=0.15, QK=1000.0,
-    - lower mantle: Q0=3.5, g=20.0, a=0.15, QK=1000.0.
+    | Layer           | $Q_0$ | $g$  | $\\alpha$ | $Q_K$  |
+    | --------------- | ----- | ---- | --------- | ------ |
+    | upper mantle    | 0.1   | 38.0 | 0.15      | 1000.0 |
+    | transition zone | 0.5   | 30.0 | 0.15      | 1000.0 |
+    | lower mantle    | 3.5   | 20.0 | 0.15      | 1000.0 |
 
     """
 
@@ -333,11 +339,15 @@ class Q7Goes(AttenuationModelGoes):
     and proportions of upper mantle, transition zone and lower mantle
     materials as a function of pressure and temperature.
 
-    The values for the Q models are as follows:
+    The parameter values for the Q7 attenuation models are given in the
+    following table:
 
-    - upper mantle: Q0=0.1, g=38.0, a=0.15, QK=1000.0,
-    - transition zone: Q0=0.5, g=30.0, a=0.15, QK=1000.0,
-    - lower mantle: Q0=1.5, g=26.0, a=0.15, QK=1000.0.
+    | Layer           | $Q_0$ | $g$  | $\\alpha$ | $Q_K$  |
+    | --------------- | ----- | ---- | --------- | ------ |
+    | upper mantle    | 0.1   | 38.0 | 0.15      | 1000.0 |
+    | transition zone | 0.5   | 30.0 | 0.15      | 1000.0 |
+    | lower mantle    | 1.5   | 26.0 | 0.15      | 1000.0 |
+
 
     """
 
