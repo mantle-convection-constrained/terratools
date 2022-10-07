@@ -1,7 +1,7 @@
 from cgitb import lookup
 import unittest
 import numpy as np
-from terratools.lookup_tables import SeismicLookupTable
+from terratools.lookup_tables import SeismicLookupTable, _harmonic_mean
 import pathlib
 
 TESTDATA_PATH = pathlib.Path(__file__).parent.joinpath('data','test_lookup_table.txt')
@@ -42,6 +42,25 @@ class TestLookup(unittest.TestCase):
         self.assertEqual(int(outgrid[2]), 6,
                                msg='interpolation for grid of points failed')
 
+
+    def test_harmonic_mean_1D(self):
+        test_data = np.array([1,5])
+        test_weights = np.array([1,2])
+
+        hmean = _harmonic_mean(test_data, test_weights)
+
+        self.assertEqual(hmean, 15/7,
+                         msg='harmonic mean with 1D arrays failed')
+
+    def test_harmonic_mean_2D(self):
+        test_data = np.ones((2,3,3))
+        test_data[1] *= 5
+        test_weights = np.array([1,2])
+
+        hmean = _harmonic_mean(test_data, test_weights)
+
+        np.testing.assert_array_equal(hmean, np.ones((3,3)) * 15/7,
+                         err_msg='harmonic mean with 2D arrays failed')
 
 if __name__ == '__main__':
     unittest.main()
