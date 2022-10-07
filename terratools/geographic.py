@@ -1,7 +1,4 @@
 """
-geographic
-==========
-
 This module deals with transformation between spherical and
 Cartesian coordinate systems.
 """
@@ -23,14 +20,19 @@ def geog2cart(lon, lat, r, radians=False):
 
     :param lon: Longitude of point(s) in degrees (default), or
         in radians if ``radians`` is ``True``
+    :type lon: float or numpy array
     :param lat: Latitude of point(s) in degrees (default), or
         in radians if ``radians`` is ``True``
+    :type lat: float or numpy array
     :param r: Radius of point(s).  The units of x, y and z will be
         the same as those of ``r``.
+    :type r: float or numpy array
     :param radians: If ``True``, input are in radians; otherwise they
         are assumed to be in degrees.
+    :type radians: bool
     :returns: for scalar input, the three coordinates x, y and z; for
         vector inputs, vectors of x, y and z
+    :rtype: 3 floats or 3 numpy arrays
     """
     if np.any(r < 0):
         raise ValueError("radius cannot be negative")
@@ -62,13 +64,18 @@ def cart2geog(x, y, z, radians=False):
     - z passes through the north pole.
 
     :param x: x coordinate(s)
+    :type x: float or numpy array
     :param y: y coordinate(s)
+    :type y: float or numpy array
     :param z: z coordinate(s)
+    :type z: float or numpy array
     :param radians: If ``True``, return output in radians; otherwise
         return output in degrees.
+    :type radians: bool
     :returns: longitude, latitude and radius.  Longitude and latitude
         are in degrees, unless ``radians`` is ``True``.  Radius has the
         same units as x, y, and z.
+    :rtype: 3 floats or 3 numpy arrays
     """
     r = np.sqrt(x**2 + y**2 + z**2)
     scalar_input = np.isscalar(r)
@@ -104,12 +111,18 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
     ``False``.
 
     :param lon1: Longitude of first point
+    :type lon1: float or numpy array
     :param lat1: Latitude of first point
+    :type lat1: float or numpy array
     :param lon2: Longitude of second point
+    :type lon2: float or numpy array
     :param lat2: Latitude of second point
+    :type lat2: float or numpy array
     :param radians: If True, input angles are in radians; otherwise they are
         in degrees.
+    :type radians: bool
     :returns: angular distance between two points
+    :rtype: float or numpy array
     """
     if not radians:
         lon1 = np.radians(lon1)
@@ -143,12 +156,19 @@ def azimuth(lon1, lat1, lon2, lat2, radians=False):
     ``False``.
 
     :param lon1: Longitude of first point
+    :type lon1: float or numpy array
     :param lat1: Latitude of first point
+    :type lat1: float or numpy array
     :param lon2: Longitude of second point
+    :type lon2: float or numpy array
     :param lat2: Latitude of second point
-    :param radians: Whether input is in radians
+    :type lat2: float or numpy array
+    :param radians: If True, input angles are in radians; otherwise they are
+        in degrees.
+    :type radians: bool
     :returns: angular distance between two points, in radians if
         ``radians`` is ``True``, and in degrees otherwise.
+    :rtype: float or numpy array
     """
     if not radians:
         lon1 = np.radians(lon1)
@@ -177,22 +197,31 @@ def spherical_triangle_area(
 
     Note: Where two sides of the triangle are similar in length (and the third
     is about half the other two), l'Huilier's formula becomes unstable.  To guard
-    against that case, we use a different expression; see:
-    http://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess
+    against that case, we use a different expression;
+    see [here](http://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess).
 
     Note that all input angles are in degrees, unless ``radians`` is
     ``False``.
 
     :param lon1: Longitude of first point
+    :type lon1: float or numpy array
     :param lat1: Latitude of first point
+    :type lat1: float or numpy array
     :param lon2: Longitude of second point
+    :type lon2: float or numpy array
     :param lat2: Latitude of second point
+    :type lat2: float or numpy array
     :param lon3: Longitude of third point
+    :type lon3: float or numpy array
     :param lat3: Latitude of third point
+    :type lat3: float or numpy array
     :param radians: Whether input is in radians
+    :type radians: bool
     :param tol: Angle tolerance (always in radians) for collinearity test
         of three points
+    :type tol: float
     :returns: spherical area of triangle
+    :rtype: float or numpy array
     """
     if not radians:
         lon1 = np.radians(lon1)
@@ -250,33 +279,46 @@ def triangle_interpolation(
     and c at C is computed by giving each value the weight of the area
     of its opposite triangle, divided by the total area.
 
+    <pre>
                 x A (point 1, val1)
-               /'\
-              / ` \
-             /   | \
-            /   _+  \
-           /__--   ` \
+               /'\\
+              / ` \\
+             /   | \\
+            /   _+  \\
+           /__--   ` \\
         C x__________x B (point 2, val2)
       (point 3, val3)
+    </pre>
 
     Note that all input angles are in degrees, unless ``radians`` is
     ``False``.
 
     :param lon: Longitude of point of interest within the outer triangle.
+    :type lon: float or numpy array
     :param lat: Latitude of piont of interest.
+    :type lat: float or numpy array
     :param lon1: Longitude of first point
+    :type lon1: float or numpy array
     :param lat1: Latitude of first point of surrounding triangle
+    :type lat1: float or numpy array
     :param val1: Value at first point of surrounding triangle
+    :type val1: float or numpy array
     :param lon2: Longitude of second point of surrounding triangle
+    :type lon2: float or numpy array
     :param lat2: Latitude of second point of surrounding triangle
-    :param val1: Value at second point of surrounding triangle
+    :type lat2: float or numpy array
+    :param val2: Value at second point of surrounding triangle
+    :type val2: float or numpy array
     :param lon3: Longitude of third point of surrounding triangle
+    :type lon3: float or numpy array
     :param lat3: Latitude of third point of surrounding triangle
-    :param val1: Value at third point of surrounding triangle
+    :type lat3: float or numpy array
+    :param val3: Value at third point of surrounding triangle
+    :type val3: float or numpy array
     :param radians: Whether input is in radians
-    :param tol: Angle tolerance (always in radians) for collinearity test
-        of three points
+    :type radians: bool
     :returns: interpolated value
+    :rtype: float or numpy array
     """
     if not radians:
         lon = np.radians(lon)
