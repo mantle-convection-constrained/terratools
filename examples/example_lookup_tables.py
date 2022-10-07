@@ -57,7 +57,7 @@ if __name__ == "__main__":
     vp_bas=bas_table.interp_points(pressures,temperatures,"vp")
 
     #Calculate Vp of the mechanical mixture using harmonic mean
-    vp_mm=lookup_tables.harmonic_mean_comp(vp_bas,vp_hzb,vp_lhz,basfrac,lhzfrac,hzbfrac)
+    vp_mm=lookup_tables._harmonic_mean([vp_bas,vp_hzb,vp_lhz],[basfrac,lhzfrac,hzbfrac])
     
     
     fig,ax2 = plt.subplots(figsize=(4,7))
