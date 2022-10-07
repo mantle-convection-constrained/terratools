@@ -1,3 +1,0 @@
-# Profiles
-
-::: terratools.properties.profiles
