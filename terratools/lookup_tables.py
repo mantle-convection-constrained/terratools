@@ -74,13 +74,6 @@ class SeismicLookupTable:
             Qs[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),8]
             T_sol[:,i]=self.table[0+(i*self.pstep):self.pstep+(i*self.pstep),9]
 
-
-        #Creat dictionary which holds the interpolator objects
-        self.fields = {'vp': [2, Vp, 'km/s'], 'vs': [3,Vs, 'km/s'], 'vp_ani': [4, Vp_an, 'km/s'],
-                      'vs_ani': [5, Vs_an, 'km/s'], 'vphi': [6, Vphi, 'km/s'],
-                      'density': [7, Dens, '$kg/m^3$'], 'qs': [8, Qs, 'Hz'], 't_sol': [9, T_sol, 'K']}
-
-
         #Setup interpolator objects. These can be used for rapid querying of many individual points
         self.vp_interp = interp2d(self.pres,self.temp,Vp)
         self.vs_interp = interp2d(self.pres,self.temp,Vs)
@@ -90,6 +83,12 @@ class SeismicLookupTable:
         self.density_interp = interp2d(self.pres,self.temp,Dens)
         self.qs_interp = interp2d(self.pres,self.temp,Qs)
         self.t_sol_interp = interp2d(self.pres,self.temp,T_sol)
+
+                #Creat dictionary which holds the interpolator objects
+        self.fields = {'vp': [2, Vp, 'km/s', self.vp_interp], 'vs': [3,Vs, 'km/s', self.vs_interp], 
+                       'vp_ani': [4, Vp_an, 'km/s', self.vp_an_interp], 'vs_ani': [5, Vs_an, 'km/s', self.vs_an_interp], 
+                       'vphi': [6, Vphi, 'km/s', self.vphi_interp], 'density': [7, Dens, '$kg/m^3$', self.density_interp], 
+                       'qs': [8, Qs, 'Hz', self.qs_interp], 't_sol': [9, T_sol, 'K', self.t_sol_interp]}
 
 
 #################################################
@@ -105,7 +104,7 @@ class SeismicLookupTable:
         Routine for re-gridding lookup tables into new pressure-temperature space
         Inputs: press = pressures
                 temps = temperatures
-                field = data field (eg. basalt.Vs)
+                field = data field (eg. 'Vs')
         Returns: interpolated values of a given table property
                 on a grid defined by press and temps
 
@@ -118,7 +117,7 @@ class SeismicLookupTable:
         _check_bounds(press,self.pres)
         _check_bounds(temps,self.temp)
 
-        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
+        grid=self.fields[field.lower()][3]
 
         return grid(press,temps)
 
@@ -139,10 +138,10 @@ class SeismicLookupTable:
         press = [press] if type(press)==int or type(press)==float else press
         temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        _check_bounds(press,self.pres,)
-        _check_bounds(temps,self.temp,)
+        _check_bounds(press,self.pres)
+        _check_bounds(temps,self.temp)
 
-        grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
+        grid=self.fields[field.lower()][3]
 
 
         out=np.zeros(len(press))
