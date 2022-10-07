@@ -18,20 +18,25 @@ value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
     lon, lat, r = random_coordinates(nlayers, npts)
     if with_fields:
-        fields = {"t": random_field(nlayers, npts), "u_xyz": random_field(nlayers, npts, 3)}
+        fields = {
+            "t": random_field(nlayers, npts),
+            "u_xyz": random_field(nlayers, npts, 3),
+        }
     else:
         fields = {}
     return TerraModel(lon, lat, r, fields=fields, **kwargs)
+
 
 def random_coordinates(nlayers, npts):
     """Return a set of random coordinates (satisfying the constraints)
     which can be passed to construct a TerraModel.
     FIXME: In theory there may be duplicate points as they are random."""
-    rmin, rmax = np.sort(7000*np.random.rand(2))
+    rmin, rmax = np.sort(7000 * np.random.rand(2))
     r = np.sort(np.random.uniform(rmin, rmax, nlayers))
-    lon = 360*(np.random.rand(npts) - 0.5)
-    lat = 180*(np.random.rand(npts) - 0.5)
+    lon = 360 * (np.random.rand(npts) - 0.5)
+    lat = 180 * (np.random.rand(npts) - 0.5)
     return lon, lat, r
+
 
 def random_field(nlayers, npts, ncomps=None):
     if ncomps is None:
@@ -39,18 +44,21 @@ def random_field(nlayers, npts, ncomps=None):
     else:
         return np.random.rand(nlayers, npts, ncomps)
 
+
 def read_test_lateral_points():
     """Read a subset of points on the TERRA grid in a box from
     -2° to 2 ° in longitude and latitude"""
     dir = os.path.dirname(__file__)
     file = os.path.join(dir, "data", "TERRA_grid_lon-2_2_lat-2_2.txt")
     data = np.loadtxt(file, dtype=np.float32)
-    lon = data[:,0]
-    lat = data[:,1]
+    lon = data[:, 0]
+    lat = data[:, 1]
     return lon, lat
+
 
 def fields_are_equal(field1, field2):
     return np.allclose(field1, field2, atol=value_tol)
+
 
 def coords_are_equal(coords1, coords2):
     return np.allclose(coords1, coords2, atol=coord_tol)
@@ -66,12 +74,15 @@ class TestTerraModelHelpers(unittest.TestCase):
 
     def test_variable_name_from_field(self):
         """Translation of field name to NetCDF variable name(s)"""
-        self.assertEqual(terra_model._variable_names_from_field("t"),
-            ("Temperature",))
-        self.assertEqual(terra_model._variable_names_from_field("u_xyz"),
-            ("Velocity_x", "Velocity_y", "Velocity_z"))
-        self.assertEqual(terra_model._variable_names_from_field("c_hist"),
-            ("BasaltFrac", "LherzFrac"))
+        self.assertEqual(terra_model._variable_names_from_field("t"), ("Temperature",))
+        self.assertEqual(
+            terra_model._variable_names_from_field("u_xyz"),
+            ("Velocity_x", "Velocity_y", "Velocity_z"),
+        )
+        self.assertEqual(
+            terra_model._variable_names_from_field("c_hist"),
+            ("BasaltFrac", "LherzFrac"),
+        )
         with self.assertRaises(KeyError):
             terra_model._variable_names_from_field("incorrect field name")
 
@@ -150,7 +161,7 @@ class TestTerraModelConstruction(unittest.TestCase):
 
     def test_lon_lat_not_same_length(self):
         with self.assertRaises(ValueError):
-            TerraModel([1], [2,3], [1,2,3])
+            TerraModel([1], [2, 3], [1, 2, 3])
 
     def test_construction(self):
         """Ensure the things we pass in are put in the right place"""
@@ -217,12 +228,12 @@ class TestTerraModelGetters(unittest.TestCase):
         self.assertIs(model.get_field("t"), model._fields["t"])
 
         temp = model.get_field("t")
-        temp[0,0] = 1
+        temp[0, 0] = 1
         self.assertTrue(np.all(model.get_field("t") == temp))
 
     def test_get_radii(self):
-        r = [1,2,3]
-        model = TerraModel([1,2], [3,4], r)
+        r = [1, 2, 3]
+        model = TerraModel([1, 2], [3, 4], r)
         self.assertIs(model.get_radii(), model._radius)
 
     def test_get_lateral_points(self):
@@ -270,17 +281,20 @@ class TestTerraModelNewField(unittest.TestCase):
         model.new_field("t")
         self.assertTrue(model.has_field("t"))
         self.assertTrue(
-            fields_are_equal(model.get_field("t"), np.zeros((nlayers, npts))))
+            fields_are_equal(model.get_field("t"), np.zeros((nlayers, npts)))
+        )
 
         model.new_field("u_xyz")
         self.assertTrue(model.has_field("u_xyz"))
         self.assertTrue(
-            fields_are_equal(model.get_field("u_xyz"), np.zeros((nlayers, npts, 3))))
+            fields_are_equal(model.get_field("u_xyz"), np.zeros((nlayers, npts, 3)))
+        )
 
         model.new_field("c_hist", 2)
         self.assertTrue(model.has_field("c_hist"))
         self.assertTrue(
-            fields_are_equal(model.get_field("c_hist"), np.zeros((nlayers, npts, 2))))
+            fields_are_equal(model.get_field("c_hist"), np.zeros((nlayers, npts, 2)))
+        )
 
 
 class TestTerraModelRepr(unittest.TestCase):
@@ -293,16 +307,23 @@ class TestTerraModelRepr(unittest.TestCase):
         t_field = random_field(nlayers, npts)
         c_hist_field = random_field(nlayers, npts, 2)
         cnames = ["a", "b"]
-        model = TerraModel(lon, lat, r, fields={"t": t_field, "c_hist": c_hist_field},
-            c_histogram_names=cnames)
+        model = TerraModel(
+            lon,
+            lat,
+            r,
+            fields={"t": t_field, "c_hist": c_hist_field},
+            c_histogram_names=cnames,
+        )
 
-        self.assertEqual(model.__repr__(),
+        self.assertEqual(
+            model.__repr__(),
             """TerraModel:
            number of radii: 3
              radius limits: (1000.0, 2000.0)
   number of lateral points: 3
                     fields: ['t', 'c_hist']
-         composition names: ['a', 'b']""")
+         composition names: ['a', 'b']""",
+        )
 
 
 class TestTerraModelNearestIndex(unittest.TestCase):
@@ -347,8 +368,7 @@ class TestTerraModelNearestNeighbors(unittest.TestCase):
         self.assertTrue(np.allclose(distances, [0, 0.1, 0.2, 0.3], atol=1e-7))
         self.assertTrue(np.allclose(indices, [0, 1, 2, 3], atol=1e-7))
 
-        indices, distances = model.nearest_neighbors([0, 0],
-            [0, np.degrees(0.1)], n=4)
+        indices, distances = model.nearest_neighbors([0, 0], [0, np.degrees(0.1)], n=4)
         self.assertTrue(np.allclose(distances[0], [0, 0.1, 0.2, 0.3]))
         self.assertTrue(np.allclose(indices[0], [0, 1, 2, 3]))
         self.assertTrue(np.allclose(distances[1], [0.0, 0.1, 0.2, 0.3]))
@@ -358,26 +378,32 @@ class TestTerraModelNearestNeighbors(unittest.TestCase):
 class TestTerraModelEvaluate(unittest.TestCase):
     def test_wrong_method(self):
         with self.assertRaises(ValueError):
-            dummy_model(with_fields=True).evaluate(0, 0, 1, "t",
-                method="unsupported method")
+            dummy_model(with_fields=True).evaluate(
+                0, 0, 1, "t", method="unsupported method"
+            )
 
     def test_evaluate_depth(self):
         model = dummy_model(with_fields=True)
         radii = model.get_radii()
-        mid_radius = np.min(radii) + (np.max(radii) - np.min(radii))/2
+        mid_radius = np.min(radii) + (np.max(radii) - np.min(radii)) / 2
         surface_radius = np.max(radii)
         mid_depth = surface_radius - mid_radius
-        self.assertEqual(model.evaluate(0, 0, mid_radius, "t"),
-            model.evaluate(0, 0, mid_depth,"t", depth=True))
-        self.assertCountEqual(model.evaluate(0, 0, mid_radius, "u_xyz"),
-            model.evaluate(0, 0, mid_depth,"u_xyz", depth=True), 3)
+        self.assertEqual(
+            model.evaluate(0, 0, mid_radius, "t"),
+            model.evaluate(0, 0, mid_depth, "t", depth=True),
+        )
+        self.assertCountEqual(
+            model.evaluate(0, 0, mid_radius, "u_xyz"),
+            model.evaluate(0, 0, mid_depth, "u_xyz", depth=True),
+            3,
+        )
 
     def test_evaluate_radii_interpolation(self):
         model = TerraModel(lon=[-1, 1, 0], lat=[1, 1, -1], r=[1, 2])
         model.new_field("t")
         temp = model.get_field("t")
-        temp[0,:] = 10
-        temp[1,:] = 20
+        temp[0, :] = 10
+        temp[1, :] = 20
         self.assertAlmostEqual(model.evaluate(0, 0, 1.1, "t"), 11)
         self.assertAlmostEqual(model.evaluate(0, 0, 0.9, "t", depth=True), 11)
 
@@ -393,11 +419,14 @@ class TestTerraModelEvaluate(unittest.TestCase):
         # Make temp follow an analytical function
         test_r = radii[0]
         for i in range(len(radii)):
-            temp[i,:] = test_func(lon, lat)
+            temp[i, :] = test_func(lon, lat)
 
-        test_lon, test_lat = 4*(np.random.rand(2) - 0.5)
-        self.assertAlmostEqual(model.evaluate(test_lon, test_lat, test_r, "t"),
-            test_func(test_lon, test_lat), delta=1)
+        test_lon, test_lat = 4 * (np.random.rand(2) - 0.5)
+        self.assertAlmostEqual(
+            model.evaluate(test_lon, test_lat, test_r, "t"),
+            test_func(test_lon, test_lat),
+            delta=1,
+        )
 
     def test_evaluate_nearest(self):
         lon = [0, 1, 2]
@@ -405,10 +434,14 @@ class TestTerraModelEvaluate(unittest.TestCase):
         r = [1]
         model = TerraModel(lon, lat, r)
         u_xyz = model.new_field("u_xyz")
-        u_xyz[0,0,:] = [1, 2, 3]
-        u_xyz[0,1,:] = [10, 20, 30]
-        u_xyz[0,2,:] = [-2, -4, 10]
-        self.assertTrue(np.all(model.evaluate(1.9, 0.1, 1, "u_xyz", method="nearest") == [-2, -4, 10]))
+        u_xyz[0, 0, :] = [1, 2, 3]
+        u_xyz[0, 1, :] = [10, 20, 30]
+        u_xyz[0, 2, :] = [-2, -4, 10]
+        self.assertTrue(
+            np.all(
+                model.evaluate(1.9, 0.1, 1, "u_xyz", method="nearest") == [-2, -4, 10]
+            )
+        )
 
 
 class TestNearestIndex(unittest.TestCase):
@@ -425,20 +458,22 @@ class TestNearestIndex(unittest.TestCase):
 
 class TestBoundingIndices(unittest.TestCase):
     def test_below(self):
-        self.assertCountEqual(terra_model._bounding_indices(-5, [-4, -3, -2]),
-            (0, 0), 2)
+        self.assertCountEqual(
+            terra_model._bounding_indices(-5, [-4, -3, -2]), (0, 0), 2
+        )
 
     def test_above(self):
-        self.assertCountEqual(terra_model._bounding_indices(0, [-4, -3, -2]),
-            (2, 2), 2)
+        self.assertCountEqual(terra_model._bounding_indices(0, [-4, -3, -2]), (2, 2), 2)
 
     def test_between(self):
-        self.assertCountEqual(terra_model._bounding_indices(-2.1, [-4, -3, -2]),
-            (1, 2), 2)
+        self.assertCountEqual(
+            terra_model._bounding_indices(-2.1, [-4, -3, -2]), (1, 2), 2
+        )
 
     def test_equal(self):
-        self.assertCountEqual(terra_model._bounding_indices(-3, [-4, -3, -2]),
-            (1, 1), 2)
+        self.assertCountEqual(
+            terra_model._bounding_indices(-3, [-4, -3, -2]), (1, 1), 2
+        )
 
 
 class TestPlotLayer(unittest.TestCase):
@@ -451,7 +486,7 @@ class TestPlotLayer(unittest.TestCase):
         with self.assertRaises(ValueError):
             model.plot_layer("t", index=-1)
         with self.assertRaises(ValueError):
-            model.plot_layer("t", index=len(model.get_radii())+1)
+            model.plot_layer("t", index=len(model.get_radii()) + 1)
 
     def test_plot_layer_radius(self):
         model = dummy_model(with_fields=True)
@@ -472,5 +507,5 @@ class TestPlotLayer(unittest.TestCase):
         self.assertIsInstance(ax, GeoAxesSubplot)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

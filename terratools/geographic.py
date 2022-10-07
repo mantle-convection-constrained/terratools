@@ -39,11 +39,12 @@ def geog2cart(lon, lat, r, radians=False):
         lon = np.radians(lon)
         lat = np.radians(lat)
 
-    x = r*np.cos(lon)*np.cos(lat)
-    y = r*np.sin(lon)*np.cos(lat)
-    z = r*np.sin(lat)
+    x = r * np.cos(lon) * np.cos(lat)
+    y = r * np.sin(lon) * np.cos(lat)
+    z = r * np.sin(lat)
 
     return x, y, z
+
 
 def cart2geog(x, y, z, radians=False):
     """
@@ -76,7 +77,7 @@ def cart2geog(x, y, z, radians=False):
         return 0.0, 0.0, 0.0
 
     lon = np.arctan2(y, x)
-    lat = np.arcsin(z/r)
+    lat = np.arcsin(z / r)
 
     # Fix any coordinates where r was zero
     if not scalar_input:
@@ -90,6 +91,7 @@ def cart2geog(x, y, z, radians=False):
         lat = np.degrees(lat)
 
     return lon, lat, r
+
 
 def angular_distance(lon1, lat1, lon2, lat2, radians=False):
     """
@@ -123,13 +125,14 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
 
     distance = np.arctan2(
         np.sqrt(
-            (cos_lat2*np.sin(lon2-lon1))**2 +
-            (cos_lat1*sin_lat2 - sin_lat1*cos_lat2*cos_lon2_lon1)**2
+            (cos_lat2 * np.sin(lon2 - lon1)) ** 2
+            + (cos_lat1 * sin_lat2 - sin_lat1 * cos_lat2 * cos_lon2_lon1) ** 2
         ),
-        sin_lat1*sin_lat2 + cos_lat1*cos_lat2*cos_lon2_lon1
+        sin_lat1 * sin_lat2 + cos_lat1 * cos_lat2 * cos_lon2_lon1,
     )
 
     return distance
+
 
 def azimuth(lon1, lat1, lon2, lat2, radians=False):
     """
@@ -154,8 +157,8 @@ def azimuth(lon1, lat1, lon2, lat2, radians=False):
         lat2 = np.radians(lat2)
 
     azimuth = np.arctan2(
-        np.sin(lon2 - lon1)*np.cos(lat2),
-        np.cos(lat1)*np.sin(lat2) - np.sin(lat1)*np.cos(lat2)*np.cos(lon2-lon1)
+        np.sin(lon2 - lon1) * np.cos(lat2),
+        np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(lon2 - lon1),
     )
 
     if not radians:
@@ -163,8 +166,10 @@ def azimuth(lon1, lat1, lon2, lat2, radians=False):
     else:
         return azimuth
 
-def spherical_triangle_area(lon1, lat1, lon2, lat2, lon3, lat3, r=1,
-        radians=False, tol=None):
+
+def spherical_triangle_area(
+    lon1, lat1, lon2, lat2, lon3, lat3, r=1, radians=False, tol=None
+):
     """
     Return the spherical area covered by a spherical triangle defined
     by three geographic coordinates (lon1, lat1), (lon2, lat2) and
@@ -207,7 +212,7 @@ def spherical_triangle_area(lon1, lat1, lon2, lat2, lon3, lat3, r=1,
     # Test for collinearity
     c = np.abs(az2 - az1)
     if c > np.pi:
-        c = 2*np.pi - c
+        c = 2 * np.pi - c
 
     if tol is None:
         tol = np.finfo(c).eps
@@ -218,13 +223,20 @@ def spherical_triangle_area(lon1, lat1, lon2, lat2, lon3, lat3, r=1,
     tan_arc1 = np.tan(arc1)
     tan_arc2 = np.tan(arc2)
 
-    area = 2*np.arctan(tan_arc1*tan_arc2*np.sin(c) /
-        (1 + tan_arc1*tan_arc2*np.cos(c)))*r**2
+    area = (
+        2
+        * np.arctan(
+            tan_arc1 * tan_arc2 * np.sin(c) / (1 + tan_arc1 * tan_arc2 * np.cos(c))
+        )
+        * r**2
+    )
 
     return area
 
-def triangle_interpolation(lon, lat, lon1, lat1, val1, lon2, lat2, val2,
-        lon3, lat3, val3, radians=False):
+
+def triangle_interpolation(
+    lon, lat, lon1, lat1, val1, lon2, lat2, val2, lon3, lat3, val3, radians=False
+):
     """
     Find the interpolated value of a point at (lon, lat), calculated
     by computing the weighted average of the three surrounding values.
@@ -282,6 +294,6 @@ def triangle_interpolation(lon, lat, lon1, lat1, val1, lon2, lat2, val2,
 
     total_area = area12 + area23 + area31
 
-    interpolated_value = (area23*val1 + area31*val2 + area12*val3)/total_area
+    interpolated_value = (area23 * val1 + area31 * val2 + area12 * val3) / total_area
 
     return interpolated_value
