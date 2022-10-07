@@ -115,8 +115,8 @@ class SeismicLookupTable:
         press = [press] if type(press)==int or type(press)==float else press
         temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        _check_bounds(press,self.pres,'pressure')
-        _check_bounds(temps,self.temp,'temperature')
+        _check_bounds(press,self.pres)
+        _check_bounds(temps,self.temp)
 
         grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
@@ -139,8 +139,8 @@ class SeismicLookupTable:
         press = [press] if type(press)==int or type(press)==float else press
         temps = [temps] if type(temps)==int or type(temps)==float else temps
 
-        _check_bounds(press,self.pres,'pressure')
-        _check_bounds(temps,self.temp,'temperature')
+        _check_bounds(press,self.pres,)
+        _check_bounds(temps,self.temp,)
 
         grid=interp2d(self.pres,self.temp,self.fields[field.lower()][1])
 
@@ -309,19 +309,31 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
 
 
-def _check_bounds(input,check,TP):
+def _check_bounds(input,check):
     """
-    Inputs: input=vals of interest
-            check= range of table vals
+    Check which of the valus in inputs exceeds the bounds in check
+    and replace them with the min/max bound as appropriate.
+
+    :param input: temperature or pressure of interest
+    :type input: float
+    :param check: range of table pressure or temperature
+    :type check: 1D array of floats
+    :return: output
     """
 
-    if np.any(input[:]>np.max(check)):
-        print(f'One or more of your {TP} inputs exceeds the table range, reverting to maximum table value')
+    if np.any(input > np.max(check)):
+        print(f'One or more of your inputs exceeds the table range, reverting to maximum table range')
 
-    if np.any(input[:]<np.min(check)):
-        print(f'One or more of your {TP} inputs is below the table range, reverting to minimum table value')
+    elif np.any(input < np.min(check)):
+        print(f'One or more of your inputs is below the table range, reverting to minimum table range')
 
+    # where the values are greater than the minimum keep the same
+    # but replace those below with the minimum
+    output  = np.where(input > np.min(check), input, np.min(check))
+    # where the values are smaller than the maximum keep the same
+    # but replace those above with the maximum
+    output  = np.where(output < np.max(check), output, np.max(check))
 
-
+    return output
 
 
