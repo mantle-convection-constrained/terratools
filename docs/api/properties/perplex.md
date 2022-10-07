@@ -1,3 +1,0 @@
-# PerpleX
-
-::: terratools.properties.perplex

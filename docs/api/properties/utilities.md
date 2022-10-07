@@ -1,3 +1,0 @@
-# Utilities
-
-::: terratools.properties.utilities

@@ -2,13 +2,8 @@ site_name: TerraTools
 nav:
     - Home: index.md
     - About: about.md
-    - API: 
-        - 'TerraModel': 'api/terra_model.md'
-        - properties:
-            - 'Profiles': 'api/properties/profiles.md'
-            - 'Attenuation': 'api/properties/attenuation.md'
-            - 'PerpleX': 'api/properties/perplex.md'
-            - 'Utilities': 'api/properties/utilities.md'
+    - Code Reference: reference/
+    - Bibliography: zz_bibliography.md
 
 theme:
   name: "material"
@@ -16,6 +11,7 @@ theme:
 plugins:
 - search
 - autorefs
+- section-index
 - bibtex:
     bib_file: "docs/references.bib"
     bib_by_default: true
@@ -26,6 +22,13 @@ plugins:
                 selection_opt: true
                 rendering_opt: "value"
                 docstring_style: "sphinx"
+    watch:
+    - terratools
+- gen-files:
+    scripts:
+    - docs/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
 
 markdown_extensions:
   - footnotes
