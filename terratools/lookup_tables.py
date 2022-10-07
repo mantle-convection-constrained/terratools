@@ -85,9 +85,9 @@ class SeismicLookupTable:
         self.t_sol_interp = interp2d(self.pres,self.temp,T_sol)
 
                 #Creat dictionary which holds the interpolator objects
-        self.fields = {'vp': [2, Vp, 'km/s', self.vp_interp], 'vs': [3,Vs, 'km/s', self.vs_interp], 
-                       'vp_ani': [4, Vp_an, 'km/s', self.vp_an_interp], 'vs_ani': [5, Vs_an, 'km/s', self.vs_an_interp], 
-                       'vphi': [6, Vphi, 'km/s', self.vphi_interp], 'density': [7, Dens, '$kg/m^3$', self.density_interp], 
+        self.fields = {'vp': [2, Vp, 'km/s', self.vp_interp], 'vs': [3,Vs, 'km/s', self.vs_interp],
+                       'vp_ani': [4, Vp_an, 'km/s', self.vp_an_interp], 'vs_ani': [5, Vs_an, 'km/s', self.vs_an_interp],
+                       'vphi': [6, Vphi, 'km/s', self.vphi_interp], 'density': [7, Dens, '$kg/m^3$', self.density_interp],
                        'qs': [8, Qs, 'Hz', self.qs_interp], 't_sol': [9, T_sol, 'K', self.t_sol_interp]}
 
 
@@ -218,32 +218,32 @@ class MultiTables():
     Class to take in and process multiple tables at once.
 
     :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
-                 and the associated lookup table filename to be read in or array of values. 
-    :type tables: dictionary  
+                 and the associated lookup table filename to be read in or array of values.
+    :type tables: dictionary
     """
 
     def __init__(self, lookuptables):
-        self._tables = lookuptables 
+        self._tables = lookuptables
         self._lookup_tables = {}
         for key in self._tables:
             self._lookup_tables[key] = SeismicLookupTable(self._tables[key])
 
     def evaluate(self, P, T, fractions, field):
         """
-        Returns the harmonic mean of a parameter over several lookup 
+        Returns the harmonic mean of a parameter over several lookup
         tables weighted by their fraction.
-        
+
         :param P: pressure value to evaluate.
         :type P: float
-        :param T: temperature value to evaluate. 
+        :param T: temperature value to evaluate.
         :type T: float
-        :param fractions: relative proportions of 
-                          compositions. The keys in 
-                          the dictionary need to be 
-                          the same as the tables 
+        :param fractions: relative proportions of
+                          compositions. The keys in
+                          the dictionary need to be
+                          the same as the tables
                           attribute.
         :type fractions: dictionary
-        :param field: property to evaluate, e.g. 'vs'. 
+        :param field: property to evaluate, e.g. 'vs'.
         :type field: str
         :return: property 'prop' evaluated at T and P.
         :rtype: float
@@ -259,23 +259,23 @@ class MultiTables():
 
         value = _harmonic_mean(data = values, fractions = fracs)
 
-        return value 
+        return value
 
 
 
 def _harmonic_mean(data, fractions):
     """
     Our own harmonic mean function. scipy.stats does have one
-    but will only work on 1D arrays whereas this will take the 
-    mean of 2D arrays such as lookup tables also. 
+    but will only work on 1D arrays whereas this will take the
+    mean of 2D arrays such as lookup tables also.
 
     Input: data = list of floats of the data to be averaged
                     can be 1D array of values for each composition
-                    or can be 3D array with the 0 axis holding the 
-                    different data.  
-        fractions = list of floats representing relative 
+                    or can be 3D array with the 0 axis holding the
+                    different data.
+        fractions = list of floats representing relative
                     relative weights of the data.
-    Returns: hmean = harmonic mean of input values. Either a 
+    Returns: hmean = harmonic mean of input values. Either a
                         scaler or a 2D array depending on input.
 
     if averaging lookup tables, they must have the same shape.
@@ -338,5 +338,3 @@ def _check_bounds(input,check):
     output  = np.where(output < np.max(check), output, np.max(check))
 
     return output
-
-
