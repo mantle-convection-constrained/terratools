@@ -1,7 +1,7 @@
 from cgitb import lookup
 import unittest
 import numpy as np
-from terratools.lookup_tables import SeismicLookupTable, _harmonic_mean
+from terratools.lookup_tables import SeismicLookupTable, _harmonic_mean, _check_bounds
 import pathlib
 
 TESTDATA_PATH = pathlib.Path(__file__).parent.joinpath('data','test_lookup_table.txt')
@@ -61,6 +61,31 @@ class TestLookup(unittest.TestCase):
 
         np.testing.assert_array_equal(hmean, np.ones((3,3)) * 15/7,
                          err_msg='harmonic mean with 2D arrays failed')
+
+    def test_check_bounds_scalar(self):
+        Ps = np.arange(-50,51,1)
+
+        # for when less than range
+        corrected_value = _check_bounds(input=-100, check=Ps)
+        self.assertEqual(corrected_value, -50,
+                         msg = 'check bounds failed when input is less than range')
+
+        # for when greater than range
+        corrected_value = _check_bounds(input=100, check=Ps)
+        self.assertEqual(corrected_value, 50, msg = 'check bounds failed when input is greater than range')
+
+        # for when within range
+        corrected_value = _check_bounds(input=-25.5, check=Ps)
+        self.assertEqual(corrected_value, -25.5, msg = 'check bounds failed when input is within range')
+
+    def test_check_bounds_array(self):
+        Ps = np.arange(-50,51,1)
+        values = np.array([-100,100,25.5])
+
+        corrected_values = _check_bounds(input=values, check=Ps)
+        np.testing.assert_array_equal(corrected_values, np.array([-50,50,25.5]),
+                                      err_msg='check bounds failed for array of inputs')
+
 
 if __name__ == '__main__':
     unittest.main()
