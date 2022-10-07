@@ -1,3 +1,9 @@
+"""
+A submodule containing functions that generate Terra-readable
+material property files using the software package PerpleX
+[(Connolly 2009)][bibliography].
+"""
+
 import numpy as np
 import shutil
 from subprocess import Popen, PIPE, STDOUT
@@ -7,11 +13,17 @@ import pkgutil
 from copy import deepcopy
 
 
-def make_build_files(project_name, molar_composition,
-                     pressure_bounds, temperature_bounds,
-                     endmember_file, solution_file,
-                     option_file,
-                     solutions, excludes):
+def make_build_files(
+    project_name,
+    molar_composition,
+    pressure_bounds,
+    temperature_bounds,
+    endmember_file,
+    solution_file,
+    option_file,
+    solutions,
+    excludes,
+):
     """
     This function makes a collection of PerpleX build files
     (which are the input files used by other PerpleX programs).
@@ -23,8 +35,8 @@ def make_build_files(project_name, molar_composition,
     removes some problems with memory limits when trying to create
     phase diagrams over all P and T space.
 
-    :param project_name: A string used to define the project directory and
-        build file names.
+    :param project_name: A string used to define the project directory
+    and build file names.
     :type project_name: string
 
     :param molar_composition:
@@ -50,10 +62,12 @@ def make_build_files(project_name, molar_composition,
     (usually *ver.dat)
     :type endmember_file: string
 
-    :param solution_file: Path to the solution file (usually ?_solution_model.dat)
+    :param solution_file: Path to the solution file
+    (usually ?_solution_model.dat)
     :type solution_file: string
 
-    :param option_file: Path to the PerpleX option file (usually perplex_option.dat).
+    :param option_file: Path to the PerpleX option file
+    (usually perplex_option.dat).
     :type option_file: string
 
     :param solutions: List of solutions to be considered in the minimization
@@ -65,8 +79,10 @@ def make_build_files(project_name, molar_composition,
 
     # Create project directory
     if os.path.exists(project_name):
-        raise Exception(f'\nA folder called {project_name} already exists! \n'
-                        'Please select another name or delete this folder.')
+        raise Exception(
+            f"\nA folder called {project_name} already exists! \n"
+            "Please select another name or delete this folder."
+        )
     else:
         os.makedirs(project_name)
         for filename in [endmember_file, solution_file, option_file]:
@@ -74,48 +90,49 @@ def make_build_files(project_name, molar_composition,
 
     # Read in template
 
-    template = pkgutil.get_data('terratools',
-                                'properties/data/perplex_build_template.txt')
-    template = template.decode('ascii')
-    template = template.replace('[X-ENDMEMBER_FILE-X]', endmember_file)
-    template = template.replace('[X-SOLUTION_FILE-X]', solution_file)
-    template = template.replace('[X-OPTION-X]', option_file)
+    template = pkgutil.get_data(
+        "terratools", "properties/data/perplex_build_template.txt"
+    )
+    template = template.decode("ascii")
+    template = template.replace("[X-ENDMEMBER_FILE-X]", endmember_file)
+    template = template.replace("[X-SOLUTION_FILE-X]", solution_file)
+    template = template.replace("[X-OPTION-X]", option_file)
 
-    c_string = ''
+    c_string = ""
     for c, v in molar_composition.items():
-        c_string += f'{c:7s}    1    {v}        '
-        c_string += '0.00000      0.00000     molar amount\n'
+        c_string += f"{c:7s}    1    {v}        "
+        c_string += "0.00000      0.00000     molar amount\n"
 
-    template = template.replace('[X-COMPONENTS-X]\n', c_string)
+    template = template.replace("[X-COMPONENTS-X]\n", c_string)
 
-    sol_string = ''
+    sol_string = ""
     for ph in solutions:
-        sol_string += f'{ph}\n'
+        sol_string += f"{ph}\n"
 
-    template = template.replace('[X-SOLUTIONS-X]\n', sol_string)
+    template = template.replace("[X-SOLUTIONS-X]\n", sol_string)
 
-    exclude_string = ''
+    exclude_string = ""
     for ph in excludes:
-        exclude_string += f'{ph}\n'
+        exclude_string += f"{ph}\n"
 
-    template = template.replace('[X-EXCLUDED_PHASES-X]\n', exclude_string)
+    template = template.replace("[X-EXCLUDED_PHASES-X]\n", exclude_string)
 
     for iP in range(len(pressure_bounds) - 1):
         for iT in range(len(temperature_bounds) - 1):
 
-            basename = f'{project_name}_{iP:02d}_{iT:02d}'
+            basename = f"{project_name}_{iP:02d}_{iT:02d}"
 
-            LP_bar = str(pressure_bounds[iP]/1.e5)
-            HP_bar = str(pressure_bounds[iP+1]/1.e5)
+            LP_bar = str(pressure_bounds[iP] / 1.0e5)
+            HP_bar = str(pressure_bounds[iP + 1] / 1.0e5)
             output = deepcopy(template)
 
-            output = output.replace('[X-NAME-X]', basename)
-            output = output.replace('[X-LP-X]', LP_bar)
-            output = output.replace('[X-HP-X]', HP_bar)
-            output = output.replace('[X-LT-X]', str(temperature_bounds[iT]))
-            output = output.replace('[X-HT-X]', str(temperature_bounds[iT+1]))
+            output = output.replace("[X-NAME-X]", basename)
+            output = output.replace("[X-LP-X]", LP_bar)
+            output = output.replace("[X-HP-X]", HP_bar)
+            output = output.replace("[X-LT-X]", str(temperature_bounds[iT]))
+            output = output.replace("[X-HT-X]", str(temperature_bounds[iT + 1]))
 
-            with open(f'{project_name}/{basename}.dat', 'w') as outfile:
+            with open(f"{project_name}/{basename}.dat", "w") as outfile:
                 outfile.write(output)
 
     return True
@@ -145,34 +162,40 @@ def run_build_files(path_to_project, path_to_perplex):
     roots = []
     for file in os.listdir(os.getcwd()):
         if file.startswith(f"{project_name}_"):
-            roots.append(file.replace('.dat', ''))
+            roots.append(file.replace(".dat", ""))
 
     n_files = len(roots)
     for i, root in enumerate(roots):
-        print(f'    running vertex ({i+1}/{n_files})...')
-        stdin = f'{root}\n0\n'
-        p = Popen(f'{path_to_perplex}/vertex', stdout=PIPE, stdin=PIPE,
-                  stderr=STDOUT, encoding='utf8')
+        print(f"    running vertex ({i+1}/{n_files})...")
+        stdin = f"{root}\n0\n"
+        p = Popen(
+            f"{path_to_perplex}/vertex",
+            stdout=PIPE,
+            stdin=PIPE,
+            stderr=STDOUT,
+            encoding="utf8",
+        )
         stdout = p.communicate(input=stdin)[0]
         print(stdout)
 
-        print('    running pssect...')
-        stdin = f'{root}\nn\n'
-        pssect = f'{path_to_perplex}/pssect'
-        p = Popen(pssect, stdout=PIPE, stdin=PIPE,
-                  stderr=STDOUT, encoding='utf8')
+        print("    running pssect...")
+        stdin = f"{root}\nn\n"
+        pssect = f"{path_to_perplex}/pssect"
+        p = Popen(pssect, stdout=PIPE, stdin=PIPE, stderr=STDOUT, encoding="utf8")
         stdout = p.communicate(input=stdin)[0]
         print(stdout)
 
     os.chdir(working_directory)
 
 
-def perplex_to_grid(path_to_project,
-                    pressure_bounds,
-                    temperature_bounds,
-                    pressures,
-                    temperatures,
-                    path_to_perplex):
+def perplex_to_grid(
+    path_to_project,
+    pressure_bounds,
+    temperature_bounds,
+    pressures,
+    temperatures,
+    path_to_perplex,
+):
     """
     Runs PerpleX-werami on the files created by
     run_build_files. Returns a 3D numpy array
@@ -188,9 +211,9 @@ def perplex_to_grid(path_to_project,
     and by linear extrapolation in the lowest
     pressure row.
 
-    :param project_name: A string used to define the project directory and
+    :param path_to_project: A string used to define the project directory and
         build file names.
-    :type project_name: string
+    :type path_to_project: string
 
     :param pressure_bounds:
         A list of pressures that partition the build files.
@@ -241,56 +264,58 @@ def perplex_to_grid(path_to_project,
 
     for iP in range(len(pressure_bounds) - 1):
         for iT in range(len(temperature_bounds) - 1):
-            minP, maxP = pressure_bounds[iP], pressure_bounds[iP+1]
-            minT, maxT = temperature_bounds[iT], temperature_bounds[iT+1]
+            minP, maxP = pressure_bounds[iP], pressure_bounds[iP + 1]
+            minT, maxT = temperature_bounds[iT], temperature_bounds[iT + 1]
 
-            Pidx = np.argwhere(np.all([pressures >= minP,
-                                       pressures < maxP], axis=0)).T[0]
-            Tidx = np.argwhere(np.all([temperatures >= minT,
-                                       temperatures < maxT], axis=0)).T[0]
+            Pidx = np.argwhere(np.all([pressures >= minP, pressures < maxP], axis=0)).T[
+                0
+            ]
+            Tidx = np.argwhere(
+                np.all([temperatures >= minT, temperatures < maxT], axis=0)
+            ).T[0]
 
             Ps = pressures[Pidx]
             Ts = temperatures[Tidx]
 
-            basename = f'{project_name}_{iP:02d}_{iT:02d}'
-            print('    removing existing tabbed files from same build file...')
-            fileList = glob.glob(f'./{basename}_?.tab')
+            basename = f"{project_name}_{iP:02d}_{iT:02d}"
+            print("    removing existing tabbed files from same build file...")
+            fileList = glob.glob(f"./{basename}_?.tab")
             for filePath in fileList:
                 os.remove(filePath)
 
-            print('    running werami...')
-            stdin = f'{basename}\n2\n2\nn\n13\nn\n14\nn\n0\ny\n'
-            stdin += f'{Ps[0]/1.e5} {Ps[-1]/1.e5}\n{Ts[0]} {Ts[-1]}\n'
-            stdin += f'{len(Ps)} {len(Ts)}\n0\n'
-            werami = f'{path_to_perplex}/werami'
-            p = Popen(werami, stdout=PIPE, stdin=PIPE,
-                      stderr=STDOUT, encoding='utf8')
+            print("    running werami...")
+            stdin = f"{basename}\n2\n2\nn\n13\nn\n14\nn\n0\ny\n"
+            stdin += f"{Ps[0]/1.e5} {Ps[-1]/1.e5}\n{Ts[0]} {Ts[-1]}\n"
+            stdin += f"{len(Ps)} {len(Ts)}\n0\n"
+            werami = f"{path_to_perplex}/werami"
+            p = Popen(werami, stdout=PIPE, stdin=PIPE, stderr=STDOUT, encoding="utf8")
             stdout = p.communicate(input=stdin)[0]
 
-            print('    loading data into table...')
-            data = np.loadtxt(f'{basename}_1.tab', skiprows=13)
+            print("    loading data into table...")
+            data = np.loadtxt(f"{basename}_1.tab", skiprows=13)
 
             # Try to fill nans with werami
             nanidx = np.unique(np.argwhere(np.isnan(data))[:, 0])
 
             for idx in nanidx:
                 P, T = data[idx, :2]
-                P = max(P/100000., 1.e-10)
-                stdin = f'{basename}\n1\n{P} {T}\n99 99\n0\n'
-                p = Popen(werami, stdout=PIPE, stdin=PIPE,
-                          stderr=STDOUT, encoding='utf8')
+                P = max(P / 100000.0, 1.0e-10)
+                stdin = f"{basename}\n1\n{P} {T}\n99 99\n0\n"
+                p = Popen(
+                    werami, stdout=PIPE, stdin=PIPE, stderr=STDOUT, encoding="utf8"
+                )
                 stdout = p.communicate(input=stdin)[0]
-                prps = stdout.split('Seismic Properties:')[1]
-                prps = prps.split('System')[1].split('\n')[0].split()
+                prps = stdout.split("Seismic Properties:")[1]
+                prps = prps.split("System")[1].split("\n")[0].split()
                 Vp, Vs = prps[4:6]
-                if Vp != 'NaN':
+                if Vp != "NaN":
                     data[idx, 3] = float(Vp)
-                if Vs != 'NaN':
+                if Vs != "NaN":
                     data[idx, 4] = float(Vs)
 
             data = data.reshape(len(Ts), len(Ps), 5)
 
-            out[Tidx[0]:Tidx[-1]+1, Pidx[0]:Pidx[-1]+1, 2:] = data[:, :, 2:]
+            out[Tidx[0] : Tidx[-1] + 1, Pidx[0] : Pidx[-1] + 1, 2:] = data[:, :, 2:]
 
     # Make pressure the first axis
     out = np.swapaxes(out, 0, 1)
@@ -299,15 +324,15 @@ def perplex_to_grid(path_to_project,
     nan_indices = np.unique(np.argwhere(np.isnan(out))[:, 0])
 
     if len(nan_indices) > 0:
-        print('The program werami has not been able to replace all nans.')
-        print('Using cell interpolation on remaining cells.')
+        print("The program werami has not been able to replace all nans.")
+        print("Using cell interpolation on remaining cells.")
 
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
 
         for i_cell, j_cell in nan_cells:
 
             for i_prp in [2, 3, 4]:
-                block = out[i_cell-1:i_cell+2, j_cell-1:j_cell+2, i_prp]
+                block = out[i_cell - 1 : i_cell + 2, j_cell - 1 : j_cell + 2, i_prp]
                 if block.shape[0] > 0:
                     if block.shape[1] > 0:
                         out[i_cell, j_cell, i_prp] = np.nanmean(block)
@@ -317,11 +342,11 @@ def perplex_to_grid(path_to_project,
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
         for (i, j) in nan_cells:
             if i == 0:
-                out[i, j, 3:] = 2.*out[i+1, j, 3:] - out[i+2, j, 3:]
+                out[i, j, 3:] = 2.0 * out[i + 1, j, 3:] - out[i + 2, j, 3:]
 
     nan_indices = np.unique(np.argwhere(np.isnan(out))[:, 0])
     if len(nan_indices) > 0:
-        print('The following data with nans could not be filled:')
+        print("The following data with nans could not be filled:")
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
         for (i, j) in nan_cells:
             print(out[i, j])

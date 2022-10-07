@@ -16,8 +16,7 @@ AnelasticProperties = namedtuple(
 class AttenuationModelGoes(object):
     """
     This class implements the mantle seismic attenuation model
-    of Goes et al. (2004) and Maguire et al. (2016).
-    Thanks to Saskia Goes for her detailed instructions
+    of [Goes et al. (2004)][bibliography] and [Maguire et al. (2016)][bibliography]
     and for detailing her favoured model.
 
     Optionally, different Q models can be used that correspond to
@@ -59,7 +58,7 @@ class AttenuationModelGoes(object):
     ):
         """
         Calculates the anelastic Vp and Vs, QS, and QK
-        according to the model used by Maguire et al., 2016.
+        according to the model used by [Maguire et al. (2016)][bibliography].
 
         The effects of anelasticity on shear wave velocity are incorporated
         using a model for the S-wave quality factor QS that varies with
@@ -260,7 +259,7 @@ def mantle_domain_fractions(pressure, temperature):
 class Q4Goes(AttenuationModelGoes):
     """
     Implements the weak T dependence attenuation model
-    (after Goes et al. 2004).
+    after [Goes et al. (2004)][bibliography].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
@@ -292,7 +291,7 @@ class Q4Goes(AttenuationModelGoes):
 class Q6Goes(AttenuationModelGoes):
     """
     Implements the strong T dependence attenuation model
-    (after Goes et al. 2004).
+    after [Goes et al. (2004)][bibliography].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
@@ -324,8 +323,8 @@ class Q6Goes(AttenuationModelGoes):
 class Q7Goes(AttenuationModelGoes):
     """
     Implements the intermediate strength T dependence attenuation model
-    (after Goes et al. 2004). This model is most consistent with
-    Matas and Bukowinski (2007).
+    after [Goes et al. (2004)][bibliography]. This model is most consistent with
+    [Matas and Bukowinski (2007)][bibliography].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
