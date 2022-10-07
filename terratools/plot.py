@@ -1,8 +1,5 @@
 """
-plot
-====
-
-The `plot` module contains internal functions for performing
+This submodule contains internal functions for performing
 plotting of TerraModels and other classes in terratools.
 """
 

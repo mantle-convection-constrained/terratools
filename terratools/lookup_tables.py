@@ -9,29 +9,30 @@ class SeismicLookupTable:
         """
         Calling will create a dictionary (self.fields) containing
         fields given in seismic lookup table. Under each field are:
-        [0] : Table Index
-        [1] : Field gridded in T-P space
-        [2] : Units
+
+        - [0] : Table Index
+        - [1] : Field gridded in T-P space
+        - [2] : Units
+
         This also sets up interpolator objects (eg self.vp_interp)
         for rapid querying of points.
 
-        Currently the input table must be of the following strucutre:
+        Currently the input table must have the following structure, with rows
+        ascending by pressure then temperature.
 
-        Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus
+        | Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus |
+        | -------- | ----------- | -- | -- | ----- | ----- | ---- | ------- | -- | --------- |
+        | 0        | 500         |    |    |       |       |      |         |    |           |
+        | 0        | 1000        |    |    |       |       |      |         |    |           |
+        | 0        | 1500        |    |    |       |       |      |         |    |           |
+        | 1e8      | 500         |    |    |       |       |      |         |    |           |
+        | 1e8      | 1000        |    |    |       |       |      |         |    |           |
+        | 1e8      | 1500        |    |    |       |       |      |         |    |           |
 
-        ascending by pressure then temperature, ie:
-        P    T
-        0.0 500 ......
-        0.0 1000
-        0.0 1500
-        1e8 500
-        1e8 1000 .....etc
+        :param table_path: Path to table file, e.g. '/path/to/data/table.dat'
+        :type table_path: string
 
-        Inputs: table_path = '/path/to/data/table.dat'
-
-        Returns:
-
-        Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
+        :return: Lookup table object
         """
         try:
             self.table = np.genfromtxt(f"{table_path}")
@@ -119,13 +120,16 @@ class SeismicLookupTable:
     def interp_grid(self, press, temps, field):
         """
         Routine for re-gridding lookup tables into new pressure-temperature space
-        Inputs: press = pressures
-                temps = temperatures
-                field = data field (eg. basalt.Vs)
-        Returns: interpolated values of a given table property
-                on a grid defined by press and temps
+        :param press: Pressures (Pa)
+        :type press: float or numpy array
+        :param temps: Temperatures (K)
+        :type temps: float or numpy array
+        :param field: Data field (eg. 'Vs')
+        :type field: string
 
-        eg. basalt.interp([pressures],[temperature],'Vs')
+        :return: interpolated values of a given table property
+                on a 2D grid defined by press and temps
+        :rtype: 2D numpy array
         """
 
         press = [press] if type(press) == int or type(press) == float else press
@@ -140,13 +144,19 @@ class SeismicLookupTable:
 
     def interp_points(self, press, temps, field):
         """
-        Inputs: press = pressures
-                temps = temperatures (press and temps must be of equal length)
-                prop   = property eg. Vs
-        Returns:
-        For a given table property (eg. Vs) return interpolated values
-        for pressures and temperatures
-        eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
+        Routine for interpolating gridded property data at one or more
+        pressure-temperature points.
+
+        :param press: Pressures (Pa)
+        :type press: float or numpy array
+        :param temps: Temperatures (K)
+        :type temps: float or numpy array
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+
+        :return: interpolated values of a given table property
+                at points defined by press and temps
+        :rtype: 1D numpy array
         """
 
         # If integers are passed in then convert to indexable lists
@@ -169,11 +179,14 @@ class SeismicLookupTable:
         Plots the lookup table as a grid with values coloured by
         value for the field given.
 
-        Inputs: ax = matplotlib axis object to plot on.
-                field = property to plot e.g. Vp.
-                cmap = matplotlib colourmap. default is cividis
+        :param ax: matplotlib axis object to plot on.
+        :type ax: matplotlib axis object
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+        :param cmap: matplotlib colourmap.
+        :type cmap: string
 
-        Returns:
+        :return: None
 
         """
 
@@ -205,12 +218,14 @@ class SeismicLookupTable:
         """
         Plots the lookup table as contours using matplotlibs tricontourf.
 
-        Inputs: ax = matplotlib axis object to plot on.
-                field = property to plot e.g. Vp.
-                cmap = matplotlib colourmap. default is cividis
+        :param ax: matplotlib axis object to plot on.
+        :type ax: matplotlib axis object
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+        :param cmap: matplotlib colourmap.
+        :type cmap: string
 
-        Returns:
-
+        :return: None
         """
 
         # get column index for field of interest
@@ -230,16 +245,17 @@ class SeismicLookupTable:
 
 def harmonic_mean_comp(bas, lhz, hzb, bas_fr, lhz_fr, hzb_fr):
     """
-    Input: bas = data for basaltic composition (eg. basalt.Vs)
-           lhz = data for lherzolite composition
-           hzb = data for harzburgite composition
-           bas_fr = basalt fraction
-           lhz_fr = lherzolite fraction
-           hzb_fr = harzburgite fraction
-    Returns: hmean = harmonic mean of input values
+    bas, lhz, hzb must be of equal length.
+    This routine assumes 3 component mechanical mixture.
 
-    bas, lhz, hzb must be of equal length
-    This routine assumes 3 component mechanical mixture
+    :param bas: data for basaltic composition (eg. basalt.Vs)
+    :param lhz: data for lherzolite composition
+    :param hzb: data for harzburgite composition
+    :param bas_fr: basalt fraction
+    :param lhz_fr: lherzolite fraction
+    :param hzb_fr: harzburgite fraction
+
+    :return: harmonic mean of input values
 
     """
     m1 = (1.0 / bas) * bas_fr
@@ -253,13 +269,13 @@ def harmonic_mean_comp(bas, lhz, hzb, bas_fr, lhz_fr, hzb_fr):
 
 def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     """
-    Inputs: v1 = data for composition 1
-            v2 = data for composition 2
-            c1 = C-value for composition 1
-            c2 = C-value for composition 2
-            cnew  = C-value(s) for new composition(s)
+    :param vals1: data for composition 1
+    :param vals2: data for composition 2
+    :param c1: C-value for composition 1
+    :param c2: C-value for composition 2
+    :param cnew: C-value(s) for new composition(s)
 
-    Returns: interpolated values for compostions cnew
+    :return: interpolated values for compositions cnew
     """
 
     interpolated = interp1d(
@@ -274,8 +290,9 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
 
 def _check_bounds(input, check, TP):
     """
-    Inputs: input=vals of interest
-            check= range of table vals
+    :param input: values of interest
+    :param check: range of table values
+    :param TP:
     """
 
     if np.any(input[:] > np.max(check)):

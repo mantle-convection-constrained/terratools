@@ -1,8 +1,5 @@
 """
-terra_model
-===========
-
-The terra_model module provides the TerraModel class.  This holds
+This submodule provides the TerraModel class.  This class holds
 the data contained within a single time slice of a TERRA mantle
 convection simulation.
 """
