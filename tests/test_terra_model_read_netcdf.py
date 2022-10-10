@@ -124,7 +124,7 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
                 for (icomp, comp_name) in enumerate(c_hist_names):
                     this_var[icomp,:,:] = select_indices(field_vals[icomp,:,:],
                         (depth_inds, lateral_inds))
-                        
+
                 this_var.composition_1_name="harzburgite"
                 this_var.composition_1_c = 0.0
                 this_var.composition_2_name="lherzolite"

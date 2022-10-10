@@ -106,7 +106,7 @@ class FieldDimensionError(Exception):
         self.message = f"Field array {name} has incorrect first two dimensions. " + \
             f"Expected {(model._nlayers, model._npts)}; got {array.shape[0:2]}"
         super().__init__(self.message)
-        
+
 class VersionError(Exception):
     """
     Exception type raised when old version of unversioned netCDF files
@@ -244,7 +244,7 @@ class TerraModel:
 
         # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
-        
+
         #
 
         # All the fields are held within _fields, either as scalar or
@@ -738,7 +738,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         if "nps" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'nps'")
         npts_total += nc.dimensions["nps"].size
-        
+
         _check_version(nc)
 
         if "depths" not in nc.dimensions:
@@ -853,7 +853,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                     else:
                         string2="nc['composition_fractions']."+str(attr)
                         attr_val2=eval(string2)
-                        
+
                     if np.mod(it,2)==1:
                          _c_hist_names.update({f'composition_{num}' : {'name': attr_val1.lower(),'c-val': attr_val2},})
 
@@ -926,7 +926,7 @@ def _check_version(nc):
         version=nc.getncattr("version")
     except:
         version=0.
-        
+
     #Old file types raise exception
     if version < 1.:
         raise VersionError(version)
