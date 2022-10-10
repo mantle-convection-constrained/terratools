@@ -107,3 +107,25 @@ def _tool_exists(toolname):
     """Check whether `toolname` exists on PATH."""
 
     return find_executable(toolname) is not None
+
+if __name__ == "__main__":
+    import sys
+    import glob
+
+    file_base   = sys.argv[1]
+    file_suffix = sys.argv[2]
+
+    files=glob.glob(f"{file_base}*{file_suffix}")
+    if len(file_base)==0:
+        sys.stderr.write(f"""
+
+        usage: python {file_base} {file_suffix}
+
+        Positionsal Arguments:
+        file_base            : base of files to be converted including path
+        file_suffix          : suffix of files to be converted
+
+        """)
+        sys.exit(1)
+
+    convert(files)
