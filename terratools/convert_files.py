@@ -1,0 +1,110 @@
+import netCDF4 as nc4
+import sys
+import os
+import stat
+import numpy as np
+from distutils.spawn import find_executable
+
+class FileTypeError(Exception):
+    """
+    Exception type raised when trying to convert wrong file type
+    """
+    def __init__(self, file):
+        self.message = f"Conversion of .seis files not supported. "\
+        +"Please convert .comp files and use terra_model to determine seismic properties."
+        super().__init__(self.message)
+
+
+def convert(files):
+    """
+    Call to convert files from 'old' (pre-versioning) Terra netCDF files to the new standard.
+    Only .comp file types may be converted as the 'old' .seis files have sesimic velocities
+    written as perturbation from the radial mean while the new ones write the absolute values.
+    
+    :param files: List of files to be converted
+    """
+
+    #Check if ncks exists - for cleaning up old variables
+    cleanup=_tool_exists("ncks")
+
+    for file in files:
+        #ensure write permissions before opening
+        os.chmod(file, stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+        data=nc4.Dataset(file,mode='a')
+        
+        variables=data.variables.copy() #Copy so not overwriting dictionary keys in loop
+        for var in variables:
+            if "anelastic" in var:
+                raise(FileTypeError(file))
+                
+        path,fname = file.rsplit('/',1)
+        for i, var in enumerate(variables):
+            #Skip compositions and coordinates for now
+            if "Frac" in var or "Latitude" in var or "Longitude" in var:
+                continue
+            
+            #rename velocity and Depth units in lower case
+            if "Velocity" in var or "Depths" in var:
+                data[var].units = data[var].units.lower()
+            
+            #rename variables to lowercase
+            try:
+                data.renameVariable(var,var.lower())
+            except:
+                continue
+        
+        #rename depth
+        data.renameDimension("Depths","depths")
+        data.renameVariable("Latitude","Lat_old")
+        data.renameVariable("Longitude","Lon_old")
+        
+        #create new variable
+        comp_dim = data.createDimension("compositions",2)
+        comp_fracs_var = data.createVariable('composition_fractions', np.float64 ,('compositions' , 'depths', 'nps'))
+        
+        harzfrac=1-data["BasaltFrac"][:,:]-data["LherzFrac"][:,:]
+        comp_fracs_var[0,:,:]=harzfrac
+        comp_fracs_var[1,:,:]=data["LherzFrac"][:,:]
+        comp_fracs_var.composition_1_name = "Harzburgite"
+        comp_fracs_var.composition_1_c = 0.0
+        comp_fracs_var.composition_2_name = "Lherzolite"
+        comp_fracs_var.composition_2_c = 0.2
+        comp_fracs_var.composition_3_name = "Basalt"
+        comp_fracs_var.composition_3_c = 1.0
+        
+        #cannot remove a single dimension from coordinates
+        lat_var = data.createVariable("latitude",np.float64,('nps'))
+        lon_var = data.createVariable("longitude",np.float64,('nps'))
+        
+        lat_var[:]=data["Lat_old"][0,:]
+        lat_var.units="degrees"
+        lon_var[:]=data["Lon_old"][0,:]
+        lon_var.units="degrees"
+        
+        
+        #Global variables
+        data.version = 1.0
+        data.nth_comp="bas_frac = 1 - hzb_frac - lhz_frac"
+        
+        data.close()
+
+        #Have to use ncks (available through NCO - netCDF operators)
+        if cleanup :
+            os.system(f"ncks -C -O -x -v BasaltFrac {path}/{fname} {path}/{fname}_new")
+            os.system(f"mv {path}/{fname}_new {path}/{fname}")
+            os.system(f"ncks -C -O -x -v LherzFrac {path}/{fname} {path}/{fname}_new")
+            os.system(f"mv {path}/{fname}_new {path}/{fname}")
+            os.system(f"ncks -C -O -x -v Lon_old {path}/{fname} {path}/{fname}_new")
+            os.system(f"mv {path}/{fname}_new {path}/{fname}")
+            os.system(f"ncks -C -O -x -v Lat_old {path}/{fname} {path}/{fname}_new")
+            os.system(f"mv {path}/{fname}_new {path}/{fname}")
+        else:
+            print("ncks is not available on your PATH so cannot clean up old variables")
+            print("ncks is available with NCO (NetCDF Operators)")
+        
+
+def _tool_exists(toolname):
+    """Check whether `toolname` exists on PATH."""
+
+    return find_executable(toolname) is not None
+

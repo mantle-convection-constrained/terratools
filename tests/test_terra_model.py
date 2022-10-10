@@ -67,17 +67,17 @@ class TestTerraModelHelpers(unittest.TestCase):
     def test_variable_name_from_field(self):
         """Translation of field name to NetCDF variable name(s)"""
         self.assertEqual(terra_model._variable_names_from_field("t"),
-            ("Temperature",))
+            ("temperature",))
         self.assertEqual(terra_model._variable_names_from_field("u_xyz"),
-            ("Velocity_x", "Velocity_y", "Velocity_z"))
+            ("velocity_x", "velocity_y", "velocity_z"))
         self.assertEqual(terra_model._variable_names_from_field("c_hist"),
-            ("BasaltFrac", "LherzFrac"))
+            ("composition_fractions",))
         with self.assertRaises(KeyError):
             terra_model._variable_names_from_field("incorrect field name")
 
     def test_field_name_from_variable(self):
         """Translation of NetCDF variable name to field name"""
-        self.assertEqual(terra_model._field_name_from_variable("Temperature"), "t")
+        self.assertEqual(terra_model._field_name_from_variable("temperature"), "t")
 
     def test_check_field_name(self):
         self.assertEqual(terra_model._check_field_name("vp"), None)
