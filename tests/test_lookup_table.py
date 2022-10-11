@@ -1,7 +1,7 @@
 from cgitb import lookup
 import unittest
 import numpy as np
-from terratools.lookup_tables import SeismicLookupTable, _harmonic_mean, _check_bounds
+from terratools.lookup_tables import SeismicLookupTable, _harmonic_mean, _check_bounds, MultiTables
 import pathlib
 
 TESTDATA_PATH = pathlib.Path(__file__).parent.joinpath("data", "test_lookup_table.txt")
@@ -11,6 +11,8 @@ class TestLookup(unittest.TestCase):
     def setUp(self):
         self.lookup_tab_path = "./tests/data/test_lookup_table.txt"
         self.tab = SeismicLookupTable(TESTDATA_PATH)
+        self.tabs = {'tab1' : './data/multi_table_test1.txt', 'tab2' : './data/multi_table_test2.txt'}
+        self.multitable = MultiTables(self.tabs)
 
     def test_read_file(self):
 
@@ -91,6 +93,16 @@ class TestLookup(unittest.TestCase):
         np.testing.assert_array_equal(corrected_values, np.array([-50,50,25.5]),
                                       err_msg='check bounds failed for array of inputs')
 
+    def test_multi_table(self):
+
+        fracs = {'tab1' : 1, 'tab2' : 2}
+        pres = 25
+        temp = 25
+
+        value = self.multitable.evaluate(P=pres, T=temp, fractions=fracs, field='Vp')
+
+        self.assertEqual(value, 15/7,
+                         msg = 'Multitable evaluate failed.')
 
 if __name__ == '__main__':
     unittest.main()
