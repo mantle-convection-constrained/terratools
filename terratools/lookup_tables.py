@@ -166,8 +166,8 @@ class SeismicLookupTable:
         press = [press] if type(press) == int or type(press) == float else press
         temps = [temps] if type(temps) == int or type(temps) == float else temps
 
-        _check_bounds(press, self.press)
-        _check_bounds(temps, self.temps)
+        _check_bounds(press, self.pres)
+        _check_bounds(temps, self.temp)
 
         grid = interp2d(self.pres, self.temp, self.fields[field.lower()][1])
 
