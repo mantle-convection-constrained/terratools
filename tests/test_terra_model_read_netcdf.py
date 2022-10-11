@@ -102,7 +102,7 @@ def write_seismic_netcdf_files(
                 var_name = var_names[0]
 
                 #longitude and latitude don't vary with depth
-                if field_name == "latitude" or field_name == "longitude: 
+                if field_name == "latitude" or field_name == "longitude":
                     this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
                     ("nps"))
                     this_var[:] = select_indices(field_vals, (lateral_inds))

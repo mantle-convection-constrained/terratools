@@ -56,15 +56,15 @@ _ALL_FIELDS = {**_SCALAR_FIELDS, **_VECTOR_FIELDS}
 # Each field name maps to one or more variables.
 # Fields which don't have a defined name should not have a key in this dict.
 _FIELD_NAME_TO_VARIABLE_NAME = {
-"t": ("Temperature",),
-"c_hist": ("BasaltFrac", "LherzFrac"),
-"u_xyz": ("Velocity_x", "Velocity_y", "Velocity_z"),
-"vp": ("Vp",),
-"vs": ("Vs",),
-"vphi": ("V_bulk",),
-"vp_an": ("Vp_anelastic",),
-"vs_an": ("Vs_anelastic",),
-"Density": ("Density",),
+"t": ("temperature",),
+"c_hist": ("composition_fractions",),
+"u_xyz": ("velocity_x", "velocity_y", "velocity_z"),
+"vp": ("vp",),
+"vs": ("vs",),
+"vphi": ("v_bulk",),
+"vp_an": ("vp_anelastic",),
+"vs_an": ("vs_anelastic",),
+"Density": ("density",),
 }
 
 
@@ -847,7 +847,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
                 ncomps = _VECTOR_FIELD_NCOMPS[field_name]
                 uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
-                
+
                 uxyz[:,:,0] = nc["velocity_x"][:]
                 uxyz[:,:,1] = nc["velocity_y"][:]
                 uxyz[:,:,2] = nc["velocity_z"][:]
