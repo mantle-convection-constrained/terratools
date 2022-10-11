@@ -20,6 +20,7 @@ jobs:
         python-version: ${{ matrix.python-versions }}
     - name: make indent
       run: |
+        python -m pip install black
         ./contrib/utilities/indent
         git diff > changes-astyle.diff
     - name: archive indent results

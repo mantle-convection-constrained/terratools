@@ -9,29 +9,30 @@ class SeismicLookupTable:
         """
         Calling will create a dictionary (self.fields) containing
         fields given in seismic lookup table. Under each field are:
-        [0] : Table Index
-        [1] : Field gridded in T-P space
-        [2] : Units
+
+        - [0] : Table Index
+        - [1] : Field gridded in T-P space
+        - [2] : Units
+
         This also sets up interpolator objects (eg self.vp_interp)
         for rapid querying of points.
 
-        Currently the input table must be of the following strucutre:
+        Currently the input table must have the following structure, with rows
+        ascending by pressure then temperature.
 
-        Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus
+        | Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus |
+        | -------- | ----------- | -- | -- | ----- | ----- | ---- | ------- | -- | --------- |
+        | 0        | 500         |    |    |       |       |      |         |    |           |
+        | 0        | 1000        |    |    |       |       |      |         |    |           |
+        | 0        | 1500        |    |    |       |       |      |         |    |           |
+        | 1e8      | 500         |    |    |       |       |      |         |    |           |
+        | 1e8      | 1000        |    |    |       |       |      |         |    |           |
+        | 1e8      | 1500        |    |    |       |       |      |         |    |           |
 
-        ascending by pressure then temperature, ie:
-        P    T
-        0.0 500 ......
-        0.0 1000
-        0.0 1500
-        1e8 500
-        1e8 1000 .....etc
+        :param table_path: Path to table file, e.g. '/path/to/data/table.dat'
+        :type table_path: string
 
-        Inputs: table_path = '/path/to/data/table.dat'
-
-        Returns:
-
-        Example: basalt = lookup_tables.SeismicLookupTable('/path/to/basalt/table.dat')
+        :return: Lookup table object
         """
         try:
             self.table = np.genfromtxt(f"{table_path}")
@@ -118,18 +119,16 @@ class SeismicLookupTable:
 
     def interp_grid(self, press, temps, field):
         """
-        Routine for re-gridding lookup tables into new pressure-temperature space.
-
-        :param press: pressures
-        :type press: 1d array of floats.
-        :param temps: temperatures
-        :type temps: 1d array of floats.
-        :param field: data field to interpolate (e.g. Vs)
-        :type field: str
-
-        :return: inerpolated grid
-        :rtype: 2D array of floats
-
+        Routine for re-gridding lookup tables into new pressure-temperature space
+        :param press: Pressures (Pa)
+        :type press: float or numpy array
+        :param temps: Temperatures (K)
+        :type temps: float or numpy array
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+        :return: interpolated values of a given table property
+                on a 2D grid defined by press and temps
+        :rtype: 2D numpy array
         :example:
 
         >>> t_test = [4,5,6]
@@ -143,44 +142,34 @@ class SeismicLookupTable:
 
         _check_bounds(press, self.pres)
         _check_bounds(temps, self.temp)
-
         grid = self.fields[field.lower()][3]
-
         return grid(press, temps)
 
     def interp_points(self, press, temps, field):
         """
-        For a given table property (eg. Vs) return interpolated values
-        for pressures and temperatures
+        Routine for interpolating gridded property data at one or more
+        pressure-temperature points.
 
-        :param press: pressures
-        :type press: 1d array of floats.
-        :param temps: temperatures
-        :type temps: 1d array of floats.
-        :param field: data field to interpolate (e.g. Vs)
-        :type field: str
+        :param press: Pressures (Pa)
+        :type press: float or numpy array
+        :param temps: Temperatures (K)
+        :type temps: float or numpy array
+        :param field: Data field (eg. 'Vs')
+        :type field: string
 
-        :return: out, interpolated values of field to pressure, temperature
-                 points
-        :rtype: 1D array of floats of length equal length to pressures
-                and temperatures arrays.
-
-        :example:
-
-        >>> t_test = 15
-        >>> p_test = 15
-        >>> basalt = SeismicLookupTable('../tests/data/test_lookup_table.txt')
-        >>> basalt.interp_points(p_test, t_test, 'Vs')
+        :return: interpolated values of a given table property
+                at points defined by press and temps
+        :rtype: 1D numpy array
         """
 
         # If integers are passed in then convert to indexable lists
         press = [press] if type(press) == int or type(press) == float else press
         temps = [temps] if type(temps) == int or type(temps) == float else temps
 
-        _check_bounds(press, self.pres)
-        _check_bounds(temps, self.temp)
+        _check_bounds(press, self.press)
+        _check_bounds(temps, self.temps)
 
-        grid = self.fields[field.lower()][3]
+        grid = interp2d(self.pres, self.temp, self.fields[field.lower()][1])
 
         out = np.zeros(len(press))
         for i in range(len(press)):
@@ -193,12 +182,14 @@ class SeismicLookupTable:
         Plots the lookup table as a grid with values coloured by
         value for the field given.
 
-        :param ax: axis for table to be plotted on
+        :param ax: matplotlib axis object to plot on.
         :type ax: matplotlib axis object
-        :param field: field to plot (e.g. Vs)
-        :type field: str
-        :param cmap: colour map, must be in matplotlib. default is viridis_r
-        :type cmap: str
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+        :param cmap: matplotlib colourmap.
+        :type cmap: string
+
+        :return: None
 
         :return:
         """
@@ -231,14 +222,14 @@ class SeismicLookupTable:
         """
         Plots the lookup table as contours using matplotlibs tricontourf.
 
-        :param ax: axis for table to be plotted on
+        :param ax: matplotlib axis object to plot on.
         :type ax: matplotlib axis object
-        :param field: field to plot (e.g. Vs)
-        :type field: str
-        :param cmap: colour map, must be in matplotlib. default is viridis_r
-        :type cmap: str
+        :param field: Data field (eg. 'Vs')
+        :type field: string
+        :param cmap: matplotlib colourmap.
+        :type cmap: string
 
-        :return:
+        :return: None
         """
 
         # get column index for field of interest
@@ -312,14 +303,14 @@ def _harmonic_mean(data, fractions):
     but will only work on 1D arrays whereas this will take the
     mean of 2D arrays such as lookup tables also.
 
-    Input: data = list of floats of the data to be averaged
-                    can be 1D array of values for each composition
-                    or can be 3D array with the 0 axis holding the
-                    different data.
-        fractions = list of floats representing relative
-                    relative weights of the data.
-    Returns: hmean = harmonic mean of input values. Either a
-                        scaler or a 2D array depending on input.
+    :param data: data to perform harmonic mean. 
+    :type data: 1D or 3D numpy array. axis=0 must 
+                be the axis along which the 2D arrays
+                change.
+    :param fractions: relative fractions to weight data
+    :type fractions: 1D numpy array of floats
+
+    :return: harmonic mean of input values
 
     if averaging lookup tables, they must have the same shape.
     """
@@ -336,13 +327,13 @@ def _harmonic_mean(data, fractions):
 
 def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     """
-    Inputs: v1 = data for composition 1
-            v2 = data for composition 2
-            c1 = C-value for composition 1
-            c2 = C-value for composition 2
-            cnew  = C-value(s) for new composition(s)
+    :param vals1: data for composition 1
+    :param vals2: data for composition 2
+    :param c1: C-value for composition 1
+    :param c2: C-value for composition 2
+    :param cnew: C-value(s) for new composition(s)
 
-    Returns: interpolated values for compostions cnew
+    :return: interpolated values for compositions cnew
     """
 
     interpolated = interp1d(
