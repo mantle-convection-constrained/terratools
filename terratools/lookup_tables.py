@@ -303,8 +303,8 @@ def _harmonic_mean(data, fractions):
     but will only work on 1D arrays whereas this will take the
     mean of 2D arrays such as lookup tables also.
 
-    :param data: data to perform harmonic mean. 
-    :type data: 1D or 3D numpy array. axis=0 must 
+    :param data: data to perform harmonic mean.
+    :type data: 1D or 3D numpy array. axis=0 must
                 be the axis along which the 2D arrays
                 change.
     :param fractions: relative fractions to weight data
