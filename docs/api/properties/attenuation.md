@@ -1,3 +1,0 @@
-# Attenuation
-
-::: terratools.properties.attenuation

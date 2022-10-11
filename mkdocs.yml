@@ -2,16 +2,22 @@ site_name: TerraTools
 nav:
     - Home: index.md
     - About: about.md
-    - API: 
-        - 'TerraModel': 'api/terra_model.md'
-        - properties:
-            - 'attenuation': 'api/properties/attenuation.md'
+    - TerraTools fundamentals:
+        - Model interrogation: model.md
+        - Physical properties: properties.md
+    - Code Reference: reference/
+    - Bibliography: zz_bibliography.md
 
 theme:
   name: "material"
 
 plugins:
 - search
+- autorefs
+- section-index
+- bibtex:
+    bib_file: "docs/references.bib"
+    bib_by_default: true
 - mkdocstrings:
     handlers:
         python:
@@ -19,3 +25,24 @@ plugins:
                 selection_opt: true
                 rendering_opt: "value"
                 docstring_style: "sphinx"
+    watch:
+    - terratools
+- gen-files:
+    scripts:
+    - docs/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- snippet:
+        base_path: docs
+
+markdown_extensions:
+    - footnotes
+    - pymdownx.snippets:
+        check_paths: true
+    - pymdownx.arithmatex:
+        generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

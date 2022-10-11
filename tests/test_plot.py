@@ -6,11 +6,12 @@ from matplotlib.figure import Figure
 
 from terratools import plot
 
+
 class TestLayerGrid(unittest.TestCase):
     def test_layer_grid_errors(self):
         n = 20
-        lon = 360*np.random.rand(n)
-        lat = 180*(np.random.rand(n) - 0.5)
+        lon = 360 * np.random.rand(n)
+        lat = 180 * (np.random.rand(n) - 0.5)
         radius = 4000
         values = np.random.rand(n)
 
@@ -31,8 +32,8 @@ class TestLayerGrid(unittest.TestCase):
         """Just test that no errors are thrown when creating a plot and
         that we return the right things"""
         n = 20
-        lon = 360*np.random.rand(n)
-        lat = 180*(np.random.rand(n) - 0.5)
+        lon = 360 * np.random.rand(n)
+        lat = 180 * (np.random.rand(n) - 0.5)
         radius = 4000
         values = np.random.rand(n)
 

@@ -12,6 +12,7 @@ import tempfile
 from netCDF4 import Dataset
 from terratools import terra_model
 
+
 def select_indices(array, indices):
     """Slice an array with arbitrary indices"""
     for (axis, inds) in enumerate(indices):
@@ -20,8 +21,9 @@ def select_indices(array, indices):
     return array
 
 
-def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
-        nfiles=3, c_hist_names=None):
+def write_seismic_netcdf_files(
+    filebase, lon, lat, radii, fields, nfiles=3, c_hist_names=None
+):
     """
     Write a set of files in the correct format to `filebase`.
     """
@@ -38,9 +40,9 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
     depths = np.flip(6370 - radii)
 
     # Spread points about files, with 1st to (nfiles - 1)th files having...
-    nps_first = npts//nfiles
+    nps_first = npts // nfiles
     # ...and the last file having nps_last points
-    nps_last = npts - (nfiles - 1)*nps_first
+    nps_last = npts - (nfiles - 1) * nps_first
 
     for ifile in range(nfiles):
         filename = filebase + f"{ifile}.nc"
@@ -49,7 +51,7 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
         nps = nps_last if ifile == (nfiles - 1) else nps_first
 
         # Lateral point indices for this file
-        index1 = nps_first*ifile
+        index1 = nps_first * ifile
         index2 = index1 + nps - 1
         # We add an extra random point from outside the point range
         duplicate_index = index2 + (-nps if ifile == nfiles - 1 else 1)
@@ -87,6 +89,7 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
         # Fill in coordinates
         # depths in decreasing depth order, which is opposite to our convention
         depths_var[:] = depths
+
         lon_var[:] = lon_file
         lat_var[:] = lat_file
 
@@ -97,7 +100,9 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
 
             if is_scalar:
                 var_name = var_names[0]
-                if "itude" in field_name: #longitude and latitude don't vary with depth
+
+                #longitude and latitude don't vary with depth
+                if field_name == "latitude" or field_name == "longitude: 
                     this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
                     ("nps"))
                     this_var[:] = select_indices(field_vals, (lateral_inds))
@@ -105,16 +110,19 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
                     this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
                         ("depths", "nps"))
                     this_var[:,:] = select_indices(field_vals, (depth_inds, lateral_inds))
+
                 if units != "unitless":
                     this_var.units = units.title()
 
             # Special case the other things for now as it's just for testing
             elif field_name == "u_xyz":
                 for (icomp, var_name) in enumerate(var_names):
+
                     this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
                         ("depths", "nps"))
                     this_var[:,:] = select_indices(field_vals[:,:,icomp],
                         (depth_inds, lateral_inds))
+
                     this_var.units = units.title()
 
             elif field_name == "c_hist":
@@ -122,6 +130,7 @@ def write_seismic_netcdf_files(filebase, lon, lat, radii, fields,
                 this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
                         ("compositions","depths", "nps"))
                 for (icomp, comp_name) in enumerate(c_hist_names):
+
                     this_var[icomp,:,:] = select_indices(field_vals[icomp,:,:],
                         (depth_inds, lateral_inds))
 
@@ -145,9 +154,9 @@ def random_model(npts, nlayers):
     coordinate_type = terra_model.COORDINATE_TYPE
     value_type = terra_model.VALUE_TYPE
 
-    lon = 360*np.random.rand(npts).astype(coordinate_type)
-    lat = 180*(np.random.rand(npts).astype(coordinate_type) - 0.5)
-    r = 3480 + (6370 - 3480)*np.sort(np.random.rand(nlayers).astype(coordinate_type))
+    lon = 360 * np.random.rand(npts).astype(coordinate_type)
+    lat = 180 * (np.random.rand(npts).astype(coordinate_type) - 0.5)
+    r = 3480 + (6370 - 3480) * np.sort(np.random.rand(nlayers).astype(coordinate_type))
 
     fields = {
         "t": np.random.rand(nlayers, npts).astype(value_type),
@@ -167,8 +176,9 @@ class TestTerraModelReadNetCDF(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as dir:
             filebase = os.path.join(dir, "test_netcdf_file_")
-            filenames = write_seismic_netcdf_files(filebase, lon, lat, r, fields,
-                c_hist_names=c_hist_names)
+            filenames = write_seismic_netcdf_files(
+                filebase, lon, lat, r, fields, c_hist_names=c_hist_names
+            )
             model = terra_model.read_netcdf(filenames)
 
         mlon, mlat = model.get_lateral_points()
@@ -197,7 +207,8 @@ Positional arguments:
                      to write several TERRA model NetCDF files
     nlayers        : Number of layers in model
     npts           : Total number of lateral points in model
-""")
+"""
+        )
         sys.exit(1)
 
     filebase = sys.argv[1]
@@ -206,7 +217,8 @@ Positional arguments:
 
     lon, lat, r, fields, c_hist_names = random_model(npts, nlayers)
 
-    filenames = write_seismic_netcdf_files(filebase, lon, lat, r, fields,
-        c_hist_names=c_hist_names)
+    filenames = write_seismic_netcdf_files(
+        filebase, lon, lat, r, fields, c_hist_names=c_hist_names
+    )
 
     print(f"Wrote files: {filenames}")

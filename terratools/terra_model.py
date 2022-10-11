@@ -1,8 +1,5 @@
 """
-terra_model
-===========
-
-The terra_model module provides the TerraModel class.  This holds
+This submodule provides the TerraModel class.  This class holds
 the data contained within a single time slice of a TERRA mantle
 convection simulation.
 """
@@ -24,32 +21,32 @@ VALUE_TYPE = np.float32
 # to be present in the _fields attribute of TerraModel, and a description
 # of those fields.
 _SCALAR_FIELDS = {
-    't': 'Temperature field [K]',
-    'c': 'Scalar composition field [unitless]',
-    'p': 'Pressure field [GPa]',
-    'vp': 'P-wave velocity (elastic) [km/s]',
-    'vs': 'S-wave velocity (elastic) [km/s]',
-    'vphi': 'Bulk sound velocity (elastic) [km/s]',
-    'vp_an': 'P-wave velocity (anelastic) [km/s]',
-    'vs_an': 'S-wave velocity (anelastic) [km/s]',
-    'vphi_an': 'Bulk sound velocity (anelastic) [km/s]',
-    'density': 'Density [g/cm^3]',
-    'qp': 'P-wave quality factor [unitless]',
-    'qs': 'S-wave quality factor [unitless]',
+    "t": "Temperature field [K]",
+    "c": "Scalar composition field [unitless]",
+    "p": "Pressure field [GPa]",
+    "vp": "P-wave velocity (elastic) [km/s]",
+    "vs": "S-wave velocity (elastic) [km/s]",
+    "vphi": "Bulk sound velocity (elastic) [km/s]",
+    "vp_an": "P-wave velocity (anelastic) [km/s]",
+    "vs_an": "S-wave velocity (anelastic) [km/s]",
+    "vphi_an": "Bulk sound velocity (anelastic) [km/s]",
+    "density": "Density [g/cm^3]",
+    "qp": "P-wave quality factor [unitless]",
+    "qs": "S-wave quality factor [unitless]",
 }
 
 # These are 'vector' fields which contain more than one component
 # at each node of the grid.
 _VECTOR_FIELDS = {
-    'u_xyz': 'Flow field in Cartesian coordinates (three components) [m/s]',
-    'u_geog': 'Flow field in geographic coordinates (three components) [m/s]',
-    'c_hist': 'Composition histogram (_nc components) [unitles]',
+    "u_xyz": "Flow field in Cartesian coordinates (three components) [m/s]",
+    "u_geog": "Flow field in geographic coordinates (three components) [m/s]",
+    "c_hist": "Composition histogram (_nc components) [unitles]",
 }
 
 _VECTOR_FIELD_NCOMPS = {
-    'u_xyz': 3,
-    'u_geog': 3,
-    'c_hist': None,
+    "u_xyz": 3,
+    "u_geog": 3,
+    "c_hist": None,
 }
 
 # All fields of any kind
@@ -59,15 +56,15 @@ _ALL_FIELDS = {**_SCALAR_FIELDS, **_VECTOR_FIELDS}
 # Each field name maps to one or more variables.
 # Fields which don't have a defined name should not have a key in this dict.
 _FIELD_NAME_TO_VARIABLE_NAME = {
-'t': ("temperature",),
-'c_hist': ("composition_fractions",),
-'u_xyz': ("velocity_x", "velocity_y", "velocity_z"),
-'vp': ("vp",),
-'vs': ("vs",),
-'vphi': ("v_bulk",),
-'vp_an': ("vp_anelastic",),
-'vs_an': ("vs_anelastic",),
-'Density': ("density",),
+"t": ("Temperature",),
+"c_hist": ("BasaltFrac", "LherzFrac"),
+"u_xyz": ("Velocity_x", "Velocity_y", "Velocity_z"),
+"vp": ("Vp",),
+"vs": ("Vs",),
+"vphi": ("V_bulk",),
+"vp_an": ("Vp_anelastic",),
+"vs_an": ("Vs_anelastic",),
+"Density": ("Density",),
 }
 
 
@@ -83,6 +80,7 @@ class FieldNameError(Exception):
     """
     Exception type raised when trying to use an incorrect field name
     """
+
     def __init__(self, field):
         self.message = f"'{field}' is not a valid TerraModel field name"
         super().__init__(self.message)
@@ -92,6 +90,7 @@ class NoFieldError(Exception):
     """
     Exception type raised when trying to access a field which is not present
     """
+
     def __init__(self, field):
         self.message = f"Model does not contain field {field}"
         super().__init__(self.message)
@@ -102,9 +101,12 @@ class FieldDimensionError(Exception):
     Exception type raised when trying to set a field when the dimensions
     do not match the coordinates in the model
     """
+
     def __init__(self, model, array, name=""):
-        self.message = f"Field array {name} has incorrect first two dimensions. " + \
-            f"Expected {(model._nlayers, model._npts)}; got {array.shape[0:2]}"
+        self.message = (
+            f"Field array {name} has incorrect first two dimensions. "
+            + f"Expected {(model._nlayers, model._npts)}; got {array.shape[0:2]}"
+        )
         super().__init__(self.message)
 
 class VersionError(Exception):
@@ -176,8 +178,9 @@ class TerraModel:
     each near-neighbour.
     """
 
-    def __init__(self, lon, lat, r,
-            fields={}, c_histogram_names=None, lookup_tables=None):
+    def __init__(
+        self, lon, lat, r, fields={}, c_histogram_names=None, lookup_tables=None
+    ):
         """
         Construct a TerraModel.
 
@@ -274,7 +277,6 @@ class TerraModel:
 
             self.set_field(key, array)
 
-
     def __repr__(self):
         return f"""TerraModel:
            number of radii: {self._nlayers}
@@ -283,7 +285,6 @@ class TerraModel:
                     fields: {[name for name in self.field_names()]}
          composition names: {self.get_composition_names()}"""
 
-
     def field_names(self):
         """
         Return the names of the fields present in a TerraModel.
@@ -291,7 +292,6 @@ class TerraModel:
         :returns: list of the names of the fields present.
         """
         return self._fields.keys()
-
 
     def evaluate(self, lon, lat, r, field, method="triangle", depth=False):
         """
@@ -351,36 +351,49 @@ class TerraModel:
             # as if the missing, trailing dimensions were indexed with `:`.
             # (E.g., `np.ones((1,2,3))[0,0]` is `[1., 1., 1.]`.)
             val_layer1 = geographic.triangle_interpolation(
-                lon, lat,
-                lons[idx1], lats[idx1], array[ilayer1,idx1],
-                lons[idx2], lats[idx2], array[ilayer1,idx2],
-                lons[idx3], lats[idx3], array[ilayer1,idx3]
+                lon,
+                lat,
+                lons[idx1],
+                lats[idx1],
+                array[ilayer1, idx1],
+                lons[idx2],
+                lats[idx2],
+                array[ilayer1, idx2],
+                lons[idx3],
+                lats[idx3],
+                array[ilayer1, idx3],
             )
 
             if ilayer1 == ilayer2:
                 return val_layer1
 
             val_layer2 = geographic.triangle_interpolation(
-                lon, lat,
-                lons[idx1], lats[idx1], array[ilayer2,idx1],
-                lons[idx2], lats[idx2], array[ilayer2,idx2],
-                lons[idx3], lats[idx3], array[ilayer2,idx3]
+                lon,
+                lat,
+                lons[idx1],
+                lats[idx1],
+                array[ilayer2, idx1],
+                lons[idx2],
+                lats[idx2],
+                array[ilayer2, idx2],
+                lons[idx3],
+                lats[idx3],
+                array[ilayer2, idx3],
             )
 
         elif method == "nearest":
             index = self.nearest_index(lon, lat)
-            val_layer1 = array[ilayer1,index]
+            val_layer1 = array[ilayer1, index]
 
             if ilayer1 == ilayer2:
                 return val_layer1
 
-            val_layer2 = array[ilayer2,index]
+            val_layer2 = array[ilayer2, index]
 
         # Linear interpolation between the adjacent layers
-        value = ((r2 - r)*val_layer1 + (r - r1)*val_layer2)/(r2 - r1)
+        value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
 
         return value
-
 
     def set_field(self, field, values):
         """
@@ -399,7 +412,6 @@ class TerraModel:
         array = np.array(values, dtype=VALUE_TYPE)
         self._check_field_shape(array, field, scalar=_is_scalar_field(field))
         self._fields[field] = np.array(array, dtype=VALUE_TYPE)
-
 
     def new_field(self, name, ncomps=None):
         """
@@ -426,19 +438,22 @@ class TerraModel:
             # cannot be made unless ncomps is set.
             if ncomps_expected is None:
                 if ncomps is None:
-                    raise ValueError(f"Field {name} has no expected number " +
-                        "of components, so ncomps must be passed")
+                    raise ValueError(
+                        f"Field {name} has no expected number "
+                        + "of components, so ncomps must be passed"
+                    )
                 self.set_field(name, np.zeros((nlayers, npts), dtype=VALUE_TYPE))
             else:
                 if ncomps is not None:
                     if ncomps != ncomps_expected:
-                        raise ValueError(f"Field {name} should have " +
-                            f"{ncomps_expected} fields, but {ncomps} requested")
+                        raise ValueError(
+                            f"Field {name} should have "
+                            + f"{ncomps_expected} fields, but {ncomps} requested"
+                        )
                 else:
                     ncomps = ncomps_expected
 
-            self.set_field(name,
-                np.zeros((nlayers, npts, ncomps), dtype=VALUE_TYPE))
+            self.set_field(name, np.zeros((nlayers, npts, ncomps), dtype=VALUE_TYPE))
 
         else:
             # Scalar field; should not ask for ncomps at all
@@ -448,7 +463,6 @@ class TerraModel:
 
         return self.get_field(name)
 
-
     def has_field(self, field):
         """
         Return True if this TerraModel contains a field called ``field``.
@@ -457,7 +471,6 @@ class TerraModel:
         :returns: True if field is present, and False otherwise
         """
         return field in self._fields.keys()
-
 
     def get_field(self, field):
         """
@@ -469,14 +482,12 @@ class TerraModel:
         self._check_has_field(field)
         return self._fields[field]
 
-
     def _check_has_field(self, field):
         """
         If field is not present in this model, raise a NoFieldError
         """
         if not self.has_field(field):
             raise NoFieldError(field)
-
 
     def _check_field_shape(self, array, name, scalar=True):
         """
@@ -488,10 +499,10 @@ class TerraModel:
         """
         if len(array.shape) not in (2, 3):
             raise FieldDimensionError(self, array, name)
-        if (scalar and array.shape != (self._nlayers, self._npts)) or \
-                (not scalar and array.shape[0:2] != (self._nlayers, self._npts)):
+        if (scalar and array.shape != (self._nlayers, self._npts)) or (
+            not scalar and array.shape[0:2] != (self._nlayers, self._npts)
+        ):
             raise FieldDimensionError(self, array, name)
-
 
     def number_of_compositions(self):
         """
@@ -505,7 +516,6 @@ class TerraModel:
         else:
             return None
 
-
     def get_composition_names(self):
         """
         If a model contains a composition histogram field ('c_hist'),
@@ -518,7 +528,6 @@ class TerraModel:
         else:
             return None
 
-
     def get_lateral_points(self):
         """
         Return two numpy.arrays, one each for the longitude and latitude
@@ -529,7 +538,6 @@ class TerraModel:
         """
         return self._lon, self._lat
 
-
     def get_radii(self):
         """
         Return the radii of each layer in the model, in km.
@@ -537,7 +545,6 @@ class TerraModel:
         :returns: radius of each layer in km
         """
         return self._radius
-
 
     def nearest_index(self, lon, lat):
         """
@@ -560,7 +567,6 @@ class TerraModel:
             return indices[0]
         else:
             return np.array([idx[0] for idx in indices])
-
 
     def nearest_indices(self, lon, lat, n):
         """
@@ -586,7 +592,6 @@ class TerraModel:
         indices, _ = self.nearest_neighbors(lon, lat, n)
 
         return indices
-
 
     def nearest_neighbors(self, lon, lat, n):
         """
@@ -632,7 +637,6 @@ class TerraModel:
         else:
             return indices, distances
 
-
     def nearest_layer(self, radius, depth=False):
         """
         Find the layer nearest to the given radius.
@@ -655,9 +659,17 @@ class TerraModel:
         else:
             return index, radii[index]
 
-
-    def plot_layer(self, field, radius=None, index=None, depth=False,
-            delta=None, extent=(-180, 180, -90, 90), method="nearest", show=True):
+    def plot_layer(
+        self,
+        field,
+        radius=None,
+        index=None,
+        depth=False,
+        delta=None,
+        extent=(-180, 180, -90, 90),
+        method="nearest",
+        show=True,
+    ):
         """
         Create a heatmap of the values of a particular field at the model
         layer nearest to ``radius`` km.
@@ -694,8 +706,9 @@ class TerraModel:
         values = self.get_field(field)[layer_index]
         label = _SCALAR_FIELDS[field]
 
-        fig, ax = plot.layer_grid(lon, lat, layer_radius, values,
-            delta=delta, extent=extent, label=label)
+        fig, ax = plot.layer_grid(
+            lon, lat, layer_radius, values, delta=delta, extent=extent, label=label
+        )
 
         if depth:
             ax.set_title(f"Depth {int(layer_radius)} km")
@@ -760,9 +773,11 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
-        for dimension in ('nps', 'depths'):
-            assert dimension in nc.dimensions, \
-                f"Can't find {dimension} in dimensions of file {file}"
+
+        for dimension in ("nps", "depths", "compositions"):
+            assert (
+                dimension in nc.dimensions
+            ), f"Can't find {dimension} in dimensions of file {file}"
 
         # Number of lateral points in this file
         npts = nc.dimensions["nps"].size
@@ -771,6 +786,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
         if file_number > 0:
             # Check the radii are the same for this file as the first
+
             assert np.all(_r == surface_radius - nc["depths"][:]), \
                 f"radii in file {file} do not match those in {files[0]}"
 
@@ -778,6 +794,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         # depth slice, and so are repeated
         this_slice_lat = nc["latitude"][:]
         this_slice_lon = nc["longitude"][:]
+
         _lat[npts_range] = this_slice_lat
         _lon[npts_range] = this_slice_lon
 
@@ -788,10 +805,12 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
             all_lats = nc["latitude"][:]
             all_lons = nc["longitude"][:]
             for idep in range(1, nlayers):
-                assert np.all(this_slice_lat == all_lats[idep,:]), \
-                    f"Latitudes of depth slice {idep} do not match those of slice 0"
-                assert np.all(this_slice_lon == all_lons[idep,:]), \
-                    f"Longitudes of depth slice {idep} do not match those of slice 0"
+                assert np.all(
+                    this_slice_lat == all_lats[idep, :]
+                ), f"Latitudes of depth slice {idep} do not match those of slice 0"
+                assert np.all(
+                    this_slice_lon == all_lons[idep, :]
+                ), f"Longitudes of depth slice {idep} do not match those of slice 0"
 
         # Now read in fields, with some special casing
         fields_to_read = _ALL_FIELDS.keys() if fields == None else fields
@@ -814,8 +833,9 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
-                        (nlayers, npts_total), dtype=VALUE_TYPE)
-                _fields[field_name][:,npts_range] = field_data
+                        (nlayers, npts_total), dtype=VALUE_TYPE
+                    )
+                _fields[field_name][:, npts_range] = field_data
                 fields_read.add(field_name)
 
             # Special case for flow field
@@ -827,14 +847,16 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
                 ncomps = _VECTOR_FIELD_NCOMPS[field_name]
                 uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
+                
                 uxyz[:,:,0] = nc["velocity_x"][:]
                 uxyz[:,:,1] = nc["velocity_y"][:]
                 uxyz[:,:,2] = nc["velocity_z"][:]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
-                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE)
-                _fields[field_name][:,npts_range,:] = uxyz
+                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE
+                    )
+                _fields[field_name][:, npts_range, :] = uxyz
 
             # Special case for other vector fields; i.e. c_hist
             if "c_hist" in fields_to_read and field_name == "c_hist":
@@ -862,6 +884,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
+
                         (nlayers, npts_total, ncomps+1), dtype=VALUE_TYPE)
 
                 #fractions must sum to 1, so nth frac is the difference of the sum of the given fractions to 1.
@@ -873,7 +896,6 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                         _fields["c_hist"][:,npts_range,c] = nc[local_var][c,:,:]
                     _fields["c_hist"][:,npts_range,-1]=nth_comp[:]
                 _test_composition(_fields["c_hist"][:,npts_range,:])
-
 
         nc.close()
         npts_pointer += npts
@@ -895,21 +917,23 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         ndims = array.ndim
         if ndims == 2:
             if must_flip_radii:
-                _fields[field_name] = array[::-1,unique_indices]
+                _fields[field_name] = array[::-1, unique_indices]
             else:
-                _fields[field_name] = array[:,unique_indices]
+                _fields[field_name] = array[:, unique_indices]
         elif ndims == 3:
             if must_flip_radii:
-                _fields[field_name] = array[::-1,unique_indices,:]
+                _fields[field_name] = array[::-1, unique_indices, :]
             else:
-                _fields[field_name] = array[:,unique_indices,:]
+                _fields[field_name] = array[:, unique_indices, :]
         else:
             # Shouldn't be able to happen
             raise ValueError(
-                f"field {field_name} has an unexpected number of dimensions ({ndims})")
+                f"field {field_name} has an unexpected number of dimensions ({ndims})"
+            )
 
-    return TerraModel(r=_r, lon=_lon, lat=_lat, fields=_fields,
-        c_histogram_names=_c_hist_names)
+    return TerraModel(
+        r=_r, lon=_lon, lat=_lat, fields=_fields, c_histogram_names=_c_hist_names
+    )
 
 
 def _test_composition(compfracs):
@@ -948,11 +972,13 @@ def _variable_names_from_field(field):
     """
     return _FIELD_NAME_TO_VARIABLE_NAME[field]
 
+
 def _field_name_from_variable(field):
     """
     Return the TerraModel field name of a NetCDF file variable name
     """
     return _VARIABLE_NAME_TO_FIELD_NAME[field]
+
 
 def _check_field_name(field):
     """
@@ -961,11 +987,13 @@ def _check_field_name(field):
     if not _is_valid_field_name(field):
         raise FieldNameError(field)
 
+
 def _is_scalar_field(field):
     """
     Return True if field is a scalar field
     """
     return field in _SCALAR_FIELDS.keys()
+
 
 def _is_vector_field(field):
     """
@@ -973,12 +1001,14 @@ def _is_vector_field(field):
     """
     return field in _VECTOR_FIELDS.keys()
 
+
 def _expected_vector_field_ncomps(field):
     """
     Return the expected number of components in a 'vector' field,
     or None if it may take any value
     """
     return _VECTOR_FIELD_NCOMPS[field]
+
 
 def _fit_nn_tree(lon, lat):
     """
@@ -1000,6 +1030,7 @@ def _fit_nn_tree(lon, lat):
     tree = NearestNeighbors(n_neighbors=1, metric="haversine").fit(coords)
     return tree
 
+
 def _nearest_index(value, values):
     """
     Return the index of the nearest value in ``values``.  If
@@ -1018,10 +1049,11 @@ def _nearest_index(value, values):
         return index
 
     # Need to decide whether the one above or below is closer
-    if value - values[index-1] > values[index] - value:
+    if value - values[index - 1] > values[index] - value:
         return index
     else:
         return index - 1
+
 
 def _bounding_indices(value, values):
     """

@@ -1,12 +1,8 @@
 """
-terratools: A Python module to deal with models from the
-TERRA mantle convection simulation code.
+Tools to read, analyse and visualise models written by the TERRA mantle convection code.
+TerraTools is released under an [MIT License](https://opensource.org/licenses/MIT).
 
-:copyright:
-    The MC² team (James Panton, Andy Nowacki and others)
-:license:
-    MIT License
-    https://opensource.org/licenses/MIT
+&copy; The MC² team (James Panton, Andy Nowacki and others)
 """
 
 from . import terra_model
