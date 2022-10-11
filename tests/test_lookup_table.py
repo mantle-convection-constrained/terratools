@@ -9,16 +9,18 @@ from terratools.lookup_tables import (
 )
 import pathlib
 
-TESTDATA_PATH = pathlib.Path(__file__).parent.joinpath("data", "test_lookup_table.txt")
+TESTDATA_DIR = pathlib.Path(__file__).parent
 
 
 class TestLookup(unittest.TestCase):
     def setUp(self):
         self.lookup_tab_path = "./tests/data/test_lookup_table.txt"
-        self.tab = SeismicLookupTable(TESTDATA_PATH)
+        self.tab = SeismicLookupTable(
+            TESTDATA_DIR.joinpath("data", "test_lookup_table.txt")
+        )
         self.tabs = {
-            "tab1": "./data/multi_table_test1.txt",
-            "tab2": "./data/multi_table_test2.txt",
+            "tab1": TESTDATA_DIR.joinpath("data", "multi_table_test1.txt"),
+            "tab2": TESTDATA_DIR.joinpath("data", "multi_table_test2.txt"),
         }
         self.multitable = MultiTables(self.tabs)
 
