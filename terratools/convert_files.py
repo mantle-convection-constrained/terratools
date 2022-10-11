@@ -15,7 +15,7 @@ class FileTypeError(Exception):
         super().__init__(self.message)
 
 
-def convert(files):
+def convert(files,test=False):
     """
     Call to convert files from 'old' (pre-versioning) Terra netCDF files to the new standard.
     Only .comp file types may be converted as the 'old' .seis files have sesimic velocities
@@ -28,8 +28,9 @@ def convert(files):
     cleanup=_tool_exists("ncks")
 
     for file in files:
-        #ensure write permissions before opening
-        os.chmod(file, stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+        if not test:
+            #ensure write permissions before opening
+            os.chmod(file, stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
         data=nc4.Dataset(file,mode='a')
 
         variables=data.variables.copy() #Copy so not overwriting dictionary keys in loop
@@ -89,7 +90,7 @@ def convert(files):
         data.close()
 
         #Have to use ncks (available through NCO - netCDF operators)
-        if cleanup :
+        if cleanup and not test :
             os.system(f"ncks -C -O -x -v BasaltFrac {path}/{fname} {path}/{fname}_new")
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
             os.system(f"ncks -C -O -x -v LherzFrac {path}/{fname} {path}/{fname}_new")
@@ -98,7 +99,7 @@ def convert(files):
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
             os.system(f"ncks -C -O -x -v Lat_old {path}/{fname} {path}/{fname}_new")
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
-        else:
+        elif not cleanup:
             print("ncks is not available on your PATH so cannot clean up old variables")
             print("ncks is available with NCO (NetCDF Operators)")
 
