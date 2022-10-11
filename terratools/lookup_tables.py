@@ -101,14 +101,24 @@ class SeismicLookupTable:
 
     def interp_grid(self,press,temps,field):
         """
-        Routine for re-gridding lookup tables into new pressure-temperature space
-        Inputs: press = pressures
-                temps = temperatures
-                field = data field (eg. 'Vs')
-        Returns: interpolated values of a given table property
-                on a grid defined by press and temps
+        Routine for re-gridding lookup tables into new pressure-temperature space.
 
-        eg. basalt.interp([pressures],[temperature],'Vs')
+        :param press: pressures
+        :type press: 1d array of floats.
+        :param temps: temperatures
+        :type temps: 1d array of floats.
+        :param field: data field to interpolate (e.g. Vs)
+        :type field: str
+        
+        :return: inerpolated grid
+        :rtype: 2D array of floats
+
+        :example: 
+        
+        >>> t_test = [4,5,6]
+        >>> p_test = 10
+        >>> basalt = SeismicLookupTable('../tests/data/test_lookup_table.txt')
+        >>> basalt.interp_grid(p_test, t_test, 'Vs')
         """
 
         press = [press] if type(press)==int or type(press)==float else press
@@ -125,13 +135,27 @@ class SeismicLookupTable:
 
     def interp_points(self,press,temps,field):
         """
-        Inputs: press = pressures
-                temps = temperatures (press and temps must be of equal length)
-                prop   = property eg. Vs
-        Returns:
         For a given table property (eg. Vs) return interpolated values
         for pressures and temperatures
-        eg. basalt.interp_points(list(zip(pressures,temperature)),'Vs')
+        
+        :param press: pressures
+        :type press: 1d array of floats.
+        :param temps: temperatures
+        :type temps: 1d array of floats.
+        :param field: data field to interpolate (e.g. Vs)
+        :type field: str
+
+        :return: out, interpolated values of field to pressure, temperature
+                 points
+        :rtype: 1D array of floats of length equal length to pressures 
+                and temperatures arrays. 
+
+        :example: 
+        
+        >>> t_test = 15
+        >>> p_test = 15
+        >>> basalt = SeismicLookupTable('../tests/data/test_lookup_table.txt')
+        >>> basalt.interp_points(p_test, t_test, 'Vs')
         """
 
         #If integers are passed in then convert to indexable lists
@@ -156,12 +180,14 @@ class SeismicLookupTable:
         Plots the lookup table as a grid with values coloured by
         value for the field given.
 
-        Inputs: ax = matplotlib axis object to plot on.
-                field = property to plot e.g. Vp.
-                cmap = matplotlib colourmap. default is cividis
+        :param ax: axis for table to be plotted on 
+        :type ax: matplotlib axis object
+        :param field: field to plot (e.g. Vs)
+        :type field: str
+        :param cmap: colour map, must be in matplotlib. default is viridis_r
+        :type cmap: str
 
-        Returns:
-
+        :return:
         """
 
         # get column index for field of interest
@@ -190,12 +216,14 @@ class SeismicLookupTable:
         """
         Plots the lookup table as contours using matplotlibs tricontourf.
 
-        Inputs: ax = matplotlib axis object to plot on.
-                field = property to plot e.g. Vp.
-                cmap = matplotlib colourmap. default is cividis
+        :param ax: axis for table to be plotted on 
+        :type ax: matplotlib axis object
+        :param field: field to plot (e.g. Vs)
+        :type field: str
+        :param cmap: colour map, must be in matplotlib. default is viridis_r
+        :type cmap: str
 
-        Returns:
-
+        :return: 
         """
 
         # get column index for field of interest
