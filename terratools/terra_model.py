@@ -872,6 +872,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                         nth_comp=nth_comp-nc[local_var][c,:,:]
                         _fields["c_hist"][:,npts_range,c] = nc[local_var][c,:,:]
                     _fields["c_hist"][:,npts_range,-1]=nth_comp[:]
+                _test_composition(_fields["c_hist"][:,npts_range,:])
 
 
         nc.close()
@@ -913,9 +914,10 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
 def _test_composition(compfracs):
     """
-    Test to mak sure that total composition fraction is equal to 1
+    Test to make sure that total composition fraction is equal to 1
     """
-    assert np.sum(comp_fracs[:,])
+
+    assert np.all(np.sum(compfracs[:,:,:],axis=2))
 
 def _check_version(nc):
     """
