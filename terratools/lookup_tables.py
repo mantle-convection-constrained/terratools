@@ -88,18 +88,6 @@ class SeismicLookupTable:
                 0 + (i * self.pstep) : self.pstep + (i * self.pstep), 9
             ]
 
-        # Creat dictionary which holds the interpolator objects
-        self.fields = {
-            "vp": [2, Vp, "km/s"],
-            "vs": [3, Vs, "km/s"],
-            "vp_ani": [4, Vp_an, "km/s"],
-            "vs_ani": [5, Vs_an, "km/s"],
-            "vphi": [6, Vphi, "km/s"],
-            "density": [7, Dens, "$kg/m^3$"],
-            "qs": [8, Qs, "Hz"],
-            "t_sol": [9, T_sol, "K"],
-        }
-
         # Setup interpolator objects. These can be used for rapid querying of many individual points
         self.vp_interp = interp2d(self.pres, self.temp, Vp)
         self.vs_interp = interp2d(self.pres, self.temp, Vs)
@@ -109,6 +97,18 @@ class SeismicLookupTable:
         self.density_interp = interp2d(self.pres, self.temp, Dens)
         self.qs_interp = interp2d(self.pres, self.temp, Qs)
         self.t_sol_interp = interp2d(self.pres, self.temp, T_sol)
+
+        # Creat dictionary which holds the interpolator objects
+        self.fields = {
+            "vp": [2, Vp, "km/s", self.vp_interp],
+            "vs": [3, Vs, "km/s", self.vs_interp],
+            "vp_ani": [4, Vp_an, "km/s", self.vp_an_interp],
+            "vs_ani": [5, Vs_an, "km/s", self.vs_an_interp],
+            "vphi": [6, Vphi, "km/s", self.vphi_interp],
+            "density": [7, Dens, "$kg/m^3$", self.density_interp],
+            "qs": [8, Qs, "Hz", self.qs_interp],
+            "t_sol": [9, T_sol, "K", self.t_sol_interp],
+        }
 
     #################################################
     # Need to get temp, pres, comp at given point.
@@ -126,20 +126,23 @@ class SeismicLookupTable:
         :type temps: float or numpy array
         :param field: Data field (eg. 'Vs')
         :type field: string
-
         :return: interpolated values of a given table property
                 on a 2D grid defined by press and temps
         :rtype: 2D numpy array
+        :example:
+
+        >>> t_test = [4,5,6]
+        >>> p_test = 10
+        >>> basalt = SeismicLookupTable('../tests/data/test_lookup_table.txt')
+        >>> basalt.interp_grid(p_test, t_test, 'Vs')
         """
 
         press = [press] if type(press) == int or type(press) == float else press
         temps = [temps] if type(temps) == int or type(temps) == float else temps
 
-        _check_bounds(press, self.pres, "pressure")
-        _check_bounds(temps, self.temp, "temperature")
-
-        grid = interp2d(self.pres, self.temp, self.fields[field.lower()][1])
-
+        _check_bounds(press, self.pres)
+        _check_bounds(temps, self.temp)
+        grid = self.fields[field.lower()][3]
         return grid(press, temps)
 
     def interp_points(self, press, temps, field):
@@ -163,8 +166,8 @@ class SeismicLookupTable:
         press = [press] if type(press) == int or type(press) == float else press
         temps = [temps] if type(temps) == int or type(temps) == float else temps
 
-        _check_bounds(press, self.pres, "pressure")
-        _check_bounds(temps, self.temp, "temperature")
+        _check_bounds(press, self.pres)
+        _check_bounds(temps, self.temp)
 
         grid = interp2d(self.pres, self.temp, self.fields[field.lower()][1])
 
@@ -187,7 +190,6 @@ class SeismicLookupTable:
         :type cmap: string
 
         :return: None
-
         """
 
         # get column index for field of interest
@@ -243,26 +245,80 @@ class SeismicLookupTable:
         ax.set_title(f"P-T graph for {field}")
 
 
-def harmonic_mean_comp(bas, lhz, hzb, bas_fr, lhz_fr, hzb_fr):
-    """
-    bas, lhz, hzb must be of equal length.
-    This routine assumes 3 component mechanical mixture.
+class MultiTables:
+    def __init__(self, lookuptables):
+        """
+        Class to take in and process multiple tables at once.
 
-    :param bas: data for basaltic composition (eg. basalt.Vs)
-    :param lhz: data for lherzolite composition
-    :param hzb: data for harzburgite composition
-    :param bas_fr: basalt fraction
-    :param lhz_fr: lherzolite fraction
-    :param hzb_fr: harzburgite fraction
+        :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
+                    and the associated lookup table filename to be read in or array of values.
+        :type tables: dictionary
+
+        :return: multitable object.
+        """
+        self._tables = lookuptables
+        self._lookup_tables = {}
+        for key in self._tables:
+            self._lookup_tables[key] = SeismicLookupTable(self._tables[key])
+
+    def evaluate(self, P, T, fractions, field):
+        """
+        Returns the harmonic mean of a parameter over several lookup
+        tables weighted by their fraction.
+
+        :param P: pressure value to evaluate.
+        :type P: float
+        :param T: temperature value to evaluate.
+        :type T: float
+        :param fractions: relative proportions of
+                          compositions. The keys in
+                          the dictionary need to be
+                          the same as the tables
+                          attribute.
+        :type fractions: dictionary
+        :param field: property to evaluate, e.g. 'vs'.
+        :type field: str
+        :return: property 'prop' evaluated at T and P.
+        :rtype: float
+        """
+
+        values = []
+        fracs = []
+        for key in self._tables:
+            frac = fractions[key]
+            value = self._lookup_tables[key].interp_points(P, T, field)
+            values.append(value)
+            fracs.append(frac)
+
+        value = _harmonic_mean(data=values, fractions=fracs)
+
+        return value
+
+
+def _harmonic_mean(data, fractions):
+    """
+    Our own harmonic mean function. scipy.stats does have one
+    but will only work on 1D arrays whereas this will take the
+    mean of 2D arrays such as lookup tables also.
+    If averaging lookup tables, they must have the same shape.
+
+    :param data: data to perform harmonic mean.
+    :type data: 1D or 3D numpy array. axis=0 must
+                be the axis along which the 2D arrays
+                change.
+    :param fractions: relative fractions to weight data
+    :type fractions: 1D numpy array of floats
 
     :return: harmonic mean of input values
-
+    :rtype: float or 2D numpy array of floats.
     """
-    m1 = (1.0 / bas) * bas_fr
-    m2 = (1.0 / lhz) * lhz_fr
-    m3 = (1.0 / hzb) * hzb_fr
 
-    hmean = 1 / (m1 + m2 + m3)
+    m_total = np.zeros(data[0].shape)
+
+    for i in range(len(fractions)):
+        m_total += (1 / data[i]) * fractions[i]
+
+    hmean = np.sum(fractions) / (m_total)
 
     return hmean
 
@@ -276,6 +332,7 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     :param cnew: C-value(s) for new composition(s)
 
     :return: interpolated values for compositions cnew
+    :rtype: float
     """
 
     interpolated = interp1d(
@@ -288,19 +345,34 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     return interpolated(cnew)
 
 
-def _check_bounds(input, check, TP):
+def _check_bounds(input, check):
     """
-    :param input: values of interest
-    :param check: range of table values
-    :param TP:
+    Check which of the valus in inputs exceeds the bounds in check
+    and replace them with the min/max bound as appropriate.
+
+    :param input: temperature or pressure of interest
+    :type input: float
+    :param check: range of table pressure or temperature
+    :type check: 1D array of floats
+    :return: output
+    :rtype: numpy array of floats
     """
 
-    if np.any(input[:] > np.max(check)):
+    if np.any(input > np.max(check)):
         print(
-            f"One or more of your {TP} inputs exceeds the table range, reverting to maximum table value"
+            f"One or more of your inputs exceeds the table range, reverting to maximum table range"
         )
 
-    if np.any(input[:] < np.min(check)):
+    elif np.any(input < np.min(check)):
         print(
-            f"One or more of your {TP} inputs is below the table range, reverting to minimum table value"
+            f"One or more of your inputs is below the table range, reverting to minimum table range"
         )
+
+    # where the values are greater than the minimum keep the same
+    # but replace those below with the minimum
+    output = np.where(input > np.min(check), input, np.min(check))
+    # where the values are smaller than the maximum keep the same
+    # but replace those above with the maximum
+    output = np.where(output < np.max(check), output, np.max(check))
+
+    return output
