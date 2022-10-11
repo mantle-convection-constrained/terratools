@@ -69,22 +69,21 @@ def write_seismic_netcdf_files(
         # + 1 because we add a duplicate point at the end
         nps_dim = file.createDimension("nps", nps + 1)
         depths_dim = file.createDimension("depths", nlayers)
-        compositions_dim = file.createDimension("compositions",len(c_hist_names))
+        compositions_dim = file.createDimension("compositions", len(c_hist_names))
 
-        depths_var = file.createVariable("depths", terra_model.COORDINATE_TYPE,
-            ("depths",))
+        depths_var = file.createVariable(
+            "depths", terra_model.COORDINATE_TYPE, ("depths",)
+        )
         depths_var.units = "km"
 
-        lon_var = file.createVariable("longitude", terra_model.COORDINATE_TYPE,
-            ("nps"))
+        lon_var = file.createVariable("longitude", terra_model.COORDINATE_TYPE, ("nps"))
         lon_var.units = "degrees"
 
-        lat_var = file.createVariable("latitude", terra_model.COORDINATE_TYPE,
-            ("nps"))
+        lat_var = file.createVariable("latitude", terra_model.COORDINATE_TYPE, ("nps"))
         lat_var.units = "degrees"
 
-        #Add version number
-        file.version=1.0
+        # Add version number
+        file.version = 1.0
 
         # Fill in coordinates
         # depths in decreasing depth order, which is opposite to our convention
@@ -101,15 +100,19 @@ def write_seismic_netcdf_files(
             if is_scalar:
                 var_name = var_names[0]
 
-                #longitude and latitude don't vary with depth
+                # longitude and latitude don't vary with depth
                 if field_name == "latitude" or field_name == "longitude":
-                    this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
-                    ("nps"))
+                    this_var = file.createVariable(
+                        var_name, terra_model.VALUE_TYPE, ("nps")
+                    )
                     this_var[:] = select_indices(field_vals, (lateral_inds))
                 else:
-                    this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
-                        ("depths", "nps"))
-                    this_var[:,:] = select_indices(field_vals, (depth_inds, lateral_inds))
+                    this_var = file.createVariable(
+                        var_name, terra_model.VALUE_TYPE, ("depths", "nps")
+                    )
+                    this_var[:, :] = select_indices(
+                        field_vals, (depth_inds, lateral_inds)
+                    )
 
                 if units != "unitless":
                     this_var.units = units.title()
@@ -118,27 +121,31 @@ def write_seismic_netcdf_files(
             elif field_name == "u_xyz":
                 for (icomp, var_name) in enumerate(var_names):
 
-                    this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
-                        ("depths", "nps"))
-                    this_var[:,:] = select_indices(field_vals[:,:,icomp],
-                        (depth_inds, lateral_inds))
+                    this_var = file.createVariable(
+                        var_name, terra_model.VALUE_TYPE, ("depths", "nps")
+                    )
+                    this_var[:, :] = select_indices(
+                        field_vals[:, :, icomp], (depth_inds, lateral_inds)
+                    )
 
                     this_var.units = units.title()
 
             elif field_name == "c_hist":
-                var_name="composition_fractions"
-                this_var = file.createVariable(var_name, terra_model.VALUE_TYPE,
-                        ("compositions","depths", "nps"))
+                var_name = "composition_fractions"
+                this_var = file.createVariable(
+                    var_name, terra_model.VALUE_TYPE, ("compositions", "depths", "nps")
+                )
                 for (icomp, comp_name) in enumerate(c_hist_names):
 
-                    this_var[icomp,:,:] = select_indices(field_vals[icomp,:,:],
-                        (depth_inds, lateral_inds))
+                    this_var[icomp, :, :] = select_indices(
+                        field_vals[icomp, :, :], (depth_inds, lateral_inds)
+                    )
 
-                this_var.composition_1_name="harzburgite"
+                this_var.composition_1_name = "harzburgite"
                 this_var.composition_1_c = 0.0
-                this_var.composition_2_name="lherzolite"
+                this_var.composition_2_name = "lherzolite"
                 this_var.composition_2_c = 0.2
-                this_var.composition_3_name="basalt"
+                this_var.composition_3_name = "basalt"
                 this_var.composition_3_c = 1.0
 
         file.close()
@@ -163,7 +170,7 @@ def random_model(npts, nlayers):
         "u_xyz": np.random.rand(nlayers, npts, 3).astype(value_type),
         "c_hist": np.random.rand(2, nlayers, npts).astype(value_type),
     }
-    c_hist_names = ["harzburgite","lherzolite"]
+    c_hist_names = ["harzburgite", "lherzolite"]
 
     return lon, lat, r, fields, c_hist_names
 
@@ -190,9 +197,12 @@ class TestTerraModelReadNetCDF(unittest.TestCase):
         self.assertTrue(np.all(r == mr))
         self.assertTrue(np.all(fields["t"] == model.get_field("t")))
         self.assertTrue(np.all(fields["u_xyz"] == model.get_field("u_xyz")))
-        self.assertTrue(np.all(fields["c_hist"][0,:,:] == model.get_field("c_hist")[:,:,0]))
-        self.assertTrue(np.all(fields["c_hist"][1,:,:] == model.get_field("c_hist")[:,:,1]))
-
+        self.assertTrue(
+            np.all(fields["c_hist"][0, :, :] == model.get_field("c_hist")[:, :, 0])
+        )
+        self.assertTrue(
+            np.all(fields["c_hist"][1, :, :] == model.get_field("c_hist")[:, :, 1])
+        )
 
 
 if __name__ == "__main__":

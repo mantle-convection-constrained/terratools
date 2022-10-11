@@ -56,15 +56,15 @@ _ALL_FIELDS = {**_SCALAR_FIELDS, **_VECTOR_FIELDS}
 # Each field name maps to one or more variables.
 # Fields which don't have a defined name should not have a key in this dict.
 _FIELD_NAME_TO_VARIABLE_NAME = {
-"t": ("temperature",),
-"c_hist": ("composition_fractions",),
-"u_xyz": ("velocity_x", "velocity_y", "velocity_z"),
-"vp": ("vp",),
-"vs": ("vs",),
-"vphi": ("v_bulk",),
-"vp_an": ("vp_anelastic",),
-"vs_an": ("vs_anelastic",),
-"Density": ("density",),
+    "t": ("temperature",),
+    "c_hist": ("composition_fractions",),
+    "u_xyz": ("velocity_x", "velocity_y", "velocity_z"),
+    "vp": ("vp",),
+    "vs": ("vs",),
+    "vphi": ("v_bulk",),
+    "vp_an": ("vp_anelastic",),
+    "vs_an": ("vs_anelastic",),
+    "Density": ("density",),
 }
 
 
@@ -109,12 +109,14 @@ class FieldDimensionError(Exception):
         )
         super().__init__(self.message)
 
+
 class VersionError(Exception):
     """
     Exception type raised when old version of unversioned netCDF files
     are passed in.
     """
-    def __init__(self,version):
+
+    def __init__(self, version):
         self.message = f"NetCDF file version '{version}' is not supported. Please convert with convert_files.convert"
         super().__init__(self.message)
 
@@ -767,7 +769,6 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _lon = np.empty((npts_total,), dtype=COORDINATE_TYPE)
     _c_hist_names = {}
 
-
     npts_pointer = 0
     for (file_number, file) in enumerate(files):
         nc = netCDF4.Dataset(file)
@@ -787,8 +788,9 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         if file_number > 0:
             # Check the radii are the same for this file as the first
 
-            assert np.all(_r == surface_radius - nc["depths"][:]), \
-                f"radii in file {file} do not match those in {files[0]}"
+            assert np.all(
+                _r == surface_radius - nc["depths"][:]
+            ), f"radii in file {file} do not match those in {files[0]}"
 
         # Assume that the latitudes and longitudes are the same for each
         # depth slice, and so are repeated
@@ -848,9 +850,9 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 ncomps = _VECTOR_FIELD_NCOMPS[field_name]
                 uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
 
-                uxyz[:,:,0] = nc["velocity_x"][:]
-                uxyz[:,:,1] = nc["velocity_y"][:]
-                uxyz[:,:,2] = nc["velocity_z"][:]
+                uxyz[:, :, 0] = nc["velocity_x"][:]
+                uxyz[:, :, 1] = nc["velocity_y"][:]
+                uxyz[:, :, 2] = nc["velocity_z"][:]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
@@ -866,36 +868,45 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                     fields_read.add(field_name)
 
                 ncomps = nc.dimensions["compositions"].size
-                #Get the composition attributes and populate dictionary with names and c-values
+                # Get the composition attributes and populate dictionary with names and c-values
                 for it, attr in enumerate(nc["composition_fractions"].ncattrs()):
-                    num=int((it/2)+1)
+                    num = int((it / 2) + 1)
                     if "name" in attr:
-                        string1="nc['composition_fractions']."+str(attr)
-                        attr_val1=eval(string1)
+                        string1 = "nc['composition_fractions']." + str(attr)
+                        attr_val1 = eval(string1)
                     else:
-                        string2="nc['composition_fractions']."+str(attr)
-                        attr_val2=eval(string2)
+                        string2 = "nc['composition_fractions']." + str(attr)
+                        attr_val2 = eval(string2)
 
-                    if np.mod(it,2)==1:
-                         _c_hist_names.update({f'composition_{num}' : {'name': attr_val1.lower(),'c-val': attr_val2},})
+                    if np.mod(it, 2) == 1:
+                        _c_hist_names.update(
+                            {
+                                f"composition_{num}": {
+                                    "name": attr_val1.lower(),
+                                    "c-val": attr_val2,
+                                },
+                            }
+                        )
 
                 # List of variables to read
                 vars_to_read = _variable_names_from_field(field_name)
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
+                        (nlayers, npts_total, ncomps + 1), dtype=VALUE_TYPE
+                    )
 
-                        (nlayers, npts_total, ncomps+1), dtype=VALUE_TYPE)
-
-                #fractions must sum to 1, so nth frac is the difference of the sum of the given fractions to 1.
-                nth_comp=np.zeros((nc.dimensions["depths"].size,nc.dimensions["nps"].size))
-                nth_comp=nth_comp+1.
+                # fractions must sum to 1, so nth frac is the difference of the sum of the given fractions to 1.
+                nth_comp = np.zeros(
+                    (nc.dimensions["depths"].size, nc.dimensions["nps"].size)
+                )
+                nth_comp = nth_comp + 1.0
                 for local_var in vars_to_read:
                     for c in range(ncomps):
-                        nth_comp=nth_comp-nc[local_var][c,:,:]
-                        _fields["c_hist"][:,npts_range,c] = nc[local_var][c,:,:]
-                    _fields["c_hist"][:,npts_range,-1]=nth_comp[:]
-                _test_composition(_fields["c_hist"][:,npts_range,:])
+                        nth_comp = nth_comp - nc[local_var][c, :, :]
+                        _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
+                    _fields["c_hist"][:, npts_range, -1] = nth_comp[:]
+                _test_composition(_fields["c_hist"][:, npts_range, :])
 
         nc.close()
         npts_pointer += npts
@@ -941,20 +952,21 @@ def _test_composition(compfracs):
     Test to make sure that total composition fraction is equal to 1
     """
 
-    assert np.all(np.sum(compfracs[:,:,:],axis=2))
+    assert np.all(np.sum(compfracs[:, :, :], axis=2))
+
 
 def _check_version(nc):
     """
     Check the version of the netCDF file to allow for read
     """
-    #Check if version global attribute exists
+    # Check if version global attribute exists
     try:
-        version=nc.getncattr("version")
+        version = nc.getncattr("version")
     except:
-        version=0.
+        version = 0.0
 
-    #Old file types raise exception
-    if version < 1.:
+    # Old file types raise exception
+    if version < 1.0:
         raise VersionError(version)
 
 
