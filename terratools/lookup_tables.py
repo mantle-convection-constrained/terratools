@@ -190,8 +190,6 @@ class SeismicLookupTable:
         :type cmap: string
 
         :return: None
-
-        :return:
         """
 
         # get column index for field of interest
@@ -248,16 +246,16 @@ class SeismicLookupTable:
 
 
 class MultiTables:
-
-    """
-    Class to take in and process multiple tables at once.
-
-    :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
-                 and the associated lookup table filename to be read in or array of values.
-    :type tables: dictionary
-    """
-
     def __init__(self, lookuptables):
+        """
+        Class to take in and process multiple tables at once.
+
+        :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
+                    and the associated lookup table filename to be read in or array of values.
+        :type tables: dictionary
+
+        :return: multitable object.
+        """
         self._tables = lookuptables
         self._lookup_tables = {}
         for key in self._tables:
@@ -302,6 +300,7 @@ def _harmonic_mean(data, fractions):
     Our own harmonic mean function. scipy.stats does have one
     but will only work on 1D arrays whereas this will take the
     mean of 2D arrays such as lookup tables also.
+    If averaging lookup tables, they must have the same shape.
 
     :param data: data to perform harmonic mean.
     :type data: 1D or 3D numpy array. axis=0 must
@@ -311,8 +310,7 @@ def _harmonic_mean(data, fractions):
     :type fractions: 1D numpy array of floats
 
     :return: harmonic mean of input values
-
-    if averaging lookup tables, they must have the same shape.
+    :rtype: float or 2D numpy array of floats.
     """
 
     m_total = np.zeros(data[0].shape)
@@ -334,6 +332,7 @@ def linear_interp_1d(vals1, vals2, c1, c2, cnew):
     :param cnew: C-value(s) for new composition(s)
 
     :return: interpolated values for compositions cnew
+    :rtype: float
     """
 
     interpolated = interp1d(
@@ -356,7 +355,7 @@ def _check_bounds(input, check):
     :param check: range of table pressure or temperature
     :type check: 1D array of floats
     :return: output
-    :rtype: nd array of floats
+    :rtype: numpy array of floats
     """
 
     if np.any(input > np.max(check)):
