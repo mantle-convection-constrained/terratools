@@ -4,9 +4,10 @@ build:
   os: "ubuntu-20.04"
   tools:
     python: "3.9"
-  commands:
-    - python -m pip install -r docs/requirements.txt
-    - python docs/copy_ref_examples.py
+  jobs:
+    pre_build:
+      - python -m pip install -r docs/requirements.txt
+      - python docs/copy_ref_examples.py
 
 mkdocs:
   configuration: mkdocs.yml
