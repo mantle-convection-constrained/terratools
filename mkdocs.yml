@@ -5,11 +5,15 @@ nav:
     - TerraTools fundamentals:
         - Model interrogation: model.md
         - Physical properties: properties.md
+    - Examples:
+        - Example 1: "reference_examples/example_attenuation.py"
     - Code Reference: reference/
     - Bibliography: zz_bibliography.md
 
 theme:
   name: "material"
+  palette:
+    scheme: slate
 
 plugins:
 - search
@@ -30,10 +34,15 @@ plugins:
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
+    - docs/copy_ref_examples.py
 - literate-nav:
     nav_file: SUMMARY.md
 - snippet:
         base_path: docs
+- mkdocs-jupyter:
+        execute: true
+        allow_errors: false
+        theme: dark
 
 markdown_extensions:
     - footnotes
