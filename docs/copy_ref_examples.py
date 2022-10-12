@@ -9,7 +9,6 @@ nav = mkdocs_gen_files.Nav()
 # List of the examples to copy
 examples = ["example_attenuation"]
 
-
 # The rest of this script does all the copying
 path = "docs/reference_examples/"
 
@@ -24,12 +23,10 @@ for ex in examples:
         f"docs/reference_examples/{ex}.py",
     )
 
-    parts = ex
     doc_path = f"{ex}.py"
-    nav[parts] = doc_path
+    nav[ex] = doc_path
     full_doc_path = f"reference_examples/{ex}.py"
-    path = f"{ex}.py"
-    mkdocs_gen_files.set_edit_path(full_doc_path, path)
+    mkdocs_gen_files.set_edit_path(full_doc_path, doc_path)
 
 with mkdocs_gen_files.open("reference_examples/SUMMARY.md", "w") as nav_file:
     nav_file.writelines(nav.build_literate_nav())
