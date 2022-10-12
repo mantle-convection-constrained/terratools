@@ -20,9 +20,7 @@ for path in sorted(Path("terratools").rglob("*.py")):
     elif parts[-1] == "__main__" and parts != []:
         continue
 
-    print(path, parts)
     nav[parts] = doc_path.as_posix()
-
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)
         print("::: " + identifier, file=fd)
