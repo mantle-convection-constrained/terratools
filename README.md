@@ -10,15 +10,26 @@ Source code: [https://github.com/mantle-convection-constrained/terratools](https
 We are currently writing a paper for submission to JOSS. Watch this space.
 
 ## Installation
-Before installing TerraTools, please make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html), as installation of Cartopy using pip requires [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/latest/installing.html). On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
+
+### Pre-installation
+
+Before installing TerraTools, first install and/or upgrade your version of pip:
+```
+python -m ensurepip --upgrade
+```
+After that, please make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html), as installation of Cartopy using pip requires [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/latest/installing.html). On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
 ```
 export DYLD_LIBRARY_PATH=/opt/homebrew/opt/geos/lib/
 ```
+
+### Installing the latest released version
 
 To install the latest released version of TerraTools, please use:
 ```
 python -m pip install terratools
 ```
+
+### Installing the development version
 
 You can also install the latest development version of TerraTools from source. To do this, first clone the repository onto your local machine using git:
 ```
@@ -28,6 +39,8 @@ Then navigate to the top level directory and install in development mode:
 ```
 cd terratools; python -m pip install -ve .
 ```
+
+### Post-installation
 
 Finally, check you have a fully working installation:
 ```
