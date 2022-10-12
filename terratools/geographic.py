@@ -269,6 +269,7 @@ def spherical_triangle_area(
     :returns: spherical area of triangle
     :rtype: float or numpy array
     """
+
     if not radians:
         lon1 = np.radians(lon1)
         lat1 = np.radians(lat1)
@@ -284,16 +285,9 @@ def spherical_triangle_area(
     az1 = azimuth(lon3, lat3, lon1, lat1, radians=True)
     az2 = azimuth(lon3, lat3, lon2, lat2, radians=True)
 
-    # Test for collinearity
+    # Change in azimuth
     c = np.abs(az2 - az1)
-    if c > np.pi:
-        c = 2 * np.pi - c
-
-    if tol is None:
-        tol = np.finfo(c).eps
-
-    if c < tol or np.abs(np.pi - c) < tol:
-        return 0.0
+    c = np.minimum(c, 2.0 * np.pi - c)
 
     tan_arc1 = np.tan(arc1)
     tan_arc2 = np.tan(arc2)
