@@ -5,6 +5,7 @@ build:
   tools:
     python: "3.9"
   commands:
+    - python -m pip install mkdocs_gen_files
     - python docs/copy_ref_examples.py
 
 mkdocs:
