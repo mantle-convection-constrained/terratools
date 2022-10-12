@@ -509,6 +509,37 @@ class TestTerraModelEvaluate(unittest.TestCase):
             3,
         )
 
+    def test_evaluate_vectorize_triangle(self):
+        model = dummy_model(with_fields=True)
+        radii = model.get_radii()
+        mid_radius = np.min(radii) + (np.max(radii) - np.min(radii)) / 2
+
+        v1 = model.evaluate(0.0, 0.0, mid_radius, "t")
+        v2 = model.evaluate(1.0, 1.0, mid_radius * 1.5, "t")
+        vs = model.evaluate(
+            np.array([0, 1.0]),
+            np.array([0.0, 1.0]),
+            np.array([mid_radius, mid_radius * 1.5]),
+            "t",
+        )
+        self.assertTrue(np.allclose(vs, [v1, v2]))
+
+    def test_evaluate_vectorize_nearest(self):
+        model = dummy_model(with_fields=True)
+        radii = model.get_radii()
+        mid_radius = np.min(radii) + (np.max(radii) - np.min(radii)) / 2
+
+        v1 = model.evaluate(0.0, 0.0, mid_radius, "t", method="nearest")
+        v2 = model.evaluate(1.0, 1.0, mid_radius * 1.5, "t", method="nearest")
+        vs = model.evaluate(
+            np.array([0, 1.0]),
+            np.array([0.0, 1.0]),
+            np.array([mid_radius, mid_radius * 1.5]),
+            "t",
+            method="nearest",
+        )
+        self.assertTrue(np.allclose(vs, [v1, v2]))
+
     def test_evaluate_radii_interpolation(self):
         model = TerraModel(lon=[-1, 1, 0], lat=[1, 1, -1], r=[1, 2])
         model.new_field("t")

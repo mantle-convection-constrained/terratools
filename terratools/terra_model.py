@@ -475,6 +475,20 @@ class TerraModel:
         if method not in ("triangle", "nearest"):
             raise ValueError("method must be one of 'triangle' or 'nearest'")
 
+        isscalar = False
+        if np.isscalar(lon):
+            isscalar = True
+            lon = np.array([lon])
+        if np.isscalar(lat):
+            lat = np.array([lat])
+        if np.isscalar(r):
+            r = np.array([r])
+
+        # Convert lists to numpy arrays
+        lon = np.array(lon)
+        lat = np.array(lat)
+        r = np.array(r)
+
         radii = self.get_radii()
 
         if depth:
@@ -490,7 +504,7 @@ class TerraModel:
         if method == "triangle":
             # Get three nearest points, which should be the surrounding
             # triangle
-            idx1, idx2, idx3 = self.nearest_indices(lon, lat, 3)
+            idx1, idx2, idx3 = self.nearest_indices(lon, lat, 3).T
 
             # For the two layers, laterally interpolate the field
             # Note that this relies on NumPy's convention on indexing, where
@@ -511,9 +525,6 @@ class TerraModel:
                 array[ilayer1, idx3],
             )
 
-            if ilayer1 == ilayer2:
-                return val_layer1
-
             val_layer2 = geographic.triangle_interpolation(
                 lon,
                 lat,
@@ -531,16 +542,22 @@ class TerraModel:
         elif method == "nearest":
             index = self.nearest_index(lon, lat)
             val_layer1 = array[ilayer1, index]
-
-            if ilayer1 == ilayer2:
-                return val_layer1
-
             val_layer2 = array[ilayer2, index]
 
         # Linear interpolation between the adjacent layers
-        value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
+        mask = ilayer1 != ilayer2
+        value = val_layer1
 
-        return value
+        if sum(mask) > 0:
+            value[mask] = (
+                (r2[mask] - r[mask]) * val_layer1[mask]
+                + (r[mask] - r1[mask]) * val_layer2[mask]
+            ) / (r2[mask] - r1[mask])
+
+        if isscalar:
+            return value[0]
+        else:
+            return value
 
     def evaluate_from_lookup_tables(
         self, lon, lat, r, fields=TABLE_FIELDS, method="triangle", depth=False
@@ -1850,12 +1867,6 @@ def _bounding_indices(value, values):
     nvals = len(values)
     index = np.searchsorted(values, value)
 
-    # We are above or below the range of values
-    if index == 0:
-        return index, index
-    elif index == nvals:
-        return index - 1, index - 1
-    elif values[index] == value:
-        return index, index
-    else:
-        return index - 1, index
+    inc = np.isin(value, values)
+
+    return np.clip(np.array([index - 1 + inc, index]), 0, nvals - 1)
