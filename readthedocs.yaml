@@ -4,9 +4,10 @@ build:
   os: "ubuntu-20.04"
   tools:
     python: "3.9"
+  apt_packages:
+    - libgeos-dev
   jobs:
     pre_build:
-      - apt update && apt install --yes libgeos-dev
       - python -m pip install --upgrade pip
       - python -m pip install -r docs/requirements.txt
       - python -m pip install .
