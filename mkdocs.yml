@@ -5,8 +5,7 @@ nav:
     - TerraTools fundamentals:
         - Model interrogation: model.md
         - Physical properties: properties.md
-    - Examples:
-        - Example 1: "reference_examples/example_attenuation.py"
+    - Examples: reference_examples/
     - Code Reference: reference/
     - Bibliography: zz_bibliography.md
 
