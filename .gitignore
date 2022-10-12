@@ -12,3 +12,7 @@ terratools.egg-info/
 # example_output
 examples/output-*
 
+# Doc things
+docs/reference
+docs/reference_examples
+
