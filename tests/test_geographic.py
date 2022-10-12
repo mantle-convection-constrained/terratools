@@ -2,6 +2,7 @@ import numpy as np
 import unittest
 
 from terratools.geographic import angular_distance, azimuth, cart2geog, geog2cart
+from terratools.geographic import spherical_triangle_area
 
 
 def assert_tuples_close(testcase, tup1, tup2, atol=1e-7):
@@ -175,3 +176,17 @@ class TestAzimuth(unittest.TestCase):
         self.assertAlmostEqual(
             azimuth(0, 0, -0.1, 0, radians=True), -np.pi / 2, delta=1e-7
         )
+
+
+class TestSphericalTriangleArea(unittest.TestCase):
+    def test_vectorised(self):
+        lon1 = np.array([0.0, 1.0, 0.0])
+        lat1 = np.array([0.0, 0.0, 1.0])
+        lon2 = np.array([1.0, 2.0, 1.0])
+        lat2 = np.array([1.0, 1.0, 2.0])
+        lon3 = np.array([2.0, 3.0, 2.0])
+        lat3 = np.array([1.0, 1.0, 2.0])
+
+        areas = spherical_triangle_area(lon1, lat1, lon2, lat2, lon3, lat3)
+        self.assertAlmostEqual(areas[0], areas[1], delta=1.0e-7)
+        self.assertTrue(areas[1] != areas[2])
