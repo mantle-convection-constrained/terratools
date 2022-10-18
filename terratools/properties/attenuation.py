@@ -16,7 +16,7 @@ AnelasticProperties = namedtuple(
 class AttenuationModelGoes(object):
     """
     This class implements the mantle seismic attenuation model
-    of [Goes et al. (2004)][bibliography] and [Maguire et al. (2016)][bibliography].
+    of [@Goes2004] and [@Maguire2016].
 
     Optionally, different Q models can be used that correspond to
     different mantle materials. A mixing model function should be passed
@@ -57,7 +57,7 @@ class AttenuationModelGoes(object):
     ):
         """
         Calculates the anelastic Vp and Vs, QS, and QK
-        according to the model used by [Maguire et al. (2016)][bibliography].
+        according to the model used by [@Maguire2016].
 
         The effects of anelasticity on shear wave velocity are incorporated
         using a model for the S-wave quality factor QS that varies with
@@ -293,7 +293,7 @@ class Q4Goes(AttenuationModelGoes):
 class Q6Goes(AttenuationModelGoes):
     """
     Implements the strong T dependence attenuation model
-    after [Goes et al. (2004)][bibliography].
+    after [@Goes2004].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
@@ -328,8 +328,8 @@ class Q6Goes(AttenuationModelGoes):
 class Q7Goes(AttenuationModelGoes):
     """
     Implements the intermediate strength T dependence attenuation model
-    after [Goes et al. (2004)][bibliography]. This model is most consistent with
-    [Matas and Bukowinski (2007)][bibliography].
+    after [@Goes2004]. This model is most consistent with
+    [@Matas2007].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and

@@ -18,9 +18,6 @@ plugins:
 - search
 - autorefs
 - section-index
-- bibtex:
-    bib_file: "docs/references.bib"
-    bib_by_default: true
 - mkdocstrings:
     handlers:
         python:
@@ -45,6 +42,9 @@ plugins:
 
 markdown_extensions:
     - footnotes
+    - mdx_bib:
+        bibtex_file: docs/references.bib
+        order: sorted
     - pymdownx.snippets:
         check_paths: true
     - pymdownx.arithmatex:
