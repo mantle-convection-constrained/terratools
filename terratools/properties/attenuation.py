@@ -16,8 +16,7 @@ AnelasticProperties = namedtuple(
 class AttenuationModelGoes(object):
     """
     This class implements the mantle seismic attenuation model
-    of [Goes et al. (2004)][bibliography] and [Maguire et al. (2016)][bibliography]
-    and for detailing her favoured model.
+    of [Goes et al. (2004)][bibliography] and [Maguire et al. (2016)][bibliography].
 
     Optionally, different Q models can be used that correspond to
     different mantle materials. A mixing model function should be passed
