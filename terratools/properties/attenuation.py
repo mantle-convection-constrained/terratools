@@ -15,18 +15,20 @@ AnelasticProperties = namedtuple(
 
 class AttenuationModelGoes(object):
     """
-    This class implements the mantle seismic attenuation model
-    of [Goes et al. (2004)][bibliography] and [Maguire et al. (2016)][bibliography].
+    This class implements a mantle seismic attenuation model
+    [@Goes2004, @Maguire2016].
 
-    Optionally, different Q models can be used that correspond to
+    Optionally, different $Q$ models can be used that correspond to
     different mantle materials. A mixing model function should be passed
     to the constructor that takes pressure and temperature as inputs and
     returns the fractions of the different materials.
 
     This class has an anelastic_properties method to calculate
-    anelastic QS, QK, Vp and Vs. The effective QS, QK and alpha
-    (frequency dependence) are given by the linearly weighted sum
-    of the QS, QK and alpha calculated for each material.
+    anelastic $V_P$ and $V_S$, $Q_S$, and $Q_K$.
+    The effective $Q_S$, $Q_K$ and $\\alpha$
+    (frequency dependence of the quality factor)
+    are given by the linearly weighted sum
+    of the $Q_S$, $Q_K$ and $\\alpha$ calculated for each material.
     """
 
     def __init__(self, T_solidus_function, model_mixing_function, Q_models):
@@ -56,28 +58,33 @@ class AttenuationModelGoes(object):
         dT_Q_constant_above_solidus=0,
     ):
         """
-        Calculates the anelastic Vp and Vs, QS, and QK
-        according to the model used by [Maguire et al. (2016)][bibliography].
+        Calculates the anelastic $V_P$ and $V_S$, $Q_S$, and $Q_K$
+        according to a published model [@Maguire2016].
 
         The effects of anelasticity on shear wave velocity are incorporated
-        using a model for the S-wave quality factor QS that varies with
-        pressure P and temperature T as
-        QS(w,z,T) = Qo w a exp(a g Tm(z) / T), where
-        w is frequency,
-        a is exponential frequency dependence,
-        g is a scaling factor and
-        Tm is the dry solidus melting temperature.
-        QK is chosen to be temperature independent.
+        using a model for the S-wave quality factor $Q_S$ that varies with
+        pressure $P$ and temperature $T$ as
+
+        $Q_S(\\omega,z,T) = Q_0 \\omega \\alpha \\exp(\\alpha g T_m(z) / T)$
+
+        where $\\omega$ is frequency,
+        $\\alpha$ is exponential frequency dependence,
+        $g$ is a scaling factor and
+        $T_m$ is the dry solidus melting temperature.
+
+        $Q_K$ is chosen to be temperature independent.
 
         The anelastic seismic velocities are calculated as follows:
-        lmda = 4/3 * (elastic_Vs/elastic_Vp)^2
-        1/QP = (1. - lmda)/QK + lmda/QS
 
-        If 1/QP is negative, it is set to 0.
+        $\\lambda = 4/3 (V_{S,\\text{el}}/V_{P,\\text{el}})^2$
 
-        anelastic_Vp = elastic_Vp*(1 - invQP/(2tan(pi*alpha/2)))
-        anelastic_Vs = elastic_Vs*(1 - invQS/(2tan(pi*alpha/2)))
+        $1/Q_P = (1 - \\lambda)/Q_K + \\lambda/Q_S
 
+        If $1/Q_P$ is negative, it is set to 0.
+
+        $V_{P,\\text{an}} = V_{P,\\text{el}} (1 - Q_P^{-1}/(2 \\tan ( \\pi \\alpha/2)))$
+
+        $V_{S,\\text{an}} = V_{S,\\text{el}} (1 - Q_S^{-1}/(2 \\tan ( \\pi \\alpha/2)))$
 
         :param elastic_Vp: The elastic P-wave velocity
         :type elastic_Vp: float or numpy array
@@ -258,7 +265,7 @@ def mantle_domain_fractions(pressure, temperature):
 class Q4Goes(AttenuationModelGoes):
     """
     Implements the weak T dependence attenuation model
-    after [Goes et al. (2004)][bibliography].
+    after [@Goes2004].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
@@ -293,7 +300,7 @@ class Q4Goes(AttenuationModelGoes):
 class Q6Goes(AttenuationModelGoes):
     """
     Implements the strong T dependence attenuation model
-    after [Goes et al. (2004)][bibliography].
+    [@Goes2004].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
@@ -328,8 +335,8 @@ class Q6Goes(AttenuationModelGoes):
 class Q7Goes(AttenuationModelGoes):
     """
     Implements the intermediate strength T dependence attenuation model
-    after [Goes et al. (2004)][bibliography]. This model is most consistent with
-    [Matas and Bukowinski (2007)][bibliography].
+    [@Goes2004]. This model is most consistent with observational data
+    [@Matas2007].
 
     The model uses the
     [peridotite_solidus][terratools.properties.profiles.peridotite_solidus] and
