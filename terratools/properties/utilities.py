@@ -27,7 +27,7 @@ def read_table(filename):
 def Simon_Glatzel_fn(Pr, Tr):
     """
     Takes a reference pressure and temperature,
-    and returns a [Simon-Glatzel][bibliography] function
+    and returns a Simon-Glatzel function [@Simon1929]
     f(P, a, b) = (Tr ((P - Pr)/a + 1)^b).
 
     :param float Pr: Reference pressure (Pa)

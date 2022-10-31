@@ -5,19 +5,18 @@ nav:
     - TerraTools fundamentals:
         - Model interrogation: model.md
         - Physical properties: properties.md
+    - Examples: reference_examples/
     - Code Reference: reference/
-    - Bibliography: zz_bibliography.md
 
 theme:
   name: "material"
+  palette:
+    scheme: slate
 
 plugins:
 - search
 - autorefs
 - section-index
-- bibtex:
-    bib_file: "docs/references.bib"
-    bib_by_default: true
 - mkdocstrings:
     handlers:
         python:
@@ -30,13 +29,21 @@ plugins:
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
+    - docs/copy_ref_examples.py
 - literate-nav:
     nav_file: SUMMARY.md
 - snippet:
         base_path: docs
+- mkdocs-jupyter:
+        execute: true
+        allow_errors: false
+        theme: dark
 
 markdown_extensions:
     - footnotes
+    - mdx_bib:
+        bibtex_file: docs/references.bib
+        order: sorted
     - pymdownx.snippets:
         check_paths: true
     - pymdownx.arithmatex:

@@ -7,7 +7,7 @@ def prem_pressure():
     """
     Generates an interpolating function for
     pressure as a function of depth according to PREM
-    [(Dziewonski and Anderson, 1981)][bibliography]
+    [@Dziewonski1981]
 
     :return: interp1d function for
     pressure as a function of depth according to PREM
@@ -21,15 +21,14 @@ def prem_pressure():
 
 def Simon_Glatzel_lower_mantle_Fiquet(pressure):
     """
-    [Simon-Glatzel model][bibliography] for the solidus temperature
+    Simon-Glatzel model [@Simon1929] for the solidus temperature
     of the lower mantle,
     with parameters fitted on estimates of the melting point
-    at 36 and 135 GPa estimated by
-    [Fiquet et al. (2010)][bibliography].
+    at 36 and 135 GPa [@Fiquet2010].
 
     The reference pressure (36 GPa) and temperature (2800 K)
-    are chosen from the values given by
-    [Herzberg et al. (2000)][bibliography].
+    are chosen using published values
+    [@Herzberg2000].
 
     :param pressure: Pressure (GPa)
     :type pressure: float or numpy array
@@ -47,9 +46,9 @@ def Simon_Glatzel_lower_mantle_Fiquet(pressure):
 def peridotite_solidus(pressure):
     """
     Returns an estimate of the peridotite solidus using three studies:
-    [Hirschmann (2000)][bibliography] (0 GPa, then linear extrapolation to 2.7 GPa)
-    [Herzberg et al. (2000)][bibliography] (2.7 - 22.5 GPa)
-    [Fiquet et al. (2010)][bibliography] (> 22.5 GPa)
+    [@Hirschmann2000] (0 GPa, then linear extrapolation to 2.7 GPa)
+    [@Herzberg2000] (2.7 - 22.5 GPa)
+    [@Fiquet2010] (> 22.5 GPa)
 
     This curve is continuous with pressure, but not differentiable.
 

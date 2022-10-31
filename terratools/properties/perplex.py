@@ -1,7 +1,7 @@
 """
 A submodule containing functions that generate Terra-readable
 material property files using the software package PerpleX
-[(Connolly 2009)][bibliography].
+[@Connolly2009].
 """
 
 import numpy as np
