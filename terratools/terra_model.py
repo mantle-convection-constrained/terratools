@@ -979,6 +979,7 @@ def load_model_from_pickle(filename):
     f.close()
     return m
 
+
 def _test_composition(compfracs):
     """
     Test to make sure that total composition fraction is equal to 1
