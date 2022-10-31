@@ -8,7 +8,7 @@ import netCDF4
 import numpy as np
 import re
 from sklearn.neighbors import NearestNeighbors
-
+import pickle 
 from . import geographic
 from . import plot
 
@@ -382,6 +382,24 @@ class TerraModel:
         value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
 
         return value
+
+    def write_pickle(self,filename):
+        """
+        Save the terra model as a python pickle format with the
+        given filename. 
+
+        :param filename: filename to save terramodel to.
+        :type filename: str
+
+        :return: nothing
+        """
+        f = open(filename, 'wb')
+        pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+        f.close()
+        
+        return 
+
+
 
     def set_field(self, field, values):
         """
@@ -896,6 +914,22 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         r=_r, lon=_lon, lat=_lat, fields=_fields, c_histogram_names=_c_hist_names
     )
 
+def load_model_from_pickle(filename):
+    """
+    Load a terra model saved using the save() function above.
+
+    :param filename: filename to load terramodel from.
+    :type filename: str
+
+    :return: loaded terra model
+    :rtype: TerraModel object 
+    """
+
+    f = open(filename, 'rb')
+    m = pickle.load(f)
+    f.close()
+    return m
+    
 
 def _is_valid_field_name(field):
     """
