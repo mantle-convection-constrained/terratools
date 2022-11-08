@@ -12,6 +12,8 @@ import pickle
 from . import geographic
 from . import plot
 
+from .lookup_tables import SeismicLookupTable, MultiTables
+
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
 # Precision of values in TerraModel
@@ -208,8 +210,11 @@ class TerraModel:
         slice of the last dimension of the ``"c_hist"`` array.
 
         Seismic lookup tables should be passed to this constructor
-        when using multicomponent composition histograms; one for
-        each proportion.  Note that this is not enforced, however.
+        when using multicomponent composition histograms as a ``dict``
+        whose keys are the names in ``c_histogram_name`` and whose values
+        are instances of ``terratools.lookup_tables.SeismicLookupTable``.
+        Alternatively, ``lookup_tables`` may be an instance of
+        ``terratools.lookup_tables.MultiTables``.
 
         :param lon: Position in longitude of lateral points (degrees)
         :param lat: Position in latitude of lateral points (degrees).  lon and
@@ -221,8 +226,9 @@ class TerraModel:
             with ``ncomps`` components at each point
         :param c_histogram_names: The names of each composition of the
             composition histogram, passed as a ``c_hist`` field
-        :param lookup_tables: An iterable of SeismicLookupTable corresponding
-            to the number of compositions for this model
+        :param lookup_tables: A dict mapping composition name to the file
+            name of the associated seismic lookup table; or a
+            ``lookup_tables.MultiTables``
         """
 
         nlayers = len(r)
@@ -250,14 +256,12 @@ class TerraModel:
         # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
 
-        #
+        # A set of lookup tables
+        self._lookup_tables = lookup_tables
 
         # All the fields are held within _fields, either as scalar or
         # 'vector' fields.
         self._fields = {}
-
-        # A set of lookup tables
-        self._lookup_tables = lookup_tables
 
         # Check fields have the right shape and convert
         for key, val in fields.items():
@@ -278,6 +282,31 @@ class TerraModel:
                 raise FieldNameError(key)
 
             self.set_field(key, array)
+
+        # Check lookup table arguments
+        if self._lookup_tables is not None and self._c_hist_names is None:
+            raise ValueError(
+                "must pass a list of composition histogram names "
+                + "as c_histogram_names if passing lookup_tables"
+            )
+
+        if self._c_hist_names is not None and self._lookup_tables is not None:
+            if isinstance(self._lookup_tables, MultiTables):
+                lookup_tables_keys = self._lookup_tables.field.keys()
+            else:
+                lookup_tables_keys = self._lookup_tables.keys()
+
+            if sorted(self._c_hist_names) != sorted(self._lookup_tables.keys()):
+                raise ValueError(
+                    "composition names in c_histogram_names "
+                    + f"({self._c_hist_names}) are not "
+                    + "the same as the keys in lookup_tables "
+                    + f"({self._lookup_tables.keys()})"
+                )
+
+            # Convert to MultiTables if not already
+            if not isinstance(self._lookup_tables, MultiTables):
+                self._lookup_tables = MultiTables(self._lookup_tables)
 
     def __repr__(self):
         return f"""TerraModel:
@@ -306,10 +335,10 @@ class TerraModel:
 
         There are two evaluation methods:
 
-        1. 'triangle': Finds the triangle surrounding the point of
+        #. ``"triangle"``: Finds the triangle surrounding the point of
            interest and performs interpolation between the values at
            each vertex of the triangle
-        2. 'nearest': Just returns the value of the closest point of
+        #. ``"nearest"``: Just returns the value of the closest point of
            the TerraModel
 
         In either case, linear interpolation is performed between the two
