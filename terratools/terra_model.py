@@ -329,11 +329,11 @@ class TerraModel:
 
         if self._c_hist_names is not None and self._lookup_tables is not None:
             if isinstance(self._lookup_tables, MultiTables):
-                lookup_tables_keys = self._lookup_tables.field.keys()
+                lookup_tables_keys = self._lookup_tables._lookup_tables.keys()
             else:
                 lookup_tables_keys = self._lookup_tables.keys()
 
-            if sorted(self._c_hist_names) != sorted(self._lookup_tables.keys()):
+            if sorted(self._c_hist_names) != sorted(lookup_tables_keys):
                 raise ValueError(
                     "composition names in c_histogram_names "
                     + f"({self._c_hist_names}) are not "
