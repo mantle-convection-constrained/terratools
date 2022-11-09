@@ -66,7 +66,7 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vphi": ("v_bulk",),
     "vp_an": ("vp_anelastic",),
     "vs_an": ("vs_anelastic",),
-    "Density": ("density",),
+    "density": ("density",),
 }
 
 
@@ -120,6 +120,19 @@ class VersionError(Exception):
 
     def __init__(self, version):
         self.message = f"NetCDF file version '{version}' is not supported. Please convert with convert_files.convert"
+        super().__init__(self.message)
+
+
+class FileFormatError(Exception):
+    """
+    Exception type raised when a netCDF file is not correctly formatted.
+    """
+
+    def __init__(self, file, name, expected_value, actual_value):
+        self.message = (
+            f"Unexpected value for {name} in file '{file}'. "
+            + f"Expected {expected_value} but got {actual_value}"
+        )
         super().__init__(self.message)
 
 
@@ -183,7 +196,14 @@ class TerraModel:
     """
 
     def __init__(
-        self, lon, lat, r, fields={}, c_histogram_names=None, lookup_tables=None
+        self,
+        lon,
+        lat,
+        r,
+        fields={},
+        c_histogram_names=None,
+        c_histogram_values=None,
+        lookup_tables=None,
     ):
         """
         Construct a TerraModel.
@@ -204,8 +224,12 @@ class TerraModel:
         elastic parameters predicted for these compositions, weighted
         by their proportion.  The field ``"c_hist"`` holds a 3D array
         whose last dimension gives the proportion of each component.
+        At each depth and position, the proportions must sum to unity,
+        and this is checked in the constructor.
+
         When using a composition histogram, you may pass the
-        ``c_histogram_name`` argument, giving the name of each component.
+        ``c_histogram_names`` argument, giving the name of each component,
+        and ``c_histogram_values``, giving the composition value of each.
         The ith component name corresponds to the proportion of the ith
         slice of the last dimension of the ``"c_hist"`` array.
 
@@ -225,6 +249,8 @@ class TerraModel:
             scalar fields, and (nlayers, npts, ncomps) for a field
             with ``ncomps`` components at each point
         :param c_histogram_names: The names of each composition of the
+            composition histogram, passed as a ``c_hist`` field
+        :param c_histogram_values: The values of each composition of the
             composition histogram, passed as a ``c_hist`` field
         :param lookup_tables: A dict mapping composition name to the file
             name of the associated seismic lookup table; or a
@@ -256,6 +282,10 @@ class TerraModel:
         # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
 
+        # The values of the compositions if using a composition histogram approach
+        # This is not currently used, but will be shown if present
+        self._c_hist_values = c_histogram_values
+
         # A set of lookup tables
         self._lookup_tables = lookup_tables
 
@@ -277,6 +307,13 @@ class TerraModel:
                 else:
                     if array.shape != (nlayers, npts, expected_ncomps):
                         raise FieldDimensionError(self, val, key)
+
+                # Special check for composition histograms
+                if key == "c_hist":
+                    if not _compositions_sum_to_one(array):
+                        raise ValueError(
+                            "composition proportions must sum to one for each point"
+                        )
 
             else:
                 raise FieldNameError(key)
@@ -304,6 +341,16 @@ class TerraModel:
                     + f"({self._lookup_tables.keys()})"
                 )
 
+            # Check composition values if given
+            if self._c_hist_values is not None:
+                if len(self._c_hist_values) != len(self._c_hist_names):
+                    raise ValueError(
+                        "length of c_histogram_values must be "
+                        + f"{len(self._c_hist_names)}, the same as for "
+                        + "c_histogram_names.  Is actually "
+                        + f"{len(self._c_hist_value)}."
+                    )
+
             # Convert to MultiTables if not already
             if not isinstance(self._lookup_tables, MultiTables):
                 self._lookup_tables = MultiTables(self._lookup_tables)
@@ -314,7 +361,8 @@ class TerraModel:
              radius limits: {(np.min(self._radius), np.max(self._radius))}
   number of lateral points: {self._npts}
                     fields: {[name for name in self.field_names()]}
-         composition names: {self.get_composition_names()}"""
+         composition names: {self.get_composition_names()}
+        composition values: {self.get_composition_values()}"""
 
     def field_names(self):
         """
@@ -425,6 +473,21 @@ class TerraModel:
         value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
 
         return value
+
+    def write_netcdf(self, filename, fields=None):
+        """
+        Write the TerraModel to disk in NetCDF format with the given filename,
+        overwriting any existing file.
+
+        :param filename: Filename to which to save the model.
+        :type filename: str
+
+        :param fields: Names of fields to write to disk.  By default all
+            fields present in the model are written
+        :type fields: Iterable
+
+        :return: nothing
+        """
 
     def write_pickle(self, filename):
         """
@@ -572,6 +635,18 @@ class TerraModel:
         """
         if self.has_field("c_hist"):
             return self._c_hist_names
+        else:
+            return None
+
+    def get_composition_values(self):
+        """
+        If a model contains a composition histogram field ('c_hist'),
+        return the values of the compositions; otherwise return None.
+
+        :returns: list of composition values
+        """
+        if self.has_field("c_hist"):
+            return self._c_hist_values
         else:
             return None
 
@@ -778,10 +853,6 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
         (default 6370 km)
     :returns: a new TerraModel
     """
-
-    from io import StringIO
-    import sys
-
     if len(files) == 0:
         raise ValueError("files argument cannot be empty")
 
@@ -807,12 +878,17 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
             nlayers = nc.dimensions["depths"].size
             # Take the radii from the first file
             _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+            # If composition is present, get number of compositions from here
+            # to check for consistency later
+            if "composition_fractions" in nc.variables:
+                ncomps = nc.dimensions["compositions"].size + 1
 
     # Passed to constructor
     _fields = {}
     _lat = np.empty((npts_total,), dtype=COORDINATE_TYPE)
     _lon = np.empty((npts_total,), dtype=COORDINATE_TYPE)
-    _c_hist_names = {}
+    _c_hist_names = []
+    _c_hist_values = []
 
     npts_pointer = 0
     for (file_number, file) in enumerate(files):
@@ -871,6 +947,9 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
             field_name = _field_name_from_variable(var)
 
+            # This is also true when field_name is None because we are
+            # not expecting this field.
+            # FIXME: Add an option to error on unexpected variables.
             if field_name not in fields_to_read:
                 continue
 
@@ -905,53 +984,77 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                     )
                 _fields[field_name][:, npts_range, :] = uxyz
 
-            # Special case for other vector fields; i.e. c_hist
+            # Special case for c_hist
             if "c_hist" in fields_to_read and field_name == "c_hist":
                 if field_name in fields_read:
                     continue
                 else:
                     fields_read.add(field_name)
 
-                ncomps = nc.dimensions["compositions"].size
-                # Get the composition attributes and populate dictionary with names and c-values
-                for it, attr in enumerate(nc["composition_fractions"].ncattrs()):
-                    num = int((it / 2) + 1)
-                    if "name" in attr:
-                        string1 = "nc['composition_fractions']." + str(attr)
-                        attr_val1 = eval(string1)
+                # Check for consistency in number of compositions
+                this_ncomps = nc.dimensions["compositions"].size + 1
+                if ncomps != this_ncomps:
+                    raise FileFormatError(
+                        file, "number of compositions", ncomps, this_ncomps
+                    )
+
+                # Get the composition attributes.
+                # The first (ncomps - 1) compositions are those stored in
+                # the composition_fractions variable, in that order.
+                # Use the fact that we know there should be ncomps
+                # attributes to check for consistency and get the names
+                _check_has_composition_attributes(file, nc, ncomps)
+
+                # Get the names and values from the first file, and check
+                # for consistency in the other files
+                for composition_index in range(ncomps):
+                    composition_number = composition_index + 1
+                    composition_name = getattr(
+                        nc["composition_fractions"],
+                        f"composition_{composition_number}_name",
+                    )
+                    composition_val = getattr(
+                        nc["composition_fractions"],
+                        f"composition_{composition_number}_c",
+                    )
+
+                    # This will only be filled the first time around
+                    if len(_c_hist_names) >= composition_number:
+                        # Check the names and values are the same for all files
+                        if _c_hist_names[composition_index] != composition_name:
+                            raise FileFormatError(
+                                file,
+                                f"composition_fractions:composition_{composition_number}_name",
+                                _c_hist_names[composition_index],
+                                composition_name,
+                            )
+                        if _c_hist_values[composition_index] != composition_val:
+                            raise FileFormatError(
+                                file,
+                                f"composition_fractions:composition_{composition_number}_val",
+                                _c_hist_values[composition_index],
+                                composition_val,
+                            )
                     else:
-                        string2 = "nc['composition_fractions']." + str(attr)
-                        attr_val2 = eval(string2)
-
-                    if np.mod(it, 2) == 1:
-                        _c_hist_names.update(
-                            {
-                                f"composition_{num}": {
-                                    "name": attr_val1.lower(),
-                                    "c-val": attr_val2,
-                                },
-                            }
-                        )
-
-                # List of variables to read
-                vars_to_read = _variable_names_from_field(field_name)
+                        _c_hist_names.append(composition_name)
+                        _c_hist_values.append(composition_val)
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
-                        (nlayers, npts_total, ncomps + 1), dtype=VALUE_TYPE
+                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE
                     )
 
-                # fractions must sum to 1, so nth frac is the difference of the sum of the given fractions to 1.
-                nth_comp = np.zeros(
-                    (nc.dimensions["depths"].size, nc.dimensions["nps"].size)
+                # Handle case that indices are in different order in file
+                # compared to TerraModel
+                for icomp in range(ncomps - 1):
+                    _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+
+                # Calculate final composition fraction slice using the property
+                # that all composition fractions must sum to 1
+                _fields[field_name][:, npts_range, ncomps - 1] = 1 - np.sum(
+                    [_fields[field_name][:, npts_range, i] for i in range(ncomps - 1)],
+                    axis=0,
                 )
-                nth_comp = nth_comp + 1.0
-                for local_var in vars_to_read:
-                    for c in range(ncomps):
-                        nth_comp = nth_comp - nc[local_var][c, :, :]
-                        _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
-                    _fields["c_hist"][:, npts_range, -1] = nth_comp[:]
-                _test_composition(_fields["c_hist"][:, npts_range, :])
 
         nc.close()
         npts_pointer += npts
@@ -969,6 +1072,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
 
+    # Remove duplicate points and flip radius axis if needed
     for (field_name, array) in _fields.items():
         ndims = array.ndim
         if ndims == 2:
@@ -988,7 +1092,12 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
             )
 
     return TerraModel(
-        r=_r, lon=_lon, lat=_lat, fields=_fields, c_histogram_names=_c_hist_names
+        r=_r,
+        lon=_lon,
+        lat=_lat,
+        fields=_fields,
+        c_histogram_names=_c_hist_names,
+        c_histogram_values=_c_hist_values,
     )
 
 
@@ -1009,12 +1118,13 @@ def load_model_from_pickle(filename):
     return m
 
 
-def _test_composition(compfracs):
+def _compositions_sum_to_one(compfracs, atol=np.finfo(VALUE_TYPE).eps):
     """
-    Test to make sure that total composition fraction is equal to 1
+    Return ``True`` if the sum of composition fractions is equal to 1 (within
+    ``atol``) for all points; otherwise return ``False``.
     """
 
-    assert np.all(np.sum(compfracs[:, :, :], axis=2))
+    return np.allclose(np.sum(compfracs, axis=2), 1, atol=atol)
 
 
 def _check_version(nc):
@@ -1030,6 +1140,24 @@ def _check_version(nc):
     # Old file types raise exception
     if version < 1.0:
         raise VersionError(version)
+
+
+def _check_has_composition_attributes(file, nc, ncomps):
+    """
+    If the netCDF4.Dataset ``nc`` does not contain the correct
+    attributes for the ``"composition_fractions"`` variable,
+    raise a ``FileFormatError``.
+    """
+    for composition_number in range(1, ncomps + 1):
+        for attribute in ("name", "c"):
+            att_name = f"composition_{composition_number}_{attribute}"
+            if att_name not in nc["composition_fractions"].ncattrs():
+                raise FileFormatError(
+                    file,
+                    "composition_fractions:" + att_name,
+                    "it to be present",
+                    "no such attribute",
+                )
 
 
 def _is_valid_field_name(field):
