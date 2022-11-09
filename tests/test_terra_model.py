@@ -110,6 +110,16 @@ class TestTerraModelHelpers(unittest.TestCase):
         self.assertEqual(terra_model._expected_vector_field_ncomps("u_geog"), 3)
         self.assertEqual(terra_model._expected_vector_field_ncomps("c_hist"), None)
 
+    def test_compositions_sum_to_one(self):
+        comps = np.zeros((4, 3, 2))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps))
+        comps[:, :, -1] = 1
+        self.assertTrue(terra_model._compositions_sum_to_one(comps))
+        comps[:, :, -1] = 0.9
+        self.assertTrue(terra_model._compositions_sum_to_one(comps, atol=0.2))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps, atol=1.0e-7))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps))
+
 
 class TestTerraModelConstruction(unittest.TestCase):
     """Tests for construction and validation of fields"""
@@ -165,6 +175,15 @@ class TestTerraModelConstruction(unittest.TestCase):
         with self.assertRaises(ValueError):
             TerraModel([1], [2, 3], [1, 2, 3])
 
+    def test_composition_proportions_do_not_sum_to_one(self):
+        nlayers = 3
+        npts = 2
+        ncomps = 4
+        lon, lat, r = random_coordinates(nlayers, npts)
+        c_hist_field = random_field(nlayers, npts, ncomps)
+        with self.assertRaises(ValueError):
+            TerraModel(lon, lat, r, fields={"c_hist": c_hist_field})
+
     def test_construction(self):
         """Ensure the things we pass in are put in the right place"""
         nlayers = 3
@@ -174,13 +193,23 @@ class TestTerraModelConstruction(unittest.TestCase):
         scalar_fields = [random_field(nlayers, npts) for _ in scalar_field_names]
         u_field = random_field(nlayers, npts, 3)
         c_hist_field = random_field(nlayers, npts, 2)
+        # Ensure each composition histogram sums to unity
+        c_hist_field[:, :, 1] = 1 - c_hist_field[:, :, 0]
         fields = {name: field for name, field in zip(scalar_field_names, scalar_fields)}
         fields["u_xyz"] = u_field
         fields["u_geog"] = u_field
         fields["c_hist"] = c_hist_field
         c_hist_names = ["A", "B"]
+        c_hist_values = [1, 2]
 
-        model = TerraModel(lon, lat, r, fields=fields, c_histogram_names=c_hist_names)
+        model = TerraModel(
+            lon,
+            lat,
+            r,
+            fields=fields,
+            c_histogram_names=c_hist_names,
+            c_histogram_values=c_hist_values,
+        )
 
         _lon, _lat = model.get_lateral_points()
         self.assertTrue(coords_are_equal(lon, _lon))
@@ -199,6 +228,7 @@ class TestTerraModelConstruction(unittest.TestCase):
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
         self.assertEqual(model.number_of_compositions(), 2)
         self.assertEqual(model.get_composition_names(), ["A", "B"])
+        self.assertEqual(model.get_composition_values(), [1, 2])
 
         # Use set because we don't need to enforce that the fields
         # are in the same order
@@ -257,6 +287,11 @@ class TestTerraModelGetters(unittest.TestCase):
         self.assertCountEqual(model.nearest_layer(6.5), (1, 7.0), 2)
         self.assertCountEqual(model.nearest_layer(7.0), (1, 7.0), 2)
 
+    def test_get_composition_values(self):
+        model = dummy_model(c_histogram_names=["A", "B"], c_histogram_values=[1, 2])
+        model.new_field("c_hist", 2)
+        self.assertEqual(model.get_composition_values(), [1, 2])
+
 
 class TestTerraModelNewField(unittest.TestCase):
     def test_wrong_ncomps(self):
@@ -308,6 +343,8 @@ class TestTerraModelRepr(unittest.TestCase):
         r = [1000, 1999, 2000]
         t_field = random_field(nlayers, npts)
         c_hist_field = random_field(nlayers, npts, 2)
+        # Require compositions sum to 1
+        c_hist_field[:, :, 1] = 1 - c_hist_field[:, :, 0]
         cnames = ["a", "b"]
         model = TerraModel(
             lon,
@@ -324,7 +361,8 @@ class TestTerraModelRepr(unittest.TestCase):
              radius limits: (1000.0, 2000.0)
   number of lateral points: 3
                     fields: ['t', 'c_hist']
-         composition names: ['a', 'b']""",
+         composition names: ['a', 'b']
+        composition values: None""",
         )
 
 
