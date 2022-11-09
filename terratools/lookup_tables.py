@@ -194,12 +194,11 @@ class SeismicLookupTable:
         self.t_sol_interp = interp2d(self.pres, self.temp, t_sol)
 
         # Creat dictionary which holds the interpolator objects
-        # FIXME: Replace _ani with _an, since _ani implies anisotropy not anelasticity
         self.fields = {
             "vp": [2, vp, "km/s", self.vp_interp],
             "vs": [3, vs, "km/s", self.vs_interp],
-            "vp_ani": [4, vp_an, "km/s", self.vp_an_interp],
-            "vs_ani": [5, vs_an, "km/s", self.vs_an_interp],
+            "vp_an": [4, vp_an, "km/s", self.vp_an_interp],
+            "vs_an": [5, vs_an, "km/s", self.vs_an_interp],
             "vphi": [6, vphi, "km/s", self.vphi_interp],
             "density": [7, density, "$kg/m^3$", self.density_interp],
             "qs": [8, qs, "Hz", self.qs_interp],
