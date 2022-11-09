@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from terratools import lookup_tables
 from terratools.lookup_tables import (
     SeismicLookupTable,
     _harmonic_mean,
@@ -88,10 +89,7 @@ class TestLookup(unittest.TestCase):
         p = self.tab.pres[nP // 2]
         t = self.tab.temp[nT // 2]
 
-        for i, field in enumerate(
-            # FIXME: Replace _ani with _an
-            ("vp", "vs", "vp_ani", "vs_ani", "vphi", "density", "qs", "t_sol")
-        ):
+        for i, field in enumerate(lookup_tables.TABLE_FIELDS):
             expected_val = i + 1
             self.assertAlmostEqual(table.interp_points(p, t, field), [expected_val])
 

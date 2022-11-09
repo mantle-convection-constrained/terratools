@@ -3,6 +3,10 @@ from scipy.interpolate import interp2d, interp1d
 import os
 import matplotlib.pyplot as plt
 
+# Set of all table properties, in the order they appear in the table,
+# excluding pressure and temperature
+TABLE_FIELDS = ("vp", "vs", "vp_an", "vs_an", "vphi", "density", "qs", "t_sol")
+
 
 class SeismicLookupTable:
     def __init__(
@@ -170,7 +174,7 @@ class SeismicLookupTable:
             nT = len(temperature)
             for arg, name in zip(
                 (vp, vs, vp_an, vs_an, vphi, density, qs, t_sol),
-                ("vp", "vs", "vp_an", "vs_an", "vphi", "density", "qs", "t_sol"),
+                TABLE_FIELDS,
             ):
                 if arg.shape != (nT, nP):
                     raise ValueError(
