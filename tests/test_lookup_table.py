@@ -1,4 +1,3 @@
-from cgitb import lookup
 import unittest
 import numpy as np
 from terratools.lookup_tables import (
