@@ -357,9 +357,9 @@ class MultiTables:
         Returns the harmonic mean of a parameter over several lookup
         tables weighted by their fraction.
 
-        :param P: pressure value to evaluate.
+        :param P: pressure value to evaluate in GPa.
         :type P: float
-        :param T: temperature value to evaluate.
+        :param T: temperature value to evaluate in K.
         :type T: float
         :param fractions: relative proportions of
                           compositions. The keys in

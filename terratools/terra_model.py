@@ -12,7 +12,7 @@ import pickle
 from . import geographic
 from . import plot
 
-from .lookup_tables import SeismicLookupTable, MultiTables
+from .lookup_tables import TABLE_FIELDS, SeismicLookupTable, MultiTables
 from .properties.profiles import prem_pressure
 
 # Precision of coordinates in TerraModel
@@ -501,6 +501,69 @@ class TerraModel:
         value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
 
         return value
+
+    def evaluate_from_lookup_tables(
+        self, lon, lat, r, fields=TABLE_FIELDS, method="triangle", depth=False
+    ):
+        """
+        Evaluate the value of a field at radius ``r`` km, longitude
+        ``lon`` degrees and latitude ``lat`` degrees by using
+        the composition or set of composition proportions at that point
+        and a set of seismic lookup tables to convert to seismic
+        properties.
+
+        :param lon: Longitude in degrees of point of interest
+        :param lat: Latitude in degrees of points of interest
+        :param r: Radius in km of point of interest
+        :param fields: Iterable of strings giving the names of the
+            field of interest, or a single string.  If a single string
+            is passed in, then a single value is returned.  By default,
+            all fields are returned.
+        :param method: String giving the name of the evaluation method; a
+            choice of ``'triangle'`` (default) or ``'nearest'``.
+        :param depth: If ``True``, treat ``r`` as a depth rather than a radius
+        :returns: If a set of fields are passed in, or all are requested
+            (the default), a ``dict`` mapping the names of the fields to
+            their values.  If a single field is requested, the value
+            of that field.
+        """
+        # Check that the fields we have requested are all valid
+        if isinstance(fields, str):
+            if fields not in TABLE_FIELDS:
+                raise ValueError(
+                    f"Field {fields} is not a valid "
+                    + f"seismic property. Must be one of {TABLE_FIELDS}."
+                )
+        else:
+            for field in fields:
+                if field not in TABLE_FIELDS:
+                    raise ValueError(
+                        f"Field {field} is not a valid "
+                        + f"seismic property. Must be one of {TABLE_FIELDS}."
+                    )
+
+        # Convert to radius now
+        if depth:
+            r = self.to_radius(r)
+
+        # Composition names
+        c_names = self.get_composition_names()
+
+        # Get composition proportions and temperature in K
+        c_hist = self.evaluate(lon, lat, r, "c_hist", method=method)
+        t = self.evaluate(lon, lat, r, "t", method=method)
+
+        # Pressure for this model in GPa
+        p = self._pressure_func(r)
+
+        # Evaluate chosen things from lookup tables
+        fraction_dict = {c_name: fraction for c_name, fraction in zip(c_names, c_hist)}
+        if isinstance(fields, str):
+            value = self._lookup_tables.evaluate(p, t, fraction_dict, fields)
+            return value
+        else:
+            values = {field: self._lookup_tables.evaluate(p, t, fraction_dict, field) for field in fields}
+            return values
 
     def write_netcdf(self, filename, fields=None):
         """
