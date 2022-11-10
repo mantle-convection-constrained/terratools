@@ -13,6 +13,7 @@ from . import geographic
 from . import plot
 
 from .lookup_tables import SeismicLookupTable, MultiTables
+from .properties.profiles import prem_pressure
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -205,6 +206,7 @@ class TerraModel:
         c_histogram_names=None,
         c_histogram_values=None,
         lookup_tables=None,
+        pressure_func=None,
     ):
         """
         Construct a TerraModel.
@@ -259,6 +261,11 @@ class TerraModel:
         :param lookup_tables: A dict mapping composition name to the file
             name of the associated seismic lookup table; or a
             ``lookup_tables.MultiTables``
+        :param pressure_func: Function which takes a single argument
+            (the radius in km) and returns pressure in GPa.  By default
+            pressure is taken from PREM.  The user is responsible for
+            ensuring that ``pressure_func`` accepts all values in the radius
+            range of the model.
         """
 
         nlayers = len(r)
@@ -306,6 +313,13 @@ class TerraModel:
         # All the fields are held within _fields, either as scalar or
         # 'vector' fields.
         self._fields = {}
+
+        # Use PREM for pressure if a function is not supplied
+        if pressure_func is None:
+            _pressure = prem_pressure()
+            self._pressure_func = lambda r: _pressure(1000 * self.to_depth(r)) / 1e9
+        else:
+            self._pressure_func = pressure_func
 
         # Check fields have the right shape and convert
         for key, val in fields.items():
@@ -784,16 +798,24 @@ class TerraModel:
             (the default); otherwise return layer index and depth in km
         """
         radii = self.get_radii()
-        surface_radius = radii[-1]
         if depth:
-            radius = surface_radius - radius
+            radius = self.to_radius(radius)
 
         index = _nearest_index(radius, radii)
 
         if depth:
-            return index, surface_radius - radii[index]
+            return index, self.to_depth(radii[index])
         else:
             return index, radii[index]
+
+    def pressure_at_radius(self, r):
+        """
+        Evaluate the pressure in the model at a radius of ``r`` km.
+
+        :param r: Radius in km
+        :returns: Pressure in GPa
+        """
+        return self._pressure_func(r)
 
     def to_depth(self, radius):
         """

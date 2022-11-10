@@ -297,6 +297,14 @@ class TestTerraModelGetters(unittest.TestCase):
         model.new_field("c_hist", 2)
         self.assertEqual(model.get_composition_values(), [1, 2])
 
+    def test_pressure_at_radius(self):
+        # Default PREM pressure
+        model = TerraModel(lon=[1], lat=[1], r=[6371], surface_radius=6371)
+        self.assertAlmostEqual(model.pressure_at_radius(3480), 135.751, 2)
+        # Some arbitrary function
+        model = TerraModel(lon=[1], lat=[1], r=[6371], pressure_func=lambda r: 2 * r)
+        self.assertEqual(model.pressure_at_radius(100), 200)
+
 
 class TestTerraModelNewField(unittest.TestCase):
     def test_wrong_ncomps(self):
