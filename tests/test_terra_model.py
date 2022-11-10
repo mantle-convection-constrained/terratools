@@ -184,6 +184,11 @@ class TestTerraModelConstruction(unittest.TestCase):
         with self.assertRaises(ValueError):
             TerraModel(lon, lat, r, fields={"c_hist": c_hist_field})
 
+    def test_surface_radius_too_small(self):
+        lon, lat, r = random_coordinates(3, 2)
+        with self.assertRaises(ValueError):
+            TerraModel(lon, lat, r, surface_radius=r[-1] - 1)
+
     def test_construction(self):
         """Ensure the things we pass in are put in the right place"""
         nlayers = 3
@@ -332,6 +337,22 @@ class TestTerraModelNewField(unittest.TestCase):
         self.assertTrue(
             fields_are_equal(model.get_field("c_hist"), np.zeros((nlayers, npts, 2)))
         )
+
+
+class TerraModelDepthConversion(unittest.TestCase):
+    def test_to_depth(self):
+        model = dummy_model(surface_radius=10000)
+        self.assertEqual(model.to_depth(2500), 7500)
+        model = dummy_model()
+        surface_radius = model.get_radii()[-1]
+        self.assertAlmostEqual(model.to_depth(1), surface_radius - 1, 3)
+
+    def test_to_radius(self):
+        model = dummy_model(surface_radius=10000)
+        self.assertEqual(model.to_radius(2500), 7500)
+        model = dummy_model()
+        surface_radius = model.get_radii()[-1]
+        self.assertAlmostEqual(model.to_radius(1), surface_radius - 1, 3)
 
 
 class TestTerraModelRepr(unittest.TestCase):

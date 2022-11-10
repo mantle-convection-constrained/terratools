@@ -200,6 +200,7 @@ class TerraModel:
         lon,
         lat,
         r,
+        surface_radius=None,
         fields={},
         c_histogram_names=None,
         c_histogram_values=None,
@@ -244,6 +245,9 @@ class TerraModel:
         :param lat: Position in latitude of lateral points (degrees).  lon and
             lat must be the same length
         :param r: Radius of nodes in radial direction.  Must increase monotonically.
+        :param surface_radius: Radius of surface of the model in km, if not the
+            same as the largest value of ``r``.  This may be useful
+            when using parts of models.
         :param fields: dict whose keys are the names of field, and whose
             values are numpy arrays of dimension (nlayers, npts) for
             scalar fields, and (nlayers, npts, ncomps) for a field
@@ -275,6 +279,16 @@ class TerraModel:
         # Check for monotonicity of radius
         if not np.all(self._radius[1:] - self._radius[:-1] > 0):
             raise ValueError("radii must increase or decrease monotonically")
+
+        # Surface radius
+        self._surface_radius = (
+            self._radius[-1] if surface_radius is None else surface_radius
+        )
+        if self._surface_radius < self._radius[-1]:
+            raise ValueError(
+                f"surface radius given ({surface_radius} km) is "
+                + f"less than largest model radius ({self._radius[-1]} km)"
+            )
 
         # Fit a nearest-neighbour search tree
         self._knn_tree = _fit_nn_tree(self._lon, self._lat)
@@ -410,7 +424,7 @@ class TerraModel:
         radii = self.get_radii()
 
         if depth:
-            r = radii[-1] - r
+            r = self.to_radius(r)
 
         lons, lats = self.get_lateral_points()
         array = self.get_field(field)
@@ -780,6 +794,24 @@ class TerraModel:
             return index, surface_radius - radii[index]
         else:
             return index, radii[index]
+
+    def to_depth(self, radius):
+        """
+        Convert a radius in km to a depth in km.
+
+        :param radius: Radius in km
+        :returns: Depth in km
+        """
+        return self._surface_radius - radius
+
+    def to_radius(self, depth):
+        """
+        Convert a radius in km to a depth in km.
+
+        :param depth: Depth in km
+        :returns: Radius in km
+        """
+        return self._surface_radius - depth
 
     def plot_layer(
         self,
