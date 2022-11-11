@@ -6,8 +6,12 @@ plotting of TerraModels and other classes in terratools.
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import scipy.interpolate
 import scipy.stats
+
+
+_COASTLINES_PATH = os.path.dirname(__file__)
 
 
 def layer_grid(
@@ -19,6 +23,7 @@ def layer_grid(
     extent=(-180, 180, -90, 90),
     label=None,
     method="nearest",
+    cartopy_coastlines=True,
     **subplots_kwargs,
 ):
     """
@@ -35,14 +40,19 @@ def layer_grid(
         and max latitude (all in degrees), defining the region to plot
     :param label: Label for values; e.g. "Temperature / K"
     :param method: Can be one of:
-        - "nearest": nearest neighbour only;
-        - "mean": mean of all values within each grid point
+        * "nearest": nearest neighbour only;
+        * "mean": mean of all values within each grid point
+    :param cartopy_coastlines: If ``True`` (the default) use cartopy's own
+        function to plot coastlines.  Otherwise, use an internal coastline
+        plotting command.  This works around an issue with Cartopy when
+        installed in certain situations.  See
+        https://github.com/SciTools/cartopy/issues/879 for details.
     :param **kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
     """
     fig, ax = plt.subplots(
-        subplot_kw={"projection": ccrs.EqualEarth()}, **subplots_kwargs
+        subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
     )
 
     if len(extent) != 4:
@@ -88,7 +98,7 @@ def layer_grid(
 
     transform = ccrs.PlateCarree()
 
-    contours = ax.imshow(grid, transform=transform)
+    contours = ax.imshow(grid, transform=transform, extent=extent)
     ax.set_title(f"Radius {int(radius)} km")
     ax.set_xlabel(f"{label}", fontsize=12)
 
@@ -102,6 +112,15 @@ def layer_grid(
         label=(label if label is not None else ""),
     )
 
+    # This leads to a segfault on machines where cartopy is not installed
+    # from conda-forge, or where it was not built from source:
+    # https://github.com/SciTools/cartopy/issues/879
     ax.coastlines()
 
     return fig, ax
+
+
+def _load_coastlines():
+    """
+    Load a set of coordinates of coarse global coastlines.
+    """

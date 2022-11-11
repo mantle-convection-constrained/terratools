@@ -392,6 +392,28 @@ class TerraModel:
          composition names: {self.get_composition_names()}
         composition values: {self.get_composition_values()}"""
 
+    def add_lookup_tables(self, lookup_tables):
+        """
+        Add set of lookup tables to the model.  The tables must have the
+        same keys as the model has composition names.
+
+        :param lookup_tables: A ``lookup_tables.MultiTables`` containing
+            a lookup table for each composition in the model.
+        """
+        if not isinstance(lookup_tables, MultiTables):
+            raise ValueError(
+                "Tables must be provided as a lookup_tables.MultiTables object"
+            )
+
+        table_keys = lookup_tables._lookup_tables.keys()
+        if sorted(self.get_composition_names()) != sorted(table_keys):
+            raise ValueError(
+                "Tables must have the same keys as the model compositions. "
+                + f"Got {table_keys}; need {self.get_composition_names()}"
+            )
+
+        self._lookup_tables = lookup_tables
+
     def field_names(self):
         """
         Return the names of the fields present in a TerraModel.
@@ -562,7 +584,10 @@ class TerraModel:
             value = self._lookup_tables.evaluate(p, t, fraction_dict, fields)
             return value
         else:
-            values = {field: self._lookup_tables.evaluate(p, t, fraction_dict, field) for field in fields}
+            values = {
+                field: self._lookup_tables.evaluate(p, t, fraction_dict, field)
+                for field in fields
+            }
             return values
 
     def write_netcdf(self, filename, fields=None):
