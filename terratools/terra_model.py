@@ -1076,9 +1076,16 @@ def _variable_names_from_field(field):
 
 def _field_name_from_variable(field):
     """
-    Return the TerraModel field name of a NetCDF file variable name
+    Return the TerraModel field name of a NetCDF file variable name.
+
+    If there is no field name associated with this variable name,
+    return ``None``.
     """
-    return _VARIABLE_NAME_TO_FIELD_NAME[field]
+    try:
+        field_name = _VARIABLE_NAME_TO_FIELD_NAME[field]
+    except KeyError:
+        field_name = None
+    return field_name
 
 
 def _check_field_name(field):

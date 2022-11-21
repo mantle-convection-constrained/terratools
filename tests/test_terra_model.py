@@ -90,6 +90,7 @@ class TestTerraModelHelpers(unittest.TestCase):
     def test_field_name_from_variable(self):
         """Translation of NetCDF variable name to field name"""
         self.assertEqual(terra_model._field_name_from_variable("temperature"), "t")
+        self.assertEqual(terra_model._field_name_from_variable("absent field"), None)
 
     def test_check_field_name(self):
         self.assertEqual(terra_model._check_field_name("vp"), None)

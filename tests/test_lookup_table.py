@@ -27,10 +27,74 @@ class TestLookup(unittest.TestCase):
     def test_read_file(self):
 
         # test table has been read in correctly by comparing the
-        # size of the array read in.
-        self.assertEqual(self.tab.table.shape, (121, 10), "file not read in correctly")
+        # size of the arrays read in.
+        self.assertEqual(
+            self.tab.fields["vp"][1].shape, (11, 11), "file not read in correctly"
+        )
 
-        self.assertEqual(self.tab.table[0, 0], -50.0, "file not read in correctly")
+        self.assertEqual(
+            self.tab.fields["vp"][1][0, 0], -50.0, "file not read in correctly"
+        )
+
+    def test_missing_args(self):
+        with self.assertRaises(ValueError):
+            SeismicLookupTable(
+                pressure=self.tab.pres,
+                temperature=self.tab.temp,
+                vp=self.tab.fields["vp"][1],
+            )
+
+    def test_args_wrong_shape(self):
+        nT = len(self.tab.temp)
+        nP = len(self.tab.pres)
+        vals = np.zeros((nT, nP + 1))
+        with self.assertRaises(ValueError):
+            SeismicLookupTable(
+                pressure=self.tab.pres,
+                temperature=self.tab.temp,
+                vp=vals,
+                vs=vals,
+                vp_an=vals,
+                vs_an=vals,
+                vphi=vals,
+                density=vals,
+                qs=vals,
+                t_sol=vals,
+            )
+
+    def test_construct_from_arrays(self):
+        nT = len(self.tab.temp)
+        nP = len(self.tab.pres)
+        vp = 1 * np.ones((nT, nP))
+        vs = 2 * np.ones((nT, nP))
+        vp_an = 3 * np.ones((nT, nP))
+        vs_an = 4 * np.ones((nT, nP))
+        vphi = 5 * np.ones((nT, nP))
+        density = 6 * np.ones((nT, nP))
+        qs = 7 * np.ones((nT, nP))
+        t_sol = 8 * np.ones((nT, nP))
+        table = SeismicLookupTable(
+            pressure=self.tab.pres,
+            temperature=self.tab.temp,
+            vp=vp,
+            vs=vs,
+            vp_an=vp_an,
+            vs_an=vs_an,
+            vphi=vphi,
+            density=density,
+            qs=qs,
+            t_sol=t_sol,
+        )
+
+        p = self.tab.pres[nP // 2]
+        t = self.tab.temp[nT // 2]
+
+        for i, field in enumerate(
+            # FIXME: Replace _ani with _an
+            ("vp", "vs", "vp_ani", "vs_ani", "vphi", "density", "qs", "t_sol")
+        ):
+            expected_val = i + 1
+            self.assertAlmostEqual(table.interp_points(p, t, field), [expected_val])
 
     def test_interpolate_point(self):
 
