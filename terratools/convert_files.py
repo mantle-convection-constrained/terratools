@@ -114,7 +114,7 @@ def convert(files, test=False):
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
             os.system(f"ncks -C -O -x -v Lat_old {path}/{fname} {path}/{fname}_new")
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
-        elif not cleanup:
+        elif not cleanup and not test:
             print("ncks is not available on your PATH so cannot clean up old variables")
             print("ncks is available with NCO (NetCDF Operators)")
 

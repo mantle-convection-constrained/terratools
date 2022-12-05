@@ -5,20 +5,52 @@ import matplotlib.pyplot as plt
 
 
 class SeismicLookupTable:
-    def __init__(self, table_path):
+    def __init__(
+        self,
+        table_path=None,
+        pressure=None,
+        temperature=None,
+        vp=None,
+        vs=None,
+        vp_an=None,
+        vs_an=None,
+        vphi=None,
+        density=None,
+        qs=None,
+        t_sol=None,
+    ):
         """
-        Calling will create a dictionary (self.fields) containing
-        fields given in seismic lookup table. Under each field are:
+        Instantiate a ``SeismicLookupTable``, which can be used to
+        find seismic properties at a point in pressure-temperature space.
+
+        There are two ways of building a ``SeismicLookupTable``:
+
+        #. Read in a file from disk using the argument ``table_path``.
+        #. Pass arrays for all of the seismic properties making up the lookup
+           table.
+
+        Instances of ``SeismicLookupTable`` contain the attribute ``fields``
+        which hold the different seismic properties. Under each field are:
 
         - [0] : Table Index
         - [1] : Field gridded in T-P space
         - [2] : Units
 
-        This also sets up interpolator objects (eg self.vp_interp)
+        This also sets up interpolator objects (eg ``self.vp_interp``)
         for rapid querying of points.
 
-        Currently the input table must have the following structure, with rows
-        ascending by pressure then temperature.
+        Reading from a file
+        *******************
+
+        To read a ``SeismicLookupTable`` from file, pass a string to
+        ``table_path`` (the first argument to the constructor).  This is the
+        path to a file on disk where the input table is stored in plain text.
+
+        The input table must have the following structure, where each
+        row gives the set of values at one pressure-temperature point.  Note
+        that the temperature increases fastest, and the pressure slowest, such
+        that all temperatures are given at the first pressure point first, and
+        so on.  The table below presents a simple example:
 
         | Pressure | Temperature | Vp | Vs | Vp_an | Vs_an | Vphi | Density | Qs | T_solidus |
         | -------- | ----------- | -- | -- | ----- | ----- | ---- | ------- | -- | --------- |
@@ -29,85 +61,149 @@ class SeismicLookupTable:
         | 1e8      | 1000        |    |    |       |       |      |         |    |           |
         | 1e8      | 1500        |    |    |       |       |      |         |    |           |
 
+        Construction from arrays
+        ************************
+
+        If building a ``SeismicLookupTable`` from data in memory, all
+        remaining arguments (``vp``, ``vs``, ``vp_an``, ``vs_an``, ``vphi``,
+        ``density``, ``qs`` and ``t_sol``) must be passed in.  Each of these
+        must be a 2-D array, where the first dimension ranges over the
+        temperatures and the second ranges over the pressures.
+
         :param table_path: Path to table file, e.g. '/path/to/data/table.dat'
         :type table_path: string
 
+        :param pressure: Iterable of pressures in GPa at which values in the
+            lookup table have been evaluated.  This forms the second dimension
+            of the fields in the lookup table.
+        :type pressure: list, ``numpy.array`` or other iterable
+
+        :param temperature: Iterable of temperature in K at which values in
+            the lookup table have been evaluated.  This forms the first
+            dimension of the fields in the lookup table.
+        :type temperature: list, ``numpy.array`` or other iterable
+
+        :param vp: Grid of elastic P-wave velocities in km/s
+        :type vp: 2-D ``numpy.array``
+
+        :param vs: Grid of elastic S-wave velocities in km/s
+        :type vs: 2-D ``numpy.array``
+
+        :param vp_an: Grid of P-wave velocities in km/s
+        :type vp_an: 2-D ``numpy.array``
+
+        :param vs_an: Grid of anelastic S-wave velocities in km/s
+        :type vs_an: 2-D ``numpy.array``
+
+        :param vphi: Grid of elastic bulk velocities in km/s
+        :type vphi: 2-D ``numpy.array``
+
+        :param density: Grid of densities in kmg/m^3
+        :type density: 2-D ``numpy.array``
+
+        :param qs: Grid of S-wave quality factors
+        :type qs: 2-D ``numpy.array``
+
+        :param t_sol: Grid of solidus temperatures in K
+        :type t_sol: 2-D ``numpy.array``
+
         :return: Lookup table object
         """
-        try:
-            self.table = np.genfromtxt(f"{table_path}")
-        except:
-            self.table = np.genfromtxt(f"{table_path}", skip_header=1)
+        if table_path is not None:
+            try:
+                table_data = np.genfromtxt(f"{table_path}")
+            except:
+                table_data = np.genfromtxt(f"{table_path}", skip_header=1)
 
-        self.P = self.table[:, 0]
-        self.T = self.table[:, 1]
-        self.pres = np.unique(self.table[:, 0])
-        self.temp = np.unique(self.table[:, 1])
-        self.n_uniq_p = len(self.pres)
-        self.n_uniq_t = len(self.temp)
+            self.pres = np.unique(table_data[:, 0])
+            self.temp = np.unique(table_data[:, 1])
+
+            nP = len(self.pres)
+            nT = len(self.temp)
+
+            # Initialise arrays for storing table columns in Temp-Pressure space
+            vp = np.zeros((nT, nP))
+            vs = np.zeros((nT, nP))
+            vp_an = np.zeros((nT, nP))
+            vs_an = np.zeros((nT, nP))
+            vphi = np.zeros((nT, nP))
+            density = np.zeros((nT, nP))
+            qs = np.zeros((nT, nP))
+            t_sol = np.zeros((nT, nP))
+
+            pstep = np.size(self.temp)
+
+            # Fill arrays with table data
+            for i, p in enumerate(self.pres):
+                vp[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 2]
+                vs[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 3]
+                vp_an[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 4]
+                vs_an[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 5]
+                vphi[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 6]
+                density[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 7]
+                qs[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 8]
+                t_sol[:, i] = table_data[0 + (i * pstep) : pstep + (i * pstep), 9]
+        else:
+            # Check we have passed everything in
+            for arg in (
+                pressure,
+                temperature,
+                vp,
+                vs,
+                vp_an,
+                vs_an,
+                vphi,
+                density,
+                qs,
+                t_sol,
+            ):
+                if arg is None:
+                    raise ValueError(
+                        "one or more of vp, vs, vp_an, vs_an, vphi, density, qs, t_sol not passed in"
+                    )
+
+            self.pres = pressure
+            self.temp = temperature
+
+            # Check for shapes of arrays
+            nP = len(pressure)
+            nT = len(temperature)
+            for arg, name in zip(
+                (vp, vs, vp_an, vs_an, vphi, density, qs, t_sol),
+                ("vp", "vs", "vp_an", "vs_an", "vphi", "density", "qs", "t_sol"),
+            ):
+                if arg.shape != (nT, nP):
+                    raise ValueError(
+                        f"array {name} has dimensions {arg.shape}, not "
+                        + f"{(nT, nP)} as expected"
+                    )
+
         self.t_max = np.max(self.temp)
         self.t_min = np.min(self.temp)
         self.p_max = np.max(self.pres)
         self.p_min = np.min(self.pres)
-        self.pstep = np.size(self.temp)
-
-        # Initialise arrays for storing table columns in Temp-Pressure space
-        Vp = np.zeros((len(self.temp), len(self.pres)))
-        Vs = np.zeros((len(self.temp), len(self.pres)))
-        Vp_an = np.zeros((len(self.temp), len(self.pres)))
-        Vs_an = np.zeros((len(self.temp), len(self.pres)))
-        Vphi = np.zeros((len(self.temp), len(self.pres)))
-        Dens = np.zeros((len(self.temp), len(self.pres)))
-        Qs = np.zeros((len(self.temp), len(self.pres)))
-        T_sol = np.zeros((len(self.temp), len(self.pres)))
-
-        # Fill arrays with table data
-        for i, p in enumerate(self.pres):
-            Vp[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 2
-            ]
-            Vs[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 3
-            ]
-            Vp_an[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 4
-            ]
-            Vs_an[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 5
-            ]
-            Vphi[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 6
-            ]
-            Dens[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 7
-            ]
-            Qs[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 8
-            ]
-            T_sol[:, i] = self.table[
-                0 + (i * self.pstep) : self.pstep + (i * self.pstep), 9
-            ]
 
         # Setup interpolator objects. These can be used for rapid querying of many individual points
-        self.vp_interp = interp2d(self.pres, self.temp, Vp)
-        self.vs_interp = interp2d(self.pres, self.temp, Vs)
-        self.vp_an_interp = interp2d(self.pres, self.temp, Vp_an)
-        self.vs_an_interp = interp2d(self.pres, self.temp, Vs_an)
-        self.vphi_interp = interp2d(self.pres, self.temp, Vphi)
-        self.density_interp = interp2d(self.pres, self.temp, Dens)
-        self.qs_interp = interp2d(self.pres, self.temp, Qs)
-        self.t_sol_interp = interp2d(self.pres, self.temp, T_sol)
+        self.vp_interp = interp2d(self.pres, self.temp, vp)
+        self.vs_interp = interp2d(self.pres, self.temp, vs)
+        self.vp_an_interp = interp2d(self.pres, self.temp, vp_an)
+        self.vs_an_interp = interp2d(self.pres, self.temp, vs_an)
+        self.vphi_interp = interp2d(self.pres, self.temp, vphi)
+        self.density_interp = interp2d(self.pres, self.temp, density)
+        self.qs_interp = interp2d(self.pres, self.temp, qs)
+        self.t_sol_interp = interp2d(self.pres, self.temp, t_sol)
 
         # Creat dictionary which holds the interpolator objects
+        # FIXME: Replace _ani with _an, since _ani implies anisotropy not anelasticity
         self.fields = {
-            "vp": [2, Vp, "km/s", self.vp_interp],
-            "vs": [3, Vs, "km/s", self.vs_interp],
-            "vp_ani": [4, Vp_an, "km/s", self.vp_an_interp],
-            "vs_ani": [5, Vs_an, "km/s", self.vs_an_interp],
-            "vphi": [6, Vphi, "km/s", self.vphi_interp],
-            "density": [7, Dens, "$kg/m^3$", self.density_interp],
-            "qs": [8, Qs, "Hz", self.qs_interp],
-            "t_sol": [9, T_sol, "K", self.t_sol_interp],
+            "vp": [2, vp, "km/s", self.vp_interp],
+            "vs": [3, vs, "km/s", self.vs_interp],
+            "vp_ani": [4, vp_an, "km/s", self.vp_an_interp],
+            "vs_ani": [5, vs_an, "km/s", self.vs_an_interp],
+            "vphi": [6, vphi, "km/s", self.vphi_interp],
+            "density": [7, density, "$kg/m^3$", self.density_interp],
+            "qs": [8, qs, "Hz", self.qs_interp],
+            "t_sol": [9, t_sol, "K", self.t_sol_interp],
         }
 
     #################################################
@@ -163,8 +259,8 @@ class SeismicLookupTable:
         """
 
         # If integers are passed in then convert to indexable lists
-        press = [press] if type(press) == int or type(press) == float else press
-        temps = [temps] if type(temps) == int or type(temps) == float else temps
+        press = [press] if np.isscalar(press) else press
+        temps = [temps] if np.isscalar(temps) else temps
 
         _check_bounds(press, self.pres)
         _check_bounds(temps, self.temp)
@@ -192,7 +288,6 @@ class SeismicLookupTable:
         :return: None
         """
 
-        # get column index for field of interest
         units = self.fields[field.lower()][2]
         data = self.fields[field.lower()][1]
 
@@ -207,8 +302,6 @@ class SeismicLookupTable:
             cmap=cmap,
             aspect="auto",
         )
-
-        # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
 
         plt.colorbar(chart, ax=ax, label=f"{field} ({units})")
         ax.set_xlabel("Temperature (K)")
@@ -229,15 +322,10 @@ class SeismicLookupTable:
 
         :return: None
         """
+        data = self.fields[field.lower()][1]
+        units = self.fields[field.lower()][2]
 
-        # get column index for field of interest
-        i_field = self.fields[field.lower()][0]
-        units = self.fields[field.lower()][1]
-        data = self.table[:, i_field]
-
-        chart = ax.tricontourf(self.P, self.T, self.table[:, i_field], cmap=cmap)
-
-        # chart = ax.tricontourf(self.P,self.T,self.table[:,i_field])
+        chart = ax.contourf(self.pres, self.temp, np.transpose(data), cmap=cmap)
 
         plt.colorbar(chart, ax=ax, label=f"{field} ({units})")
         ax.set_ylabel("Temperature (K)")

@@ -8,7 +8,7 @@ import netCDF4
 import numpy as np
 import re
 from sklearn.neighbors import NearestNeighbors
-
+import pickle
 from . import geographic
 from . import plot
 
@@ -414,6 +414,22 @@ class TerraModel:
         else:
             return value
 
+    def write_pickle(self, filename):
+        """
+        Save the terra model as a python pickle format with the
+        given filename.
+
+        :param filename: filename to save terramodel to.
+        :type filename: str
+
+        :return: nothing
+        """
+        f = open(filename, "wb")
+        pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+        f.close()
+
+        return
+
     def set_field(self, field, values):
         """
         Create a new field within a TerraModel from a predefined array,
@@ -736,6 +752,28 @@ class TerraModel:
 
         return fig, ax
 
+    def add_adiabat(self):
+        """
+        Add a theoretical adiabat to the temperatures in the
+        TerraModel object. The adiabat is linear in the upper
+        mantle and then is fit to a quadratic in the lower
+        mantle.
+
+        :param: none
+        :return: none
+        """
+
+        radii = self.get_radii()
+        surface_radius = radii[-1]
+        depths = surface_radius - radii
+
+        for d in depths:
+            dt = _calculate_adiabat(d)
+            layer_index, layer_radius = self.nearest_layer(radius=d, depth=True)
+            self._fields["t"][layer_index] = self._fields["t"][layer_index] + dt
+
+        return
+
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
     """
@@ -963,6 +1001,57 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     )
 
 
+def load_model_from_pickle(filename):
+    """
+    Load a terra model saved using the save() function above.
+
+    :param filename: filename to load terramodel from.
+    :type filename: str
+
+    :return: loaded terra model
+    :rtype: TerraModel object
+    """
+
+    f = open(filename, "rb")
+    m = pickle.load(f)
+    f.close()
+    return m
+
+
+def _calculate_adiabat(depth):
+    """
+    Calculate a theoretical adiabat at a given depth.
+    The adiabat has a linear slope of 0.5 K/km in the
+    upper mantle and fit by a quadratic in the lower mantle.
+    The upper and lower mantle adiabats are smoothed around
+    the 660 km transition depth. The value given is relative
+    to a 1600 K mantle potential temperature.
+
+    :param depth: depth to get adiabat temperature at
+    :type depth: float
+
+    :return: adiabat temperature value relative to a 1600 K
+             potential temperature.
+    :rtype: float
+    """
+
+    # calculate temp if it were a linear profile (for upper mantle)
+    lin = (0.5 * depth) + 1600
+
+    # calculate if it were a quadratic profile (for lower mantle)
+    quad = (-0.00002 * depth**2) + (0.4 * depth) + 1700
+
+    # smooth transition between linear and quadratic
+    sig = 1 / (1 + (np.exp((-1 * depth - 660) / 60)))
+
+    # 1600, the potential temperature, is removed
+    # so only the adiabat relative to the potential temp
+    # of 1600 is returned
+    adiabat = lin * (1 - sig) + (quad * sig) - 1600
+
+    return adiabat
+
+
 def _test_composition(compfracs):
     """
     Test to make sure that total composition fraction is equal to 1
@@ -1003,9 +1092,16 @@ def _variable_names_from_field(field):
 
 def _field_name_from_variable(field):
     """
-    Return the TerraModel field name of a NetCDF file variable name
+    Return the TerraModel field name of a NetCDF file variable name.
+
+    If there is no field name associated with this variable name,
+    return ``None``.
     """
-    return _VARIABLE_NAME_TO_FIELD_NAME[field]
+    try:
+        field_name = _VARIABLE_NAME_TO_FIELD_NAME[field]
+    except KeyError:
+        field_name = None
+    return field_name
 
 
 def _check_field_name(field):
