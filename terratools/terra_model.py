@@ -932,6 +932,7 @@ class TerraModel:
         delta=None,
         extent=(-180, 180, -90, 90),
         method="nearest",
+        coastlines=True,
         show=True,
     ):
         """
@@ -950,7 +951,11 @@ class TerraModel:
             in degrees
         :param method: May be one of: "nearest" (plot nearest value to each
             plot grid point); or "mean" (mean value in each pixel)
-        :param show: If True (the default), show the plot
+        :param coastlines: If ``True`` (default), plot coastlines.
+            This may lead to a segfault on machines where cartopy is not
+            installed in the recommended way.  In this case, pass ``False``
+            to avoid this.
+        :param show: If ``True`` (the default), show the plot
         :returns: figure and axis handles
         """
         if radius is None and index is None:
@@ -971,7 +976,15 @@ class TerraModel:
         label = _SCALAR_FIELDS[field]
 
         fig, ax = plot.layer_grid(
-            lon, lat, layer_radius, values, delta=delta, extent=extent, label=label
+            lon,
+            lat,
+            layer_radius,
+            values,
+            delta=delta,
+            extent=extent,
+            label=label,
+            method=method,
+            coastlines=coastlines,
         )
 
         if depth:
