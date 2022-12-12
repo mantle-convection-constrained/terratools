@@ -404,12 +404,14 @@ def _harmonic_mean(data, fractions):
     :rtype: float or 2D numpy array of floats.
     """
 
-    m_total = np.zeros(data[0].shape)
+    m_total = np.zeros(np.shape(data[0]))
+    frac_total = np.zeros(np.shape(fractions[0]))
 
     for i in range(len(fractions)):
-        m_total += (1 / data[i]) * fractions[i]
+        m_total += fractions[i] / data[i]
+        frac_total += fractions[i]
 
-    hmean = np.sum(fractions) / (m_total)
+    hmean = frac_total / m_total
 
     return hmean
 

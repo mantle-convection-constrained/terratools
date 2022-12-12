@@ -141,6 +141,19 @@ class TestLookup(unittest.TestCase):
             err_msg="harmonic mean with 2D arrays failed",
         )
 
+    def test_harmonic_mean_list_of_arrays(self):
+        data = []
+        data.append(np.ones((2, 3)))
+        data.append(2 * np.ones((2, 3)))
+
+        fractions = []
+        fractions.append(0.5 * np.ones((2, 3)))
+        fractions.append(0.5 * np.ones((2, 3)))
+
+        hmean = _harmonic_mean(data, fractions)
+
+        self.assertTrue(np.allclose(hmean, 4 / 3 * np.ones((2, 3))))
+
     def test_check_bounds_scalar(self):
         Ps = np.arange(-50, 51, 1)
 
