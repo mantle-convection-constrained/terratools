@@ -300,7 +300,7 @@ class TestTerraModelGetters(unittest.TestCase):
     def test_pressure_at_radius(self):
         # Default PREM pressure
         model = TerraModel(lon=[1], lat=[1], r=[6371], surface_radius=6371)
-        self.assertAlmostEqual(model.pressure_at_radius(3480), 135.751, 2)
+        self.assertAlmostEqual(model.pressure_at_radius(3480), 135.751e9, 2)
         # Some arbitrary function
         model = TerraModel(lon=[1], lat=[1], r=[6371], pressure_func=lambda r: 2 * r)
         self.assertEqual(model.pressure_at_radius(100), 200)

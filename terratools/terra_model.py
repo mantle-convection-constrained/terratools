@@ -262,7 +262,7 @@ class TerraModel:
             name of the associated seismic lookup table; or a
             ``lookup_tables.MultiTables``
         :param pressure_func: Function which takes a single argument
-            (the radius in km) and returns pressure in GPa.  By default
+            (the radius in km) and returns pressure in Pa.  By default
             pressure is taken from PREM.  The user is responsible for
             ensuring that ``pressure_func`` accepts all values in the radius
             range of the model.
@@ -317,7 +317,7 @@ class TerraModel:
         # Use PREM for pressure if a function is not supplied
         if pressure_func is None:
             _pressure = prem_pressure()
-            self._pressure_func = lambda r: _pressure(1000 * self.to_depth(r)) / 1e9
+            self._pressure_func = lambda r: _pressure(1000 * self.to_depth(r))
         else:
             self._pressure_func = pressure_func
 
@@ -575,7 +575,7 @@ class TerraModel:
         c_hist = self.evaluate(lon, lat, r, "c_hist", method=method)
         t = self.evaluate(lon, lat, r, "t", method=method)
 
-        # Pressure for this model in GPa
+        # Pressure for this model in Pa
         p = self._pressure_func(r)
 
         # Evaluate chosen things from lookup tables
