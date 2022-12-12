@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import interp2d, interp1d
 import os
 import matplotlib.pyplot as plt
+from warnings import warn
 
 # Set of all table properties, in the order they appear in the table,
 # excluding pressure and temperature
@@ -452,20 +453,15 @@ def _check_bounds(input, check):
     """
 
     if np.any(input > np.max(check)):
-        print(
+        warn(
             f"One or more of your inputs exceeds the table range, reverting to maximum table range"
         )
 
     elif np.any(input < np.min(check)):
-        print(
+        warn(
             f"One or more of your inputs is below the table range, reverting to minimum table range"
         )
 
-    # where the values are greater than the minimum keep the same
-    # but replace those below with the minimum
-    output = np.where(input > np.min(check), input, np.min(check))
-    # where the values are smaller than the maximum keep the same
-    # but replace those above with the maximum
-    output = np.where(output < np.max(check), output, np.max(check))
+    output = np.clip(input, np.min(check), np.max(check))
 
     return output
