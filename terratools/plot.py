@@ -11,9 +11,6 @@ import scipy.interpolate
 import scipy.stats
 
 
-_COASTLINES_PATH = os.path.dirname(__file__)
-
-
 def layer_grid(
     lon,
     lat,
@@ -23,7 +20,7 @@ def layer_grid(
     extent=(-180, 180, -90, 90),
     label=None,
     method="nearest",
-    cartopy_coastlines=True,
+    coastlines=True,
     **subplots_kwargs,
 ):
     """
@@ -42,9 +39,9 @@ def layer_grid(
     :param method: Can be one of:
         * "nearest": nearest neighbour only;
         * "mean": mean of all values within each grid point
-    :param cartopy_coastlines: If ``True`` (the default) use cartopy's own
-        function to plot coastlines.  Otherwise, use an internal coastline
-        plotting command.  This works around an issue with Cartopy when
+    :param coastlines: If ``True`` (the default) use cartopy
+        to plot coastlines.  Otherwise, do not plot coastlines.
+        This works around an issue with Cartopy when
         installed in certain situations.  See
         https://github.com/SciTools/cartopy/issues/879 for details.
     :param **kwargs: Extra keyword arguments passed to
@@ -92,7 +89,7 @@ def layer_grid(
         )
         grid = np.transpose(grid)
     else:
-        raise ValueError(f"unsupported method '{method}")
+        raise ValueError(f"unsupported method '{method}'")
 
     grid = np.flip(grid, axis=0)
 
@@ -115,12 +112,7 @@ def layer_grid(
     # This leads to a segfault on machines where cartopy is not installed
     # from conda-forge, or where it was not built from source:
     # https://github.com/SciTools/cartopy/issues/879
-    ax.coastlines()
+    if coastlines:
+        ax.coastlines()
 
     return fig, ax
-
-
-def _load_coastlines():
-    """
-    Load a set of coordinates of coarse global coastlines.
-    """
