@@ -297,7 +297,6 @@ class SeismicLookupTable:
 
         # temperature on x axis
         data = data.transpose()
-        print(data.shape)
 
         chart = ax.imshow(
             data,
