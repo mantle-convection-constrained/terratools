@@ -99,25 +99,31 @@ class TestLookup(unittest.TestCase):
         t_test = 15
 
         self.assertAlmostEqual(
-            self.tab.interp_points(p_test, t_test, "Vp"),
+            self.tab.interp_points(p_test, t_test, "vp"),
             np.array([15]),
             msg="interpolation for single point failed",
         )
+
+    def test_interpolate_point_shape(self):
+        p = np.reshape([10], (1, 1))
+        t = np.reshape([5, 5], (2, 1))
+
+        self.assertEqual(self.tab.interp_points(p, t, "density").shape, (2, 1))
 
     def test_interpolate_grid(self):
 
         t_test = [4, 5, 6]
         p_test = 10
-        outgrid = self.tab.interp_grid(p_test, t_test, "Vp")
+        outgrid = self.tab.interp_grid(p_test, t_test, "vp")
 
         self.assertEqual(
-            int(outgrid[0]), 4, msg="interpolation for grid of points failed"
+            int(outgrid[0, 0]), 4, msg="interpolation for grid of points failed"
         )
         self.assertEqual(
-            int(outgrid[1]), 5, msg="interpolation for grid of points failed"
+            int(outgrid[0, 1]), 5, msg="interpolation for grid of points failed"
         )
         self.assertEqual(
-            int(outgrid[2]), 6, msg="interpolation for grid of points failed"
+            int(outgrid[0, 2]), 6, msg="interpolation for grid of points failed"
         )
 
     def test_harmonic_mean_1D(self):
@@ -196,7 +202,7 @@ class TestLookup(unittest.TestCase):
         pres = 25
         temp = 25
 
-        value = self.multitable.evaluate(P=pres, T=temp, fractions=fracs, field="Vp")
+        value = self.multitable.evaluate(P=pres, T=temp, fractions=fracs, field="vp")
 
         self.assertEqual(value, 15 / 7, msg="Multitable evaluate failed.")
 
