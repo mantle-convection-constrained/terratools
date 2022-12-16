@@ -179,11 +179,12 @@ def angular_step(lon, lat, azimuth, distance, radians=False):
         distance = np.radians(distance)
 
     lat2 = np.arcsin(
-        np.sin(lat)*np.cos(distance) + np.cos(lat)*np.sin(distance)*np.cos(azimuth)
+        np.sin(lat) * np.cos(distance)
+        + np.cos(lat) * np.sin(distance) * np.cos(azimuth)
     )
     lon2 = lon + np.arctan2(
-        np.sin(azimuth)*np.sin(distance)*np.cos(lat),
-        np.cos(distance) - np.sin(lat)*np.sin(lat2)
+        np.sin(azimuth) * np.sin(distance) * np.cos(lat),
+        np.cos(distance) - np.sin(lat) * np.sin(lat2),
     )
 
     if not radians:
