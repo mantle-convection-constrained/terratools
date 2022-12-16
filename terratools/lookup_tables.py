@@ -354,16 +354,21 @@ class MultiTables:
         """
         Class to take in and process multiple tables at once.
 
-        :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
-                    and the associated lookup table filename to be read in or array of values.
+        :param tables: dictionary with keys describing the lookup table composition (e.g. "basalt")
+            whose values are either:
+            * the associated lookup table filename to be read in
+            * a ``SeismicLookupTable`` object
         :type tables: dictionary
 
         :return: multitable object.
         """
         self._tables = lookuptables
         self._lookup_tables = {}
-        for key in self._tables:
-            self._lookup_tables[key] = SeismicLookupTable(self._tables[key])
+        for key, value in self._tables.items():
+            if isinstance(value, SeismicLookupTable):
+                self._lookup_tables[key] = value
+            else:
+                self._lookup_tables[key] = SeismicLookupTable(value)
 
     def evaluate(self, P, T, fractions, field):
         """

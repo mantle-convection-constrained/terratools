@@ -207,5 +207,25 @@ class TestLookup(unittest.TestCase):
         self.assertEqual(value, 15 / 7, msg="Multitable evaluate failed.")
 
 
+class TestMultiTableConstruction(unittest.TestCase):
+    def test_construct_from_SeismicLookupTables(self):
+        test_lookup = TestLookup()
+        test_lookup.setUp()
+
+        table_paths = test_lookup.tabs
+        tables = {key: SeismicLookupTable(path) for key, path in table_paths.items()}
+
+        multitable = MultiTables(tables)
+
+        p = 25
+        t = 25
+        fracs = {"tab1": 0.2, "tab2": 0.8}
+
+        self.assertEqual(
+            multitable.evaluate(p, t, fracs, "density"),
+            test_lookup.multitable.evaluate(p, t, fracs, "density")
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
