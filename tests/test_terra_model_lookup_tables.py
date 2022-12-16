@@ -46,6 +46,29 @@ def test_data_path(file):
     return os.path.join(test_dir, "data", file)
 
 
+def synthetic_lookup_table(
+    func, pressures=np.arange(0, 140e9, 10e9), temperatures=np.arange(0, 5000, 500)
+):
+    """
+    Create a synthetic lookup table across a set of pressures and temperatures,
+    where ``func(field, pressure, temperature)`` is evaluated at each point
+    and takes pressure in Pa and temperature in K.
+
+    E.g.
+        >>> synthetic_lookup_table(lambda field, p, t: p*t)
+    """
+    n_p = len(pressures)
+    n_t = len(temperatures)
+    grids = {}
+    for field in TABLE_FIELDS:
+        grids[field] = np.empty((n_t, n_p))
+        for it, temperature in enumerate(temperatures):
+            for ip, pressure in enumerate(pressures):
+                grids[field][it, ip] = func(field, pressure, temperature)
+
+    return SeismicLookupTable(pressure=pressures, temperature=temperatures, **grids)
+
+
 class TestTerraModelLookupTablesConstruction(unittest.TestCase):
     """
     Tests for constructing TerraModels with lookup tables
@@ -141,6 +164,25 @@ class TestTerraModelLookupTablesConstruction(unittest.TestCase):
         self.assertEqual(
             model._lookup_tables._lookup_tables.keys(), lookup_tables.keys()
         )
+
+
+class TestTerraModelLookupTableInquiry(unittest.TestCase):
+    def test_lookup_table_inquiry(self):
+        lon, lat, r, fields, c_hist_names = random_model(5, 2)
+        model = TerraModel(lon, lat, r, fields=fields, c_histogram_names=c_hist_names)
+        self.assertFalse(model.has_lookup_tables())
+
+        lookup_tables = MultiTables(
+            {
+                name: synthetic_lookup_table(lambda field, p, t: 1)
+                for name in c_hist_names
+            }
+        )
+
+        model.add_lookup_tables(lookup_tables)
+        self.assertTrue(model.has_lookup_tables())
+
+        self.assertEqual(model.get_lookup_tables(), lookup_tables)
 
 
 class TestTerraModelLookupTableInterpolation(unittest.TestCase):

@@ -391,7 +391,8 @@ class TestTerraModelRepr(unittest.TestCase):
   number of lateral points: 3
                     fields: ['t', 'c_hist']
          composition names: ['a', 'b']
-        composition values: None""",
+        composition values: None
+         has lookup tables: False""",
         )
 
 

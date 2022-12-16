@@ -390,7 +390,8 @@ class TerraModel:
   number of lateral points: {self._npts}
                     fields: {[name for name in self.field_names()]}
          composition names: {self.get_composition_names()}
-        composition values: {self.get_composition_values()}"""
+        composition values: {self.get_composition_values()}
+         has lookup tables: {self.has_lookup_tables()}"""
 
     def add_lookup_tables(self, lookup_tables):
         """
@@ -698,6 +699,16 @@ class TerraModel:
         """
         return field in self._fields.keys()
 
+    def has_lookup_tables(self):
+        """
+        Return `True` if this TerraModel contains thermodynamic lookup
+        tables used to convert temperature, pressure and composition
+        into seismic properties.
+
+        :returns: `True` is the model has tables, and `False` otherwise
+        """
+        return self._lookup_tables is not None
+
     def get_field(self, field):
         """
         Return the array containing the values of field in a TerraModel.
@@ -775,6 +786,18 @@ class TerraModel:
         :returns: (lon, lat) in degrees
         """
         return self._lon, self._lat
+
+    def get_lookup_tables(self):
+        """
+        Return the `terratools.lookup_tables.MultiTables` object which
+        holds the model's lookup tables if present, and `None` otherwise.
+
+        :returns: the lookup tables, or `None`.
+        """
+        if self.has_lookup_tables():
+            return self._lookup_tables
+        else:
+            return None
 
     def get_radii(self):
         """
