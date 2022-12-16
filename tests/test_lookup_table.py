@@ -223,7 +223,7 @@ class TestMultiTableConstruction(unittest.TestCase):
 
         self.assertEqual(
             multitable.evaluate(p, t, fracs, "density"),
-            test_lookup.multitable.evaluate(p, t, fracs, "density")
+            test_lookup.multitable.evaluate(p, t, fracs, "density"),
         )
 
 
