@@ -108,7 +108,7 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
     to the two points.
 
     Note that all input angles are in degrees, unless ``radians`` is
-    ``False``.
+    ``True``.
 
     :param lon1: Longitude of first point
     :type lon1: float or numpy array
