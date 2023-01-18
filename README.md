@@ -17,7 +17,7 @@ Before installing TerraTools, first install and/or upgrade your version of pip:
 ```
 python -m ensurepip --upgrade
 ```
-After that, please make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html), as installation of Cartopy using pip requires [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/latest/installing.html). On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
+If you want to use the map plotting functions (such as `TerraModel.plot_layer`), make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html), as installation of Cartopy using pip requires [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/latest/installing.html). On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
 ```
 export DYLD_LIBRARY_PATH=/opt/homebrew/opt/geos/lib/
 ```
