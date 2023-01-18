@@ -3,7 +3,12 @@ import unittest
 import numpy as np
 import os
 
-from cartopy.mpl.geoaxes import GeoAxesSubplot
+_CARTOPY_INSTALLED = True
+try:
+    from cartopy.mpl.geoaxes import GeoAxesSubplot
+except ImportError:
+    _CARTOPY_INSTALLED = False
+
 from matplotlib.figure import Figure
 
 from terratools import terra_model
@@ -478,35 +483,37 @@ class TestBoundingIndices(unittest.TestCase):
         )
 
 
-class TestPlotLayer(unittest.TestCase):
-    def test_errors(self):
-        model = dummy_model(with_fields=True)
+if _CARTOPY_INSTALLED:
 
-        with self.assertRaises(ValueError):
-            model.plot_layer("t")
+    class TestPlotLayer(unittest.TestCase):
+        def test_errors(self):
+            model = dummy_model(with_fields=True)
 
-        with self.assertRaises(ValueError):
-            model.plot_layer("t", index=-1)
-        with self.assertRaises(ValueError):
-            model.plot_layer("t", index=len(model.get_radii()) + 1)
+            with self.assertRaises(ValueError):
+                model.plot_layer("t")
 
-    def test_plot_layer_radius(self):
-        model = dummy_model(with_fields=True)
-        fig, ax = model.plot_layer("t", 4000, show=False)
-        self.assertIsInstance(fig, Figure)
-        self.assertIsInstance(ax, GeoAxesSubplot)
+            with self.assertRaises(ValueError):
+                model.plot_layer("t", index=-1)
+            with self.assertRaises(ValueError):
+                model.plot_layer("t", index=len(model.get_radii()) + 1)
 
-    def test_plot_layer_depth(self):
-        model = dummy_model(with_fields=True)
-        fig, ax = model.plot_layer("t", 100, depth=True, show=False)
-        self.assertIsInstance(fig, Figure)
-        self.assertIsInstance(ax, GeoAxesSubplot)
+        def test_plot_layer_radius(self):
+            model = dummy_model(with_fields=True)
+            fig, ax = model.plot_layer("t", 4000, show=False)
+            self.assertIsInstance(fig, Figure)
+            self.assertIsInstance(ax, GeoAxesSubplot)
 
-    def test_plot_layer_index(self):
-        model = dummy_model(with_fields=True)
-        fig, ax = model.plot_layer("t", index=2, depth=True, show=False)
-        self.assertIsInstance(fig, Figure)
-        self.assertIsInstance(ax, GeoAxesSubplot)
+        def test_plot_layer_depth(self):
+            model = dummy_model(with_fields=True)
+            fig, ax = model.plot_layer("t", 100, depth=True, show=False)
+            self.assertIsInstance(fig, Figure)
+            self.assertIsInstance(ax, GeoAxesSubplot)
+
+        def test_plot_layer_index(self):
+            model = dummy_model(with_fields=True)
+            fig, ax = model.plot_layer("t", index=2, depth=True, show=False)
+            self.assertIsInstance(fig, Figure)
+            self.assertIsInstance(ax, GeoAxesSubplot)
 
 
 if __name__ == "__main__":
