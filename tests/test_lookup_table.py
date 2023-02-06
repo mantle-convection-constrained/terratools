@@ -25,7 +25,6 @@ class TestLookup(unittest.TestCase):
         self.multitable = MultiTables(self.tabs)
 
     def test_read_file(self):
-
         # test table has been read in correctly by comparing the
         # size of the arrays read in.
         self.assertEqual(
@@ -97,7 +96,6 @@ class TestLookup(unittest.TestCase):
             self.assertAlmostEqual(table.interp_points(p, t, field), [expected_val])
 
     def test_interpolate_point(self):
-
         p_test = 15
         t_test = 15
 
@@ -108,7 +106,6 @@ class TestLookup(unittest.TestCase):
         )
 
     def test_interpolate_grid(self):
-
         t_test = [4, 5, 6]
         p_test = 10
         outgrid = self.tab.interp_grid(p_test, t_test, "Vp")
@@ -181,7 +178,6 @@ class TestLookup(unittest.TestCase):
         )
 
     def test_multi_table(self):
-
         fracs = {"tab1": 1, "tab2": 2}
         pres = 25
         temp = 25

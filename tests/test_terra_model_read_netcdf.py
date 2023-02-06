@@ -15,7 +15,7 @@ from terratools import terra_model
 
 def select_indices(array, indices):
     """Slice an array with arbitrary indices"""
-    for (axis, inds) in enumerate(indices):
+    for axis, inds in enumerate(indices):
         if inds is not None:
             array = np.take(array, inds, axis=axis)
     return array
@@ -119,8 +119,7 @@ def write_seismic_netcdf_files(
 
             # Special case the other things for now as it's just for testing
             elif field_name == "u_xyz":
-                for (icomp, var_name) in enumerate(var_names):
-
+                for icomp, var_name in enumerate(var_names):
                     this_var = file.createVariable(
                         var_name, terra_model.VALUE_TYPE, ("depths", "nps")
                     )
@@ -135,8 +134,7 @@ def write_seismic_netcdf_files(
                 this_var = file.createVariable(
                     var_name, terra_model.VALUE_TYPE, ("compositions", "depths", "nps")
                 )
-                for (icomp, comp_name) in enumerate(c_hist_names):
-
+                for icomp, comp_name in enumerate(c_hist_names):
                     this_var[icomp, :, :] = select_indices(
                         field_vals[icomp, :, :], (depth_inds, lateral_inds)
                     )

@@ -11,7 +11,6 @@ from terratools.properties.perplex import perplex_to_grid
 from terratools.properties.attenuation import Q7g
 
 if __name__ == "__main__":
-
     perplex_path = ""
 
     url_datafiles = "https://www.perplex.ethz.ch/perplex/datafiles"
@@ -81,7 +80,6 @@ if __name__ == "__main__":
     os.remove(solution_file)
 
     if perplex_path != "":
-
         # Run the build files in the project directory
         # through vertex and pssect
         run_build_files(project_name, perplex_path)
