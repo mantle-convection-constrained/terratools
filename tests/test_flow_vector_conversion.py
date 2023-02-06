@@ -1,58 +1,51 @@
 from cgitb import lookup
 import unittest
 import numpy as np
-from terratools.flow_conversion import (
-    rotate_vector
-)
-
+from terratools.flow_conversion import rotate_vector
 
 
 class TestRotateVector(unittest.TestCase):
-
     def setUp(self):
-        self.x_vector = [1,0,0]
-        self.y_vector = [0,1,0]
-        self.z_vector = [0,0,1]
-        self.minus_x_vector = [-1,0,0]
-        self.minus_y_vector =[0,-1,0]
-        self.minus_z_vector =[0,0,-1]
-    
+        self.x_vector = [1, 0, 0]
+        self.y_vector = [0, 1, 0]
+        self.z_vector = [0, 0, 1]
+        self.minus_x_vector = [-1, 0, 0]
+        self.minus_y_vector = [0, -1, 0]
+        self.minus_z_vector = [0, 0, -1]
+
     def test_north_at_equator(self):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.z_vector, lat, lon)
-        expected_vector = np.array([1,0,0])
+        expected_vector = np.array([1, 0, 0])
 
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
-
 
     def test_south_at_equator(self):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.minus_z_vector, lat, lon)
-        expected_vector = np.array([-1,0,0])
+        expected_vector = np.array([-1, 0, 0])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
-
 
     def test_radial_at_equator(self):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.x_vector, lat, lon)
-        expected_vector = np.array([0,0,1])
+        expected_vector = np.array([0, 0, 1])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
-
 
     def test_inward_at_equator(self):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.minus_x_vector, lat, lon)
-        expected_vector = np.array([0,0,-1])
+        expected_vector = np.array([0, 0, -1])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -61,7 +54,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.y_vector, lat, lon)
-        expected_vector = np.array([0,-1,0])
+        expected_vector = np.array([0, -1, 0])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -70,7 +63,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 0
         lon = 0
         rotated_vector = rotate_vector(self.minus_y_vector, lat, lon)
-        expected_vector = np.array([0,1,0])
+        expected_vector = np.array([0, 1, 0])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -79,7 +72,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 90
         lon = 0
         rotated_vector = rotate_vector(self.z_vector, lat, lon)
-        expected_vector = np.array([0,0,1])
+        expected_vector = np.array([0, 0, 1])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -88,7 +81,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 90
         lon = 0
         rotated_vector = rotate_vector(self.x_vector, lat, lon)
-        expected_vector = np.array([-1,0,0])
+        expected_vector = np.array([-1, 0, 0])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -97,7 +90,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 90
         lon = 0
         rotated_vector = rotate_vector(self.minus_z_vector, lat, lon)
-        expected_vector = np.array([0,0,-1])
+        expected_vector = np.array([0, 0, -1])
         self.assertAlmostEqual(rotated_vector[0], expected_vector[0])
         self.assertAlmostEqual(rotated_vector[1], expected_vector[1])
         self.assertAlmostEqual(rotated_vector[2], expected_vector[2])
@@ -106,7 +99,7 @@ class TestRotateVector(unittest.TestCase):
         lat = 90
         lon = 0
         rotated_vector = rotate_vector([self.minus_z_vector, self.x_vector], lat, lon)
-        expected_vector = np.array([[0,0,-1], [-1,0,0]])
+        expected_vector = np.array([[0, 0, -1], [-1, 0, 0]])
         vec1 = rotated_vector[0]
         vec2 = rotated_vector[1]
         expected_vector_1 = expected_vector[0]
@@ -120,18 +113,18 @@ class TestRotateVector(unittest.TestCase):
         self.assertAlmostEqual(vec2[1], expected_vector_2[1])
         self.assertAlmostEqual(vec2[2], expected_vector_2[2])
 
+
 class TestRotateVectorErrors(unittest.TestCase):
-
     def test_wrong_input_type(self):
-        lon = 'lon'
-        lat = 'lat'
-        vec = ['vec1', 'vec2', 'vec3']
+        lon = "lon"
+        lat = "lat"
+        vec = ["vec1", "vec2", "vec3"]
 
         with self.assertRaises(AssertionError):
-            rotate_vector([1,0,0], lat, 0)
+            rotate_vector([1, 0, 0], lat, 0)
 
         with self.assertRaises(AssertionError):
-            rotate_vector([1,0,0], 0, lon)
+            rotate_vector([1, 0, 0], 0, lon)
 
         with self.assertRaises(AssertionError):
             rotate_vector(vec, 0, 0)

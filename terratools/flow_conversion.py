@@ -1,31 +1,32 @@
 """
-This module deals with the conversion of flow velocity vectors 
-from cartesian to geographic vector. Taken from Andrew Walker's 
+This module deals with the conversion of flow velocity vectors
+from cartesian to geographic vector. Taken from Andrew Walker's
 package pyflowng (private repository).
 """
 
-import numpy as np 
+import numpy as np
 import terratools.geographic as gt
+
 
 def get_rotmat_to_geographical(lat, lon):
     """
-    Return the rotation matrix at a latitude/longitude 
-    to convert the cartesian flow vector into 
-    geographical coordinates. 
+    Return the rotation matrix at a latitude/longitude
+    to convert the cartesian flow vector into
+    geographical coordinates.
 
     :param lat: latitude
     :type lat: float
-    :param lon: longitude 
+    :param lon: longitude
     :type lon: float
     :return trans: transformation matrix
     :rtype trans: 2D numpy array
     """
 
     if type(lat) != int and type(lat) != float:
-        raise AssertionError('latitude needs to be integer or float')
+        raise AssertionError("latitude needs to be integer or float")
 
     if type(lon) != int and type(lon) != float:
-        raise AssertionError('longitude needs to be integer or float')
+        raise AssertionError("longitude needs to be integer or float")
 
     # Unit vectors on global system
     x_hat = np.array([1.0, 0.0, 0.0])
@@ -33,47 +34,51 @@ def get_rotmat_to_geographical(lat, lon):
     z_hat = np.array([0.0, 0.0, 1.0])
 
     # Find unit vector pointing to location in cart space
-    (x0, y0, z0) = gt.geog2cart(lon,lat,1.0)
+    (x0, y0, z0) = gt.geog2cart(lon, lat, 1.0)
 
     p_hat = np.array([x0, y0, z0])
-    p_hat = p_hat / np.sqrt(np.sum(np.power(p_hat,2.0)))
+    p_hat = p_hat / np.sqrt(np.sum(np.power(p_hat, 2.0)))
 
     # Local West and East unit vector(s)
-    e_hat = np.cross(z_hat,p_hat)
-    e_hat = e_hat / np.sqrt(np.sum(np.power(e_hat,2.0)))
-    w_hat = np.cross(p_hat,z_hat)
-    w_hat = w_hat / np.sqrt(np.sum(np.power(w_hat,2.0)))
+    e_hat = np.cross(z_hat, p_hat)
+    e_hat = e_hat / np.sqrt(np.sum(np.power(e_hat, 2.0)))
+    w_hat = np.cross(p_hat, z_hat)
+    w_hat = w_hat / np.sqrt(np.sum(np.power(w_hat, 2.0)))
 
     # Local North unit vector
     n_hat = np.cross(p_hat, e_hat)
     # No need to normalise, p and e are already orthoganol.
-    
+
     # http://www.kwon3d.com/theory/transform/transform.html
 
-    trans = np.array([[np.dot(x_hat,n_hat),np.dot(y_hat,n_hat),np.dot(z_hat,n_hat)],
-                      [np.dot(x_hat,w_hat),np.dot(y_hat,w_hat),np.dot(z_hat,w_hat)],
-                      [np.dot(x_hat,p_hat),np.dot(y_hat,p_hat),np.dot(z_hat,p_hat)]])
+    trans = np.array(
+        [
+            [np.dot(x_hat, n_hat), np.dot(y_hat, n_hat), np.dot(z_hat, n_hat)],
+            [np.dot(x_hat, w_hat), np.dot(y_hat, w_hat), np.dot(z_hat, w_hat)],
+            [np.dot(x_hat, p_hat), np.dot(y_hat, p_hat), np.dot(z_hat, p_hat)],
+        ]
+    )
 
     return trans
 
 
 def rotate_vector(vec, lat, lon):
     """
-    Convert the cartesian flow vector into 
-    geographical vector. 
+    Convert the cartesian flow vector into
+    geographical vector.
 
     :param vec: cartesian flow vector in [vx,vy,vz]
     :type vec: 1D numpy array of floats
     :param lat: latitude
     :type lat: float
-    :param lon: longitude 
+    :param lon: longitude
     :type lon: float
     :return vec: geographical flow vector in [lat, lon, rad]
     :rtype vec: 1D numpy array of floats
     """
 
     if np.array(list(vec)).dtype != float and np.array(list(vec)).dtype != int:
-        raise AssertionError('flow vector needs to hold integers or floats.')
+        raise AssertionError("flow vector needs to hold integers or floats.")
 
     # get transformation matrix
     trans = get_rotmat_to_geographical(lat, lon)
