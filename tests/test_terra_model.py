@@ -14,6 +14,7 @@ from terratools.terra_model import TerraModel
 coord_tol = np.finfo(terra_model.COORDINATE_TYPE).eps
 value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 
+
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
     lon, lat, r = random_coordinates(nlayers, npts)
@@ -188,7 +189,7 @@ class TestTerraModelConstruction(unittest.TestCase):
 
         self.assertTrue(coords_are_equal(model.get_radii(), r))
 
-        for (field_name, field) in zip(scalar_field_names, scalar_fields):
+        for field_name, field in zip(scalar_field_names, scalar_fields):
             self.assertTrue(fields_are_equal(model.get_field(field_name), field))
 
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
