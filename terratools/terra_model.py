@@ -11,6 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 import pickle
 from . import geographic
 from . import plot
+import healpy as hp
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -118,6 +119,18 @@ class VersionError(Exception):
 
     def __init__(self, version):
         self.message = f"NetCDF file version '{version}' is not supported. Please convert with convert_files.convert"
+        super().__init__(self.message)
+   
+   
+class SizeError(Exception):
+    """
+    Exception type raised when input param is wrong shape
+    """
+
+    def __init__(self):
+        self.message = (
+            f"Input params lons, lats, field mut be of same length"
+        )
         super().__init__(self.message)
 
 
@@ -676,7 +689,207 @@ class TerraModel:
             return index, surface_radius - radii[index]
         else:
             return index, radii[index]
+     
+     
+    def _pixelise(self,signal, nside, lons, lats):
+        """
+        Grid input data to healpix grid
+        :param signal: input data length n
+        :param nside: healpy param, number of sides for healpix grid
+        :param lons: input longitudes length n
+        :param lats: input latitudes length n
+        :returns: healpix grid
+        """
+        npix = hp.nside2npix(nside)
+        pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
+        amap = np.zeros(npix)
+        count = np.zeros(npix)
+        nsample = len(signal)
+        for i in range(nsample):
+            pix = pixnum[i]
+            amap[pix] += signal[i]
+            count[pix] += 1.0
+        for i in range(npix):
+            if count[i] > 0:
+                amap[i] = amap[i] / count[i]
+            else:
+                amap[i] = hp.UNSEEN
+        return amap
+     
+    def hp_sph(
+        self,
+        field,
+        fname,
+        nside=2**6,
+        lmax=16,
+        savemap=False):
+        """
+        :param field: input field of shape (nr, nps)
+        :param fname: string, name under which to save spherical harmonic
+            coefficients and power spectra ``data.sph[fname]``
+        :param nside: healpy param, number of sides for healpix grid, power
+                      of 2 less than 2**30 (default 2**6)
+        :param lmax: maximum spherical harmonic degree (default 16)
+        :param savemap: Default (``False``) do not save the healpix map
+        """
+        
+        lons,lats=self.get_lateral_points()
+        
+        #Check that lon, lat and field are same length
+        if len(lons)!=len(lats) or len(lats)!=field.shape[1] or len(lons)!=field.shape[1]:
+            raise (SizeError)
+        
+        nr=len(self.get_radii())
+        hp_ir={}
+        for r in range(nr):
+            hpmap = self._pixelise(field[r,:],nside,lons,lats)
+            power_per_l=hp.sphtfunc.anafast(hpmap,lmax=lmax)
+            hp_coeffs=hp.sphtfunc.map2alm(hpmap,lmax=lmax,use_pixel_weights=True)
+            if savemap:
+                hp_ir[r]={'map':hmap, 'power per l':power_per_l, 'coeffs':hp_coeffs}
+            else:
+                hp_ir[r]={'power per l':power_per_l, 'coeffs':hp_coeffs}
+        try:
+            self.sph[fname]=hp_ir
+        except:
+            self.sph={}
+            self.sph[fname]=hp_ir
+        
+      
+    def plot_hp_map(
+        self,
+        fname,
+        index=None,
+        radius=None,
+        nside=2**6,
+        title=None,
+        delta=None,
+        extent=(-180, 180, -90, 90),
+        method="nearest",
+        show=True,
+        **subplots_kwargs
+        ):
+        """
+        Create heatmap of a field recreated from the spherical harmonic coefficients
+        :param fname: name of field as created using ``data.hp_sph()``
+        :param index: index of layer to plot
+        :param radius: radius to plot (nearest model radius is shown)
+        :param nside: healpy param, number of sides for healpix grid, power
+            of 2 less than 2**30 (default 2**6)
+        :param title: name of field to be included in title
+        :param delta: Grid spacing of plot in degrees
+        :param extent: Tuple giving the longitude and latitude extent of
+            plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+            in degrees
+        :param method: May be one of: "nearest" (plot nearest value to each
+            plot grid point); or "mean" (mean value in each pixel)
+        :param show: If True (the default), show the plot
+        :param **subplot_kwargs: Extra keyword arguments passed to
+            `matplotlib.pyplot.subplots`
+        :returns: figure and axis handles
+        """
+        
+        if radius is None and index is None:
+            raise ValueError("Either radius or index must be given")
+        if index is None:
+            layer_index, layer_radius = self.nearest_layer(radius, depth)
+        else:
+            radii = self.get_radii()
+            nlayers = len(radii)
+            if index < 0 or index >= nlayers:
+                raise ValueError(f"index must be between 0 and {nlayers}")
 
+            layer_index = index
+            layer_radius = radii[index]
+        
+        npix=hp.nside2npix(nside)
+        radii=self.get_radii()
+        rad=radii[layer_index]
+        lmax=len(self.sph[fname][layer_index]['power per l'])-1
+        hp_remake=hp.sphtfunc.alm2map(self.sph[fname][layer_index]['coeffs'],nside=nside,lmax=lmax)
+        
+        lon,lat=hp.pix2ang(nside,np.arange(0,npix),lonlat=True)
+        mask=lon>180.
+        lon2=(lon-360)*mask
+        lon=lon2+lon*~mask
+        if title==None:
+            label=fname
+        else:
+            label=title
+        
+        fig, ax = plot.layer_grid(
+            lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
+        )
+
+        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+
+        if show:
+            fig.show()
+            
+        return fig, ax
+      
+    def plot_spectral_heterogeneity(
+        self,
+        hp_dat,
+        title=None,
+        saveplot=False,
+        savepath=None,
+        lmin=1,
+        lmax=None,
+        lyrmin=1,
+        lyrmax=-1,
+        show=True,
+        **subplots_kwargs):
+        """
+        Plot spectral heterogenity maps of the given field, that is the power
+        spectrum over depth.
+        :param hp_dat: spectral information for given field (data.sph[field])
+        :param title: title of plot (string)
+        :param saveplot: flag to save an image of the plot to file
+        :param savepath: path under which to save plot to
+        :param lmin: minimum spherical harmonic degree to plot (default=1)
+        :param lmax: maximum spherical harmonic degree to plot (default to plot all)
+        :param lyrmin: min layer to plot (default omits boundary)
+        :param lyrmax: max layer to plot (default omits boundary)
+        :param show: if True (default) show the plot
+        :param **subplot_kwargs: Extra keyword arguments passed to
+            `matplotlib.pyplot.subplots`
+        :returns: figure and axis handles
+        """
+        nr=len(hp_dat)
+        lmax_dat=len(hp_dat[0]['power per l'])-1
+        powers=np.zeros((nr,lmax_dat+1))
+        for r in range(nr):
+            powers[r,:]=hp_dat[r]['power per l'][:]
+        
+        if lmax==None or lmax > lmax_dat:
+            lmax=lmax_dat
+            
+        radii=self.get_radii()
+        depths=self.get_radii()[-1]-radii
+        
+        fig, ax = plot.spectral_heterogeneity(powers,title,depths,lmin,lmax,
+                  saveplot,savepath,lyrmin,lyrmax,**subplots_kwargs)
+        
+        if show:
+            fig.show()
+        
+        return fig, ax
+        
+    def get_bulk_composition(
+        self):
+        """
+        Get the bulk composition field from composition histograms.
+        Stored as new attribute ``data.bulkC``
+        """
+        _c_hists=self.get_field('c_hist')
+        bc=np.zeros((_c_hists.shape[0],_c_hists.shape[1]))
+        _cnames=self.get_composition_names()
+        for i,comp in enumerate(_cnames):
+            bc=bc+_c_hists[:,:,i]*_cnames[comp]['c-val']
+        self.bulkC=bc
+        
+        
     def plot_layer(
         self,
         field,

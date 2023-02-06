@@ -26,6 +26,7 @@ netcdf4 = "^1"
 matplotlib = "^3.5"
 scikit-learn = "^1.1.2"
 Cartopy = "^0.21.0"
+healpy = "^1.16.2"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.5.0"
