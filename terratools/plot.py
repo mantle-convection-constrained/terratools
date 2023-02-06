@@ -117,8 +117,8 @@ def spectral_heterogeneity(
     savepath,
     lyrmin,
     lyrmax,
-    **subplots_kwargs
-    ):
+    **subplots_kwargs,
+):
     """
     Creates a contour plot from the power spectrum over depth
     :param indat: array containing power spectrum at each radial layer.
@@ -134,34 +134,37 @@ def spectral_heterogeneity(
             `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
     """
-    
-    logged=np.log(indat[lyrmin:lyrmax,lmin:lmax+1])
-    deps=depths[lyrmin:lyrmax]
 
-    fig,ax = plt.subplots(figsize=(8,6), **subplots_kwargs)
-        
-    plotmin=np.min(logged)
-    plotmax=np.max(logged)
-    levels=np.linspace(plotmin,plotmax,10)
-    cs = ax.contourf(np.arange(lmin,lmax+1),
-          deps,logged,levels=levels)
-    ax.set_ylabel('Depth (km)',fontsize=12)
-    ax.set_xlabel('L',fontsize=12)
-    ax.set_xlim(lmin-1,lmax+1)
+    logged = np.log(indat[lyrmin:lyrmax, lmin : lmax + 1])
+    deps = depths[lyrmin:lyrmax]
+
+    fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
+
+    plotmin = np.min(logged)
+    plotmax = np.max(logged)
+    levels = np.linspace(plotmin, plotmax, 10)
+    cs = ax.contourf(np.arange(lmin, lmax + 1), deps, logged, levels=levels)
+    ax.set_ylabel("Depth (km)", fontsize=12)
+    ax.set_xlabel("L", fontsize=12)
+    ax.set_xlim(lmin - 1, lmax + 1)
     if title == None:
-        ax.set_title(f'Spherical Harmonic Power Spectrum')
+        ax.set_title(f"Spherical Harmonic Power Spectrum")
     else:
-        ax.set_title(f'Spherical Harmonic Power Spectrum \n for {title} field')
+        ax.set_title(f"Spherical Harmonic Power Spectrum \n for {title} field")
     plt.gca().invert_yaxis()
-    cbar = fig.colorbar(cs, ax=ax, shrink=0.9,orientation='horizontal',pad=0.1)
-    cbar.set_label('ln(Power)', fontsize=12)
-    
+    cbar = fig.colorbar(cs, ax=ax, shrink=0.9, orientation="horizontal", pad=0.1)
+    cbar.set_label("ln(Power)", fontsize=12)
+
     if saveplot:
-        if savepath==None: savepath='.'
-        if title==None: title=''
-        plt.savefig(f'{savepath}/powers_{title}.pdf',format='pdf',dpi=200,bbox_inches='tight')
-    
+        if savepath == None:
+            savepath = "."
+        if title == None:
+            title = ""
+        plt.savefig(
+            f"{savepath}/powers_{title}.pdf", format="pdf", dpi=200, bbox_inches="tight"
+        )
+
     return fig, ax
-    
-    
-#def plot_hp_layer
+
+
+# def plot_hp_layer

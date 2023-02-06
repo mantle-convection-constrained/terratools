@@ -120,17 +120,15 @@ class VersionError(Exception):
     def __init__(self, version):
         self.message = f"NetCDF file version '{version}' is not supported. Please convert with convert_files.convert"
         super().__init__(self.message)
-   
-   
+
+
 class SizeError(Exception):
     """
     Exception type raised when input param is wrong shape
     """
 
     def __init__(self):
-        self.message = (
-            f"Input params lons, lats, field mut be of same length"
-        )
+        self.message = f"Input params lons, lats, field mut be of same length"
         super().__init__(self.message)
 
 
@@ -689,9 +687,8 @@ class TerraModel:
             return index, surface_radius - radii[index]
         else:
             return index, radii[index]
-     
-     
-    def _pixelise(self,signal, nside, lons, lats):
+
+    def _pixelise(self, signal, nside, lons, lats):
         """
         Grid input data to healpix grid
         :param signal: input data length n
@@ -715,14 +712,8 @@ class TerraModel:
             else:
                 amap[i] = hp.UNSEEN
         return amap
-     
-    def hp_sph(
-        self,
-        field,
-        fname,
-        nside=2**6,
-        lmax=16,
-        savemap=False):
+
+    def hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False):
         """
         :param field: input field of shape (nr, nps)
         :param fname: string, name under which to save spherical harmonic
@@ -732,30 +723,37 @@ class TerraModel:
         :param lmax: maximum spherical harmonic degree (default 16)
         :param savemap: Default (``False``) do not save the healpix map
         """
-        
-        lons,lats=self.get_lateral_points()
-        
-        #Check that lon, lat and field are same length
-        if len(lons)!=len(lats) or len(lats)!=field.shape[1] or len(lons)!=field.shape[1]:
+
+        lons, lats = self.get_lateral_points()
+
+        # Check that lon, lat and field are same length
+        if (
+            len(lons) != len(lats)
+            or len(lats) != field.shape[1]
+            or len(lons) != field.shape[1]
+        ):
             raise (SizeError)
-        
-        nr=len(self.get_radii())
-        hp_ir={}
+
+        nr = len(self.get_radii())
+        hp_ir = {}
         for r in range(nr):
-            hpmap = self._pixelise(field[r,:],nside,lons,lats)
-            power_per_l=hp.sphtfunc.anafast(hpmap,lmax=lmax)
-            hp_coeffs=hp.sphtfunc.map2alm(hpmap,lmax=lmax,use_pixel_weights=True)
+            hpmap = self._pixelise(field[r, :], nside, lons, lats)
+            power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
+            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
             if savemap:
-                hp_ir[r]={'map':hmap, 'power per l':power_per_l, 'coeffs':hp_coeffs}
+                hp_ir[r] = {
+                    "map": hmap,
+                    "power per l": power_per_l,
+                    "coeffs": hp_coeffs,
+                }
             else:
-                hp_ir[r]={'power per l':power_per_l, 'coeffs':hp_coeffs}
+                hp_ir[r] = {"power per l": power_per_l, "coeffs": hp_coeffs}
         try:
-            self.sph[fname]=hp_ir
+            self.sph[fname] = hp_ir
         except:
-            self.sph={}
-            self.sph[fname]=hp_ir
-        
-      
+            self.sph = {}
+            self.sph[fname] = hp_ir
+
     def plot_hp_map(
         self,
         fname,
@@ -767,8 +765,8 @@ class TerraModel:
         extent=(-180, 180, -90, 90),
         method="nearest",
         show=True,
-        **subplots_kwargs
-        ):
+        **subplots_kwargs,
+    ):
         """
         Create heatmap of a field recreated from the spherical harmonic coefficients
         :param fname: name of field as created using ``data.hp_sph()``
@@ -788,7 +786,7 @@ class TerraModel:
             `matplotlib.pyplot.subplots`
         :returns: figure and axis handles
         """
-        
+
         if radius is None and index is None:
             raise ValueError("Either radius or index must be given")
         if index is None:
@@ -801,22 +799,24 @@ class TerraModel:
 
             layer_index = index
             layer_radius = radii[index]
-        
-        npix=hp.nside2npix(nside)
-        radii=self.get_radii()
-        rad=radii[layer_index]
-        lmax=len(self.sph[fname][layer_index]['power per l'])-1
-        hp_remake=hp.sphtfunc.alm2map(self.sph[fname][layer_index]['coeffs'],nside=nside,lmax=lmax)
-        
-        lon,lat=hp.pix2ang(nside,np.arange(0,npix),lonlat=True)
-        mask=lon>180.
-        lon2=(lon-360)*mask
-        lon=lon2+lon*~mask
-        if title==None:
-            label=fname
+
+        npix = hp.nside2npix(nside)
+        radii = self.get_radii()
+        rad = radii[layer_index]
+        lmax = len(self.sph[fname][layer_index]["power per l"]) - 1
+        hp_remake = hp.sphtfunc.alm2map(
+            self.sph[fname][layer_index]["coeffs"], nside=nside, lmax=lmax
+        )
+
+        lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
+        mask = lon > 180.0
+        lon2 = (lon - 360) * mask
+        lon = lon2 + lon * ~mask
+        if title == None:
+            label = fname
         else:
-            label=title
-        
+            label = title
+
         fig, ax = plot.layer_grid(
             lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
@@ -825,9 +825,9 @@ class TerraModel:
 
         if show:
             fig.show()
-            
+
         return fig, ax
-      
+
     def plot_spectral_heterogeneity(
         self,
         hp_dat,
@@ -839,7 +839,8 @@ class TerraModel:
         lyrmin=1,
         lyrmax=-1,
         show=True,
-        **subplots_kwargs):
+        **subplots_kwargs,
+    ):
         """
         Plot spectral heterogenity maps of the given field, that is the power
         spectrum over depth.
@@ -856,40 +857,48 @@ class TerraModel:
             `matplotlib.pyplot.subplots`
         :returns: figure and axis handles
         """
-        nr=len(hp_dat)
-        lmax_dat=len(hp_dat[0]['power per l'])-1
-        powers=np.zeros((nr,lmax_dat+1))
+        nr = len(hp_dat)
+        lmax_dat = len(hp_dat[0]["power per l"]) - 1
+        powers = np.zeros((nr, lmax_dat + 1))
         for r in range(nr):
-            powers[r,:]=hp_dat[r]['power per l'][:]
-        
-        if lmax==None or lmax > lmax_dat:
-            lmax=lmax_dat
-            
-        radii=self.get_radii()
-        depths=self.get_radii()[-1]-radii
-        
-        fig, ax = plot.spectral_heterogeneity(powers,title,depths,lmin,lmax,
-                  saveplot,savepath,lyrmin,lyrmax,**subplots_kwargs)
-        
+            powers[r, :] = hp_dat[r]["power per l"][:]
+
+        if lmax == None or lmax > lmax_dat:
+            lmax = lmax_dat
+
+        radii = self.get_radii()
+        depths = self.get_radii()[-1] - radii
+
+        fig, ax = plot.spectral_heterogeneity(
+            powers,
+            title,
+            depths,
+            lmin,
+            lmax,
+            saveplot,
+            savepath,
+            lyrmin,
+            lyrmax,
+            **subplots_kwargs,
+        )
+
         if show:
             fig.show()
-        
+
         return fig, ax
-        
-    def get_bulk_composition(
-        self):
+
+    def get_bulk_composition(self):
         """
         Get the bulk composition field from composition histograms.
         Stored as new attribute ``data.bulkC``
         """
-        _c_hists=self.get_field('c_hist')
-        bc=np.zeros((_c_hists.shape[0],_c_hists.shape[1]))
-        _cnames=self.get_composition_names()
-        for i,comp in enumerate(_cnames):
-            bc=bc+_c_hists[:,:,i]*_cnames[comp]['c-val']
-        self.bulkC=bc
-        
-        
+        _c_hists = self.get_field("c_hist")
+        bc = np.zeros((_c_hists.shape[0], _c_hists.shape[1]))
+        _cnames = self.get_composition_names()
+        for i, comp in enumerate(_cnames):
+            bc = bc + _c_hists[:, :, i] * _cnames[comp]["c-val"]
+        self.bulkC = bc
+
     def plot_layer(
         self,
         field,
@@ -977,7 +986,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     # Total number of lateral points and number of layers,
     # allowing us to preallocate arrays.  Consistency is checked on the next pass.
     npts_total = 0
-    for (file_number, file) in enumerate(files):
+    for file_number, file in enumerate(files):
         nc = netCDF4.Dataset(file)
         if "nps" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'nps'")
@@ -999,7 +1008,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _c_hist_names = {}
 
     npts_pointer = 0
-    for (file_number, file) in enumerate(files):
+    for file_number, file in enumerate(files):
         nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
@@ -1153,7 +1162,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
 
-    for (field_name, array) in _fields.items():
+    for field_name, array in _fields.items():
         ndims = array.ndim
         if ndims == 2:
             if must_flip_radii:
