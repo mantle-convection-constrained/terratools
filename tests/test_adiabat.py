@@ -29,7 +29,6 @@ class TestAdiabat(unittest.TestCase):
         self.assertEqual(t1, adiabat, "relative adiabat calculation is not working")
 
     def test_add_adiabat(self):
-
         m.add_adiabat()
         radii = m.get_radii()
         temps = m.get_field("t")
