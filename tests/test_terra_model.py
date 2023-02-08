@@ -19,6 +19,7 @@ from terratools.terra_model import TerraModel
 coord_tol = np.finfo(terra_model.COORDINATE_TYPE).eps
 value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 
+
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
     lon, lat, r = random_coordinates(nlayers, npts)
@@ -193,7 +194,7 @@ class TestTerraModelConstruction(unittest.TestCase):
 
         self.assertTrue(coords_are_equal(model.get_radii(), r))
 
-        for (field_name, field) in zip(scalar_field_names, scalar_fields):
+        for field_name, field in zip(scalar_field_names, scalar_fields):
             self.assertTrue(fields_are_equal(model.get_field(field_name), field))
 
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
@@ -332,6 +333,30 @@ class TestTerraModelRepr(unittest.TestCase):
          composition names: ['a', 'b']""",
         )
 
+    def test_get_bulk_composition(self):
+        npts = 16
+        nlayers = 3
+        lon = np.linspace(0, 180, npts)
+        lat = np.linspace(0, 90, npts)
+        r = [1000, 1999, 2000]
+        t_field = random_field(nlayers, npts)
+        c_hist_field = np.zeros((nlayers, npts, 3))
+        cnames = {
+            "composition_0": {"name": "a", "c-val": 0.0},
+            "composition_1": {"name": "b", "c-val": 0.2},
+            "composition_2": {"name": "c", "c-val": 1.0},
+        }
+        model = TerraModel(
+            lon,
+            lat,
+            r,
+            fields={"t": t_field, "c_hist": c_hist_field},
+            c_histogram_names=cnames,
+        )
+
+        model.get_bulk_composition()
+        self.assertEqual(model.get_field("c").shape, model.get_field("t").shape)
+
 
 class TestTerraModelNearestIndex(unittest.TestCase):
     def test_nearest_index(self):
@@ -451,6 +476,22 @@ class TestTerraModelEvaluate(unittest.TestCase):
         )
 
 
+class TestModelHealpy(unittest.TestCase):
+    def test_hp_sph(self):
+        model = dummy_model(with_fields=True)
+        model.hp_sph(model.get_field("t"), "temp")
+        self.assertEqual(len(model.sph), 1)
+        self.assertEqual(len(model.sph["temp"]), 3)
+
+    def test_plot_spectral_heterogeneity(self):
+        model = dummy_model(with_fields=True)
+        model.hp_sph(model.get_field("t"), "temp")
+        fig, ax = model.plot_spectral_heterogeneity("temp", lyrmin=0, lyrmax=-1)
+        self.assertIsInstance(fig, Figure)
+        self.assertEqual(ax.get_xlabel(), "L")
+        self.assertEqual(ax.get_ylabel(), "Depth (km)")
+
+
 class TestNearestIndex(unittest.TestCase):
     def test_below(self):
         self.assertEqual(terra_model._nearest_index(0.9, [1, 2, 3]), 0)
@@ -512,6 +553,14 @@ if _CARTOPY_INSTALLED:
         def test_plot_layer_index(self):
             model = dummy_model(with_fields=True)
             fig, ax = model.plot_layer("t", index=2, depth=True, show=False)
+            self.assertIsInstance(fig, Figure)
+            self.assertIsInstance(ax, GeoAxesSubplot)
+
+    class TestPlotHealpy(unittest.TestCase):
+        def test_plot_hp_map(self):
+            model = dummy_model(with_fields=True)
+            model.hp_sph(model.get_field("t"), "temp")
+            fig, ax = model.plot_hp_map("temp", index=1)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 
