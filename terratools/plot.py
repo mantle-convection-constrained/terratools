@@ -3,11 +3,20 @@ This submodule contains internal functions for performing
 plotting of TerraModels and other classes in terratools.
 """
 
-import cartopy.crs as ccrs
+_CARTOPY_INSTALLED = True
+_CARTOPY_NOT_INSTALLED_EXCEPTION = None
+
+try:
+    import cartopy.crs as ccrs
+except ImportError as exception:
+    _CARTOPY_INSTALLED = False
+    _CARTOPY_NOT_INSTALLED_EXCEPTION = exception
+
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate
 import scipy.stats
+import sys
 
 
 def layer_grid(
@@ -41,6 +50,10 @@ def layer_grid(
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
     """
+    if not _CARTOPY_INSTALLED:
+        sys.stderr.write("layer_grid require cartopy to be installed")
+        raise _CARTOPY_NOT_INSTALLED_EXCEPTION
+
     fig, ax = plt.subplots(
         subplot_kw={"projection": ccrs.EqualEarth()}, **subplots_kwargs
     )
