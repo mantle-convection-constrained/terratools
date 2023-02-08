@@ -830,7 +830,7 @@ class TerraModel:
 
     def plot_spectral_heterogeneity(
         self,
-        hp_dat,
+        fname,
         title=None,
         saveplot=False,
         savepath=None,
@@ -844,7 +844,7 @@ class TerraModel:
         """
         Plot spectral heterogenity maps of the given field, that is the power
         spectrum over depth.
-        :param hp_dat: spectral information for given field (data.sph[field])
+        :param fname: name of field to plot as created using model.hp_sph()
         :param title: title of plot (string)
         :param saveplot: flag to save an image of the plot to file
         :param savepath: path under which to save plot to
@@ -857,11 +857,11 @@ class TerraModel:
             `matplotlib.pyplot.subplots`
         :returns: figure and axis handles
         """
-        nr = len(hp_dat)
-        lmax_dat = len(hp_dat[0]["power per l"]) - 1
+        nr = len(self.sph[fname])
+        lmax_dat = len(self.sph[fname][0]["power per l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
         for r in range(nr):
-            powers[r, :] = hp_dat[r]["power per l"][:]
+            powers[r, :] = self.sph[fname][r]["power per l"][:]
 
         if lmax == None or lmax > lmax_dat:
             lmax = lmax_dat
@@ -890,14 +890,14 @@ class TerraModel:
     def get_bulk_composition(self):
         """
         Get the bulk composition field from composition histograms.
-        Stored as new attribute ``data.bulkC``
+        Stored as new scalar field 'c'
         """
         _c_hists = self.get_field("c_hist")
         bc = np.zeros((_c_hists.shape[0], _c_hists.shape[1]))
         _cnames = self.get_composition_names()
         for i, comp in enumerate(_cnames):
             bc = bc + _c_hists[:, :, i] * _cnames[comp]["c-val"]
-        self.bulkC = bc
+        self.set_field("c", bc)
 
     def plot_layer(
         self,
