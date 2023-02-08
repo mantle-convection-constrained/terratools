@@ -119,7 +119,6 @@ def make_build_files(
 
     for iP in range(len(pressure_bounds) - 1):
         for iT in range(len(temperature_bounds) - 1):
-
             basename = f"{project_name}_{iP:02d}_{iT:02d}"
 
             LP_bar = str(pressure_bounds[iP] / 1.0e5)
@@ -330,7 +329,6 @@ def perplex_to_grid(
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
 
         for i_cell, j_cell in nan_cells:
-
             for i_prp in [2, 3, 4]:
                 block = out[i_cell - 1 : i_cell + 2, j_cell - 1 : j_cell + 2, i_prp]
                 if block.shape[0] > 0:
@@ -340,7 +338,7 @@ def perplex_to_grid(
     nan_indices = np.unique(np.argwhere(np.isnan(out))[:, 0])
     if len(nan_indices) > 0:
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
-        for (i, j) in nan_cells:
+        for i, j in nan_cells:
             if i == 0:
                 out[i, j, 3:] = 2.0 * out[i + 1, j, 3:] - out[i + 2, j, 3:]
 
@@ -348,7 +346,7 @@ def perplex_to_grid(
     if len(nan_indices) > 0:
         print("The following data with nans could not be filled:")
         nan_cells = np.unique(np.argwhere(np.isnan(out))[:, :2], axis=0)
-        for (i, j) in nan_cells:
+        for i, j in nan_cells:
             print(out[i, j])
 
     os.chdir(working_directory)
