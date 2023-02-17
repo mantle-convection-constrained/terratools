@@ -65,7 +65,7 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vphi": ("v_bulk",),
     "vp_an": ("vp_anelastic",),
     "vs_an": ("vs_anelastic",),
-    "Density": ("density",),
+    "density": ("density",),
 }
 
 
@@ -1085,7 +1085,6 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 continue
 
             field_name = _field_name_from_variable(var)
-
             if field_name not in fields_to_read:
                 continue
 
