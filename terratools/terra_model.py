@@ -563,7 +563,7 @@ class TerraModel:
         :returns: radius of each layer in km
         """
         return self._radius
-    
+
     def get_1d_mean(self, field):
         """
         Return the mean of the given field at each radius
@@ -585,7 +585,7 @@ class TerraModel:
 
     def get_1d_profile(self, field, lat, lon):
         """
-        Return the 1d profile of the given field 
+        Return the 1d profile of the given field
         at a given latitude and longitude point.
 
         :param field: name of field.
@@ -608,7 +608,7 @@ class TerraModel:
         field_values = self.get_field(field)
 
         # take mean across the radii layers
-        profile = field_values[:,i]
+        profile = field_values[:, i]
 
         return profile
 
@@ -834,7 +834,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     # Total number of lateral points and number of layers,
     # allowing us to preallocate arrays.  Consistency is checked on the next pass.
     npts_total = 0
-    for (file_number, file) in enumerate(files):
+    for file_number, file in enumerate(files):
         nc = netCDF4.Dataset(file)
         if "nps" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'nps'")
@@ -856,7 +856,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _c_hist_names = {}
 
     npts_pointer = 0
-    for (file_number, file) in enumerate(files):
+    for file_number, file in enumerate(files):
         nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
@@ -1010,7 +1010,7 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
 
-    for (field_name, array) in _fields.items():
+    for field_name, array in _fields.items():
         ndims = array.ndim
         if ndims == 2:
             if must_flip_radii:
