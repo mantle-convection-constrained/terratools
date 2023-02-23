@@ -22,10 +22,10 @@ def get_rotmat_to_geographical(lat, lon):
     :rtype trans: 2D numpy array
     """
 
-    if type(lat) != int and type(lat) != float:
+    if not isinstance(lat, (int, float)) and lat.dtype.kind != 'f' and lat.dtype.kind == 'i':
         raise AssertionError("latitude needs to be integer or float")
 
-    if type(lon) != int and type(lon) != float:
+    if not isinstance(lon, (int, float)) and lon.dtype.kind != 'f' and lon.dtype.kind == 'i':
         raise AssertionError("longitude needs to be integer or float")
 
     # Unit vectors on global system
@@ -77,7 +77,7 @@ def rotate_vector(vec, lat, lon):
     :rtype vec: 1D numpy array of floats
     """
 
-    if np.array(list(vec)).dtype != float and np.array(list(vec)).dtype != int:
+    if vec.dtype.kind != 'f' and vec.dtype.kind != 'i':
         raise AssertionError("flow vector needs to hold integers or floats.")
 
     # get transformation matrix
