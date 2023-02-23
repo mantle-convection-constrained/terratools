@@ -11,6 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 import pickle
 from . import geographic
 from . import plot
+from . import flow_conversion
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -645,10 +646,9 @@ class TerraModel:
         elif len(lon) != len(lat):
             raise ValueError("lon and lat must be the same length")
 
-        lon_radians = np.radians(lon)
-        lat_radians = np.radians(lat)
-        coords = np.array([[lat, lon] for lon, lat in zip(lon_radians, lat_radians)])
-        distances, indices = self._knn_tree.kneighbors(coords, n_neighbors=n)
+        latlon = np.array([lat, lon]).T
+        latlon_radians = np.radians(latlon)
+        distances, indices = self._knn_tree.kneighbors(latlon_radians, n_neighbors=n)
 
         if scalar_input:
             return indices[0], distances[0]
@@ -757,6 +757,36 @@ class TerraModel:
             self._fields["t"][layer_index] = self._fields["t"][layer_index] + dt
 
         return
+
+    def add_geog_flow(self):
+        """
+        Add the field u_geog which holds the flow vector which 
+        has been rotated from cartesian to geographical. 
+
+        :param: none
+        :return: none
+        """
+
+        flow_xyz = self.get_field('u_xyz')
+
+        flow_geog = np.zeros(flow_xyz.shape)
+
+        for point in range(self._npts):
+            lat = self._lat[point]
+            lon = self._lon[point]
+
+            # get flow vector for one lon, lat
+            # at all radii
+            flows_point_all_radii = flow_xyz[:,point]
+
+            # rotate vectors
+            flow_geog_point = flow_conversion.rotate_vector(lon = lon, lat = lat, vec = flows_point_all_radii)
+
+            # populate array with rotated vectors
+            flow_geog[:,point] = flow_geog_point
+
+        self.set_field(field='u_geog', values=flow_geog)
+
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
