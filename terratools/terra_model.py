@@ -1119,7 +1119,6 @@ def read_netcdf(
                 continue
 
             field_name = _field_name_from_variable(var)
-
             if field_name not in fields_to_read:
                 continue
 
