@@ -34,6 +34,7 @@ _SCALAR_FIELDS = {
     "density": "Density [g/cm^3]",
     "qp": "P-wave quality factor [unitless]",
     "qs": "S-wave quality factor [unitless]",
+    "visc": "Viscosity [Pas]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -65,7 +66,8 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vphi": ("v_bulk",),
     "vp_an": ("vp_anelastic",),
     "vs_an": ("vs_anelastic",),
-    "Density": ("density",),
+    "density": ("density",),
+    "visc": ("viscosity",),
 }
 
 
@@ -981,7 +983,9 @@ class TerraModel:
         return
 
 
-def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
+def read_netcdf(
+    files, fields=None, surface_radius=6370.0, test_lateral_points=False, cat=False
+):
     """
     Read a TerraModel from a set of NetCDF files.
 
@@ -1008,20 +1012,38 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     # Total number of lateral points and number of layers,
     # allowing us to preallocate arrays.  Consistency is checked on the next pass.
     npts_total = 0
-    for file_number, file in enumerate(files):
+    if not cat:
+        for file_number, file in enumerate(files):
+            nc = netCDF4.Dataset(file)
+            if "nps" not in nc.dimensions:
+                raise ValueError(f"File {file} does not contain the dimension 'nps'")
+            npts_total += nc.dimensions["nps"].size
+
+            _check_version(nc)
+
+            if "depths" not in nc.dimensions:
+                raise ValueError(f"File {file} does not contain the dimension 'Depths'")
+            if file_number == 0:
+                nlayers = nc.dimensions["depths"].size
+                # Take the radii from the first file
+                _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nfiles = len(files)
+    else:
+        file = files
         nc = netCDF4.Dataset(file)
         if "nps" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'nps'")
-        npts_total += nc.dimensions["nps"].size
+        if "record" not in nc.dimensions:
+            raise ValueError(f"Expecting concatenated file with dimension 'record'")
+        npts_total = nc.dimensions["nps"].size * nc.dimensions["record"].size
 
         _check_version(nc)
 
         if "depths" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'Depths'")
-        if file_number == 0:
-            nlayers = nc.dimensions["depths"].size
-            # Take the radii from the first file
-            _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nlayers = nc.dimensions["depths"].size
+        _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nfiles = nc.dimensions["record"].size
 
     # Passed to constructor
     _fields = {}
@@ -1030,8 +1052,16 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _c_hist_names = {}
 
     npts_pointer = 0
-    for file_number, file in enumerate(files):
+
+    if cat:
         nc = netCDF4.Dataset(file)
+
+    for file_number in range(nfiles):
+
+        # read in next file if not loading from concatenated file
+        if not cat:
+            file = files[file_number]
+            nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
 
@@ -1054,8 +1084,12 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
         # Assume that the latitudes and longitudes are the same for each
         # depth slice, and so are repeated
-        this_slice_lat = nc["latitude"][:]
-        this_slice_lon = nc["longitude"][:]
+        if not cat:
+            this_slice_lat = nc["latitude"][:]
+            this_slice_lon = nc["longitude"][:]
+        else:
+            this_slice_lat = nc["latitude"][file_number, :]
+            this_slice_lon = nc["longitude"][file_number, :]
 
         _lat[npts_range] = this_slice_lat
         _lon[npts_range] = this_slice_lon
@@ -1091,7 +1125,10 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
             # Handle scalar fields
             if _is_scalar_field(field_name):
-                field_data = nc[var][:]
+                if not cat:
+                    field_data = nc[var][:]
+                else:
+                    field_data = nc[var][file_number, :]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
@@ -1110,9 +1147,14 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 ncomps = _VECTOR_FIELD_NCOMPS[field_name]
                 uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
 
-                uxyz[:, :, 0] = nc["velocity_x"][:]
-                uxyz[:, :, 1] = nc["velocity_y"][:]
-                uxyz[:, :, 2] = nc["velocity_z"][:]
+                if not cat:
+                    uxyz[:, :, 0] = nc["velocity_x"][:]
+                    uxyz[:, :, 1] = nc["velocity_y"][:]
+                    uxyz[:, :, 2] = nc["velocity_z"][:]
+                else:
+                    uxyz[:, :, 0] = nc["velocity_x"][file_number, :]
+                    uxyz[:, :, 1] = nc["velocity_y"][file_number, :]
+                    uxyz[:, :, 2] = nc["velocity_z"][file_number, :]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
@@ -1163,12 +1205,18 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 nth_comp = nth_comp + 1.0
                 for local_var in vars_to_read:
                     for c in range(ncomps):
-                        nth_comp = nth_comp - nc[local_var][c, :, :]
-                        _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
+                        if not cat:
+                            nth_comp = nth_comp - nc[local_var][c, :, :]
+                            _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
+                        else:
+                            nth_comp = nth_comp - nc[local_var][file_number, c, :, :]
+                            _fields["c_hist"][:, npts_range, c] = nc[local_var][
+                                file_number, c, :, :
+                            ]
                     _fields["c_hist"][:, npts_range, -1] = nth_comp[:]
                 _test_composition(_fields["c_hist"][:, npts_range, :])
-
-        nc.close()
+        if not cat:  # close only if reading in list of files
+            nc.close()
         npts_pointer += npts
 
     # Check for need to sort points in increasing radius
