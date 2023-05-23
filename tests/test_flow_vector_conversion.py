@@ -153,9 +153,7 @@ class TestAddGeogFlow(unittest.TestCase):
     def test_add_geog_flow(self):
 
         self.m.add_geog_flow()
-
         u_geog = self.m.get_field("u_geog")
-        print(u_geog)
         expected_vector_1 = np.array([1, 0, 0])
         expected_vector_2 = np.array([0, 0, -1])
 
