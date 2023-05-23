@@ -2,6 +2,8 @@ from cgitb import lookup
 import unittest
 import numpy as np
 from terratools.flow_conversion import rotate_vector
+import terratools.terra_model as tm
+
 
 
 class TestRotateVector(unittest.TestCase):
@@ -133,6 +135,28 @@ class TestRotateVectorErrors(unittest.TestCase):
         with self.assertRaises(AssertionError):
             rotate_vector(vec_scalar, 0, 0)
 
+class TestAddGeogFlow(unittest.TestCase):
+    def setUp(self):
+        self.x_vector = [1, 0, 0]
+        self.y_vector = [0, 1, 0]
+        self.z_vector = [0, 0, 1]
+        self.minus_x_vector = [-1, 0, 0]
+        self.minus_y_vector = [0, -1, 0]
+        self.minus_z_vector = [0, 0, -1]
+        self.m = tm.TerraModel(
+            lon=[0,0], lat=[0,90], r=[6370], fields={"u_xyz": np.array([[self.z_vector, self.minus_z_vector]])}
+                                )
+    def test_add_geog_flow(self):
+
+        self.m.add_geog_flow()
+
+        u_geog = self.m.get_field('u_geog')
+        print(u_geog)
+        expected_vector_1 = np.array([1, 0, 0])
+        expected_vector_2 = np.array([0, 0, -1])
+
+        self.assertAlmostEqual(u_geog[0,0,0], expected_vector_1[0])
+        self.assertAlmostEqual(u_geog[0,0,1], expected_vector_2[1])
 
 if __name__ == "__main__":
     unittest.main()
