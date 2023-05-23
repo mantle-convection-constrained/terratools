@@ -27,7 +27,7 @@ def get_rotmat_to_geographical(lat, lon):
         if lat.dtype.kind != "f" and lat.dtype.kind == "i":
             raise AssertionError("latitude needs to be integer or float")
     elif np.isscalar(lat):
-        if not isinstance(lat, (int, float)):
+        if not isinstance(lat, (int, float, np.floating, np.integer)):
             raise AssertionError("latitude needs to be integer or float")
     else:
         raise AssertionError("latitude type not acceptable")
@@ -36,7 +36,7 @@ def get_rotmat_to_geographical(lat, lon):
         if lon.dtype.kind != "f" and lon.dtype.kind == "i":
             raise AssertionError("longitude needs to be integer or float")
     elif np.isscalar(lon):
-        if not isinstance(lon, (int, float)):
+        if not isinstance(lon, (int, float, np.floating, np.integer)):
             raise AssertionError("longitude needs to be integer or float")
     else:
         raise AssertionError("longitude type not acceptable")
