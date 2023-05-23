@@ -24,23 +24,22 @@ def get_rotmat_to_geographical(lat, lon):
 
     # check latitude is an integer or a float
     if isinstance(lat, np.ndarray):
-        if lat.dtype.kind != 'f' and lat.dtype.kind == 'i':
+        if lat.dtype.kind != "f" and lat.dtype.kind == "i":
             raise AssertionError("latitude needs to be integer or float")
     elif np.isscalar(lat):
         if not isinstance(lat, (int, float)):
-                raise AssertionError("latitude needs to be integer or float")
+            raise AssertionError("latitude needs to be integer or float")
     else:
         raise AssertionError("latitude type not acceptable")
 
     if isinstance(lat, np.ndarray):
-        if lon.dtype.kind != 'f' and lon.dtype.kind == 'i':
+        if lon.dtype.kind != "f" and lon.dtype.kind == "i":
             raise AssertionError("longitude needs to be integer or float")
     elif np.isscalar(lon):
         if not isinstance(lon, (int, float)):
             raise AssertionError("longitude needs to be integer or float")
     else:
         raise AssertionError("longitude type not acceptable")
-
 
     # Unit vectors on global system
     x_hat = np.array([1.0, 0.0, 0.0])
@@ -95,11 +94,11 @@ def rotate_vector(vec, lat, lon):
     vec = np.array(vec)
 
     if isinstance(vec, np.ndarray):
-        if vec.dtype.kind != 'f' and vec.dtype.kind != 'i':
+        if vec.dtype.kind != "f" and vec.dtype.kind != "i":
             raise AssertionError("flow vector needs to hold integers or floats.")
     else:
         raise AssertionError("flow vector needs to be a numpy array.")
-    
+
     # get transformation matrix
     trans = get_rotmat_to_geographical(lat, lon)
     # apply transform to cartesian vector

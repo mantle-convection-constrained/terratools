@@ -760,14 +760,14 @@ class TerraModel:
 
     def add_geog_flow(self):
         """
-        Add the field u_geog which holds the flow vector which 
-        has been rotated from cartesian to geographical. 
+        Add the field u_geog which holds the flow vector which
+        has been rotated from cartesian to geographical.
 
         :param: none
         :return: none
         """
 
-        flow_xyz = self.get_field('u_xyz')
+        flow_xyz = self.get_field("u_xyz")
 
         flow_geog = np.zeros(flow_xyz.shape)
 
@@ -777,16 +777,17 @@ class TerraModel:
 
             # get flow vector for one lon, lat
             # at all radii
-            flows_point_all_radii = flow_xyz[:,point]
+            flows_point_all_radii = flow_xyz[:, point]
 
             # rotate vectors
-            flow_geog_point = flow_conversion.rotate_vector(lon = lon, lat = lat, vec = flows_point_all_radii)
+            flow_geog_point = flow_conversion.rotate_vector(
+                lon=lon, lat=lat, vec=flows_point_all_radii
+            )
 
             # populate array with rotated vectors
-            flow_geog[:,point] = flow_geog_point
+            flow_geog[:, point] = flow_geog_point
 
-        self.set_field(field='u_geog', values=flow_geog)
-
+        self.set_field(field="u_geog", values=flow_geog)
 
 
 def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
