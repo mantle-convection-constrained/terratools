@@ -119,6 +119,7 @@ class TestRotateVectorErrors(unittest.TestCase):
         lon = "lon"
         lat = "lat"
         vec = ["vec1", "vec2", "vec3"]
+        vec_scalar='2'
 
         with self.assertRaises(AssertionError):
             rotate_vector([1, 0, 0], lat, 0)
@@ -128,6 +129,9 @@ class TestRotateVectorErrors(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             rotate_vector(vec, 0, 0)
+
+        with self.assertRaises(AssertionError):
+            rotate_vector(vec_scalar, 0, 0)
 
 
 if __name__ == "__main__":
