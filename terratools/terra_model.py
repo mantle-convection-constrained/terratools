@@ -578,6 +578,54 @@ class TerraModel:
         """
         return self._radius
 
+    def get_1d_mean(self, field):
+        """
+        Return the mean of the given field at each radius
+
+        :param field: name of field.
+        :type field: str
+
+        :returns profile: mean values of field at each radius.
+        :rtype profile: 1d numpy array of floats.
+        """
+
+        # shape is [nradii, npoints]
+        field_values = self.get_field(field)
+
+        # take mean across the radii layers
+        profile = np.mean(field_values, axis=1)
+
+        return profile
+
+    def get_1d_profile(self, field, lat, lon):
+        """
+        Return the 1d profile of the given field
+        at a given latitude and longitude point.
+
+        :param field: name of field.
+        :type field: str
+
+        :param field: latitude to get 1d profile.
+        :type field: float
+
+        :param field: longitude to get 1d profile.
+        :type field: float
+
+        :returns profile: values of field for each radius
+                          at a given latitude and longitude.
+        :rtype profile: 1d numpy array of floats.
+        """
+
+        i = self.nearest_index(lon, lat)
+
+        # shape is [nradii, npoints]
+        field_values = self.get_field(field)
+
+        # take mean across the radii layers
+        profile = field_values[:, i]
+
+        return profile
+
     def nearest_index(self, lon, lat):
         """
         Return the index or indices of the lateral point(s) nearest to the
