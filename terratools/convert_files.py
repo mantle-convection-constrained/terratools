@@ -44,7 +44,7 @@ def convert(files, test=False):
                 | stat.S_IROTH,
             )
         data = nc4.Dataset(file, mode="a")
-
+        depths = data["Depths"][:]
         variables = (
             data.variables.copy()
         )  # Copy so not overwriting dictionary keys in loop
@@ -98,6 +98,8 @@ def convert(files, test=False):
         lon_var[:] = data["Lon_old"][0, :]
         lon_var.units = "degrees"
 
+        data["depths"][:] = depths
+
         # Global variables
         data.version = 1.0
         data.nth_comp = "bas_frac = 1 - hzb_frac - lhz_frac"
@@ -114,7 +116,7 @@ def convert(files, test=False):
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
             os.system(f"ncks -C -O -x -v Lat_old {path}/{fname} {path}/{fname}_new")
             os.system(f"mv {path}/{fname}_new {path}/{fname}")
-        elif not cleanup:
+        elif not cleanup and not test:
             print("ncks is not available on your PATH so cannot clean up old variables")
             print("ncks is available with NCO (NetCDF Operators)")
 

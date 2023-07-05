@@ -15,7 +15,7 @@ def assert_tuples_close(testcase, tup1, tup2, atol=1e-7):
     are within atol of each other."""
     testcase.assertEqual(len(tup1), len(tup2))
     testcase.assertEqual(type(tup1), type(tup2))
-    for (v1, v2) in zip(tup1, tup2):
+    for v1, v2 in zip(tup1, tup2):
         testcase.assertAlmostEqual(v1, v2, delta=atol)
 
 
