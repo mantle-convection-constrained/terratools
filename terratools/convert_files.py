@@ -44,7 +44,7 @@ def convert(files, test=False):
                 | stat.S_IROTH,
             )
         data = nc4.Dataset(file, mode="a")
-
+        depths = data["Depths"][:]
         variables = (
             data.variables.copy()
         )  # Copy so not overwriting dictionary keys in loop
@@ -97,6 +97,8 @@ def convert(files, test=False):
         lat_var.units = "degrees"
         lon_var[:] = data["Lon_old"][0, :]
         lon_var.units = "degrees"
+
+        data["depths"][:] = depths
 
         # Global variables
         data.version = 1.0

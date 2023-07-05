@@ -35,7 +35,7 @@ import netCDF4 as nc4
 Make a sub-directory in the current location where we can store the 'old' files.
 """
 
-directory = "./old_nc_files/"
+directory = "./example_nc_files/"
 try:
     os.mkdir(f"{directory}")
 except:
@@ -47,7 +47,7 @@ We can then make some 'old' files, we'll just make 3 for this example.
 """
 nfiles = 3
 for filen in range(nfiles):
-    oldfilepath = os.path.join(directory, f"example_old_file_{filen}.nc")
+    oldfilepath = os.path.join(directory, f"example_file_{filen}.nc")
     oldfile = test_convert_files.make_old_file(oldfilepath)
 
 
@@ -59,7 +59,7 @@ new ones. We have set test=True here to prevent calling ncks which must be in yo
 PATH in order to remove old netcdf variables. ncks is available through NCO (NetCDF
 Operators - https://nco.sourceforge.net/ ).
 """
-files = glob.glob(f"{directory}/example_old_file_*.nc")
+files = glob.glob(f"{directory}/example_file_*.nc")
 convert_files.convert(files, test=True)
 
 
@@ -69,7 +69,9 @@ Lets load one of the converted files and check some of the dimensions and
 variables against the old file.
 """
 
-newfile = nc4.Dataset(f"{directory}/example_old_file_{nfiles-1}.nc")
+newfile = nc4.Dataset(f"{directory}/example_file_{nfiles-1}.nc")
 
 print("Old latitude ", oldfile.variables["Latitude"].shape)
 print("New latitude ", newfile.variables["latitude"].shape)
+
+os.system(f"rm -rf {directory}")

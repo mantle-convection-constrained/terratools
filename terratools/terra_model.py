@@ -11,6 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 import pickle
 from . import geographic
 from . import plot
+import healpy as hp
 from . import flow_conversion
 
 # Precision of coordinates in TerraModel
@@ -34,6 +35,7 @@ _SCALAR_FIELDS = {
     "density": "Density [g/cm^3]",
     "qp": "P-wave quality factor [unitless]",
     "qs": "S-wave quality factor [unitless]",
+    "visc": "Viscosity [Pas]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -65,7 +67,8 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vphi": ("v_bulk",),
     "vp_an": ("vp_anelastic",),
     "vs_an": ("vs_anelastic",),
-    "Density": ("density",),
+    "density": ("density",),
+    "visc": ("viscosity",),
 }
 
 
@@ -119,6 +122,16 @@ class VersionError(Exception):
 
     def __init__(self, version):
         self.message = f"NetCDF file version '{version}' is not supported. Please convert with convert_files.convert"
+        super().__init__(self.message)
+
+
+class SizeError(Exception):
+    """
+    Exception type raised when input param is wrong shape
+    """
+
+    def __init__(self):
+        self.message = f"Input params lons, lats, field mut be of same length"
         super().__init__(self.message)
 
 
@@ -677,6 +690,217 @@ class TerraModel:
         else:
             return index, radii[index]
 
+    def _pixelise(self, signal, nside, lons, lats):
+        """
+        Grid input data to healpix grid
+        :param signal: input data length n
+        :param nside: healpy param, number of sides for healpix grid
+        :param lons: input longitudes length n
+        :param lats: input latitudes length n
+        :returns: healpix grid
+        """
+        npix = hp.nside2npix(nside)
+        pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
+        amap = np.zeros(npix)
+        count = np.zeros(npix)
+        nsample = len(signal)
+        for i in range(nsample):
+            pix = pixnum[i]
+            amap[pix] += signal[i]
+            count[pix] += 1.0
+        for i in range(npix):
+            if count[i] > 0:
+                amap[i] = amap[i] / count[i]
+            else:
+                amap[i] = hp.UNSEEN
+        return amap
+
+    def hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False):
+        """
+        :param field: input field of shape (nr, nps)
+        :param fname: string, name under which to save spherical harmonic
+            coefficients and power spectra ``data.sph[fname]``
+        :param nside: healpy param, number of sides for healpix grid, power
+                      of 2 less than 2**30 (default 2**6)
+        :param lmax: maximum spherical harmonic degree (default 16)
+        :param savemap: Default (``False``) do not save the healpix map
+        """
+
+        lons, lats = self.get_lateral_points()
+
+        # Check that lon, lat and field are same length
+        if (
+            len(lons) != len(lats)
+            or len(lats) != field.shape[1]
+            or len(lons) != field.shape[1]
+        ):
+            raise (SizeError)
+
+        nr = len(self.get_radii())
+        hp_ir = {}
+        for r in range(nr):
+            hpmap = self._pixelise(field[r, :], nside, lons, lats)
+            power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
+            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
+            if savemap:
+                hp_ir[r] = {
+                    "map": hmap,
+                    "power per l": power_per_l,
+                    "coeffs": hp_coeffs,
+                }
+            else:
+                hp_ir[r] = {"power per l": power_per_l, "coeffs": hp_coeffs}
+        try:
+            self.sph[fname] = hp_ir
+        except:
+            self.sph = {}
+            self.sph[fname] = hp_ir
+
+    def plot_hp_map(
+        self,
+        fname,
+        index=None,
+        radius=None,
+        nside=2**6,
+        title=None,
+        delta=None,
+        extent=(-180, 180, -90, 90),
+        method="nearest",
+        show=True,
+        **subplots_kwargs,
+    ):
+        """
+        Create heatmap of a field recreated from the spherical harmonic coefficients
+        :param fname: name of field as created using ``data.hp_sph()``
+        :param index: index of layer to plot
+        :param radius: radius to plot (nearest model radius is shown)
+        :param nside: healpy param, number of sides for healpix grid, power
+            of 2 less than 2**30 (default 2**6)
+        :param title: name of field to be included in title
+        :param delta: Grid spacing of plot in degrees
+        :param extent: Tuple giving the longitude and latitude extent of
+            plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+            in degrees
+        :param method: May be one of: "nearest" (plot nearest value to each
+            plot grid point); or "mean" (mean value in each pixel)
+        :param show: If True (the default), show the plot
+        :param **subplot_kwargs: Extra keyword arguments passed to
+            `matplotlib.pyplot.subplots`
+        :returns: figure and axis handles
+        """
+
+        if radius is None and index is None:
+            raise ValueError("Either radius or index must be given")
+        if index is None:
+            layer_index, layer_radius = self.nearest_layer(radius, depth)
+        else:
+            radii = self.get_radii()
+            nlayers = len(radii)
+            if index < 0 or index >= nlayers:
+                raise ValueError(f"index must be between 0 and {nlayers}")
+
+            layer_index = index
+            layer_radius = radii[index]
+
+        npix = hp.nside2npix(nside)
+        radii = self.get_radii()
+        rad = radii[layer_index]
+        lmax = len(self.sph[fname][layer_index]["power per l"]) - 1
+        hp_remake = hp.sphtfunc.alm2map(
+            self.sph[fname][layer_index]["coeffs"], nside=nside, lmax=lmax
+        )
+
+        lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
+        mask = lon > 180.0
+        lon2 = (lon - 360) * mask
+        lon = lon2 + lon * ~mask
+        if title == None:
+            label = fname
+        else:
+            label = title
+
+        fig, ax = plot.layer_grid(
+            lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
+        )
+
+        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+
+        if show:
+            fig.show()
+
+        return fig, ax
+
+    def plot_spectral_heterogeneity(
+        self,
+        fname,
+        title=None,
+        saveplot=False,
+        savepath=None,
+        lmin=1,
+        lmax=None,
+        lyrmin=1,
+        lyrmax=-1,
+        show=True,
+        **subplots_kwargs,
+    ):
+        """
+        Plot spectral heterogenity maps of the given field, that is the power
+        spectrum over depth.
+        :param fname: name of field to plot as created using model.hp_sph()
+        :param title: title of plot (string)
+        :param saveplot: flag to save an image of the plot to file
+        :param savepath: path under which to save plot to
+        :param lmin: minimum spherical harmonic degree to plot (default=1)
+        :param lmax: maximum spherical harmonic degree to plot (default to plot all)
+        :param lyrmin: min layer to plot (default omits boundary)
+        :param lyrmax: max layer to plot (default omits boundary)
+        :param show: if True (default) show the plot
+        :param **subplot_kwargs: Extra keyword arguments passed to
+            `matplotlib.pyplot.subplots`
+        :returns: figure and axis handles
+        """
+        nr = len(self.sph[fname])
+        lmax_dat = len(self.sph[fname][0]["power per l"]) - 1
+        powers = np.zeros((nr, lmax_dat + 1))
+        for r in range(nr):
+            powers[r, :] = self.sph[fname][r]["power per l"][:]
+
+        if lmax == None or lmax > lmax_dat:
+            lmax = lmax_dat
+
+        radii = self.get_radii()
+        depths = self.get_radii()[-1] - radii
+
+        fig, ax = plot.spectral_heterogeneity(
+            powers,
+            title,
+            depths,
+            lmin,
+            lmax,
+            saveplot,
+            savepath,
+            lyrmin,
+            lyrmax,
+            **subplots_kwargs,
+        )
+
+        if show:
+            fig.show()
+
+        return fig, ax
+
+    def get_bulk_composition(self):
+        """
+        Get the bulk composition field from composition histograms.
+        Stored as new scalar field 'c'
+        """
+        _c_hists = self.get_field("c_hist")
+        bc = np.zeros((_c_hists.shape[0], _c_hists.shape[1]))
+        _cnames = self.get_composition_names()
+        for i, comp in enumerate(_cnames):
+            bc = bc + _c_hists[:, :, i] * _cnames[comp]["c-val"]
+        self.set_field("c", bc)
+
     def plot_layer(
         self,
         field,
@@ -790,7 +1014,9 @@ class TerraModel:
         self.set_field(field="u_geog", values=flow_geog)
 
 
-def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=False):
+def read_netcdf(
+    files, fields=None, surface_radius=6370.0, test_lateral_points=False, cat=False
+):
     """
     Read a TerraModel from a set of NetCDF files.
 
@@ -817,20 +1043,38 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     # Total number of lateral points and number of layers,
     # allowing us to preallocate arrays.  Consistency is checked on the next pass.
     npts_total = 0
-    for file_number, file in enumerate(files):
+    if not cat:
+        for file_number, file in enumerate(files):
+            nc = netCDF4.Dataset(file)
+            if "nps" not in nc.dimensions:
+                raise ValueError(f"File {file} does not contain the dimension 'nps'")
+            npts_total += nc.dimensions["nps"].size
+
+            _check_version(nc)
+
+            if "depths" not in nc.dimensions:
+                raise ValueError(f"File {file} does not contain the dimension 'Depths'")
+            if file_number == 0:
+                nlayers = nc.dimensions["depths"].size
+                # Take the radii from the first file
+                _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nfiles = len(files)
+    else:
+        file = files
         nc = netCDF4.Dataset(file)
         if "nps" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'nps'")
-        npts_total += nc.dimensions["nps"].size
+        if "record" not in nc.dimensions:
+            raise ValueError(f"Expecting concatenated file with dimension 'record'")
+        npts_total = nc.dimensions["nps"].size * nc.dimensions["record"].size
 
         _check_version(nc)
 
         if "depths" not in nc.dimensions:
             raise ValueError(f"File {file} does not contain the dimension 'Depths'")
-        if file_number == 0:
-            nlayers = nc.dimensions["depths"].size
-            # Take the radii from the first file
-            _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nlayers = nc.dimensions["depths"].size
+        _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+        nfiles = nc.dimensions["record"].size
 
     # Passed to constructor
     _fields = {}
@@ -839,8 +1083,16 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
     _c_hist_names = {}
 
     npts_pointer = 0
-    for file_number, file in enumerate(files):
+
+    if cat:
         nc = netCDF4.Dataset(file)
+
+    for file_number in range(nfiles):
+
+        # read in next file if not loading from concatenated file
+        if not cat:
+            file = files[file_number]
+            nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
 
@@ -863,8 +1115,12 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
 
         # Assume that the latitudes and longitudes are the same for each
         # depth slice, and so are repeated
-        this_slice_lat = nc["latitude"][:]
-        this_slice_lon = nc["longitude"][:]
+        if not cat:
+            this_slice_lat = nc["latitude"][:]
+            this_slice_lon = nc["longitude"][:]
+        else:
+            this_slice_lat = nc["latitude"][file_number, :]
+            this_slice_lon = nc["longitude"][file_number, :]
 
         _lat[npts_range] = this_slice_lat
         _lon[npts_range] = this_slice_lon
@@ -894,13 +1150,15 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 continue
 
             field_name = _field_name_from_variable(var)
-
             if field_name not in fields_to_read:
                 continue
 
             # Handle scalar fields
             if _is_scalar_field(field_name):
-                field_data = nc[var][:]
+                if not cat:
+                    field_data = nc[var][:]
+                else:
+                    field_data = nc[var][file_number, :]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
@@ -919,9 +1177,14 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 ncomps = _VECTOR_FIELD_NCOMPS[field_name]
                 uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
 
-                uxyz[:, :, 0] = nc["velocity_x"][:]
-                uxyz[:, :, 1] = nc["velocity_y"][:]
-                uxyz[:, :, 2] = nc["velocity_z"][:]
+                if not cat:
+                    uxyz[:, :, 0] = nc["velocity_x"][:]
+                    uxyz[:, :, 1] = nc["velocity_y"][:]
+                    uxyz[:, :, 2] = nc["velocity_z"][:]
+                else:
+                    uxyz[:, :, 0] = nc["velocity_x"][file_number, :]
+                    uxyz[:, :, 1] = nc["velocity_y"][file_number, :]
+                    uxyz[:, :, 2] = nc["velocity_z"][file_number, :]
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
@@ -972,12 +1235,18 @@ def read_netcdf(files, fields=None, surface_radius=6370.0, test_lateral_points=F
                 nth_comp = nth_comp + 1.0
                 for local_var in vars_to_read:
                     for c in range(ncomps):
-                        nth_comp = nth_comp - nc[local_var][c, :, :]
-                        _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
+                        if not cat:
+                            nth_comp = nth_comp - nc[local_var][c, :, :]
+                            _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
+                        else:
+                            nth_comp = nth_comp - nc[local_var][file_number, c, :, :]
+                            _fields["c_hist"][:, npts_range, c] = nc[local_var][
+                                file_number, c, :, :
+                            ]
                     _fields["c_hist"][:, npts_range, -1] = nth_comp[:]
                 _test_composition(_fields["c_hist"][:, npts_range, :])
-
-        nc.close()
+        if not cat:  # close only if reading in list of files
+            nc.close()
         npts_pointer += npts
 
     # Check for need to sort points in increasing radius
