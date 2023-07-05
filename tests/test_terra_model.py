@@ -19,6 +19,8 @@ from terratools.terra_model import TerraModel
 coord_tol = np.finfo(terra_model.COORDINATE_TYPE).eps
 value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 
+# Random number generator to use here
+_RNG = np.random.default_rng()
 
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
@@ -44,11 +46,11 @@ def random_coordinates(nlayers, npts):
     return lon, lat, r
 
 
-def random_field(nlayers, npts, ncomps=None):
+def random_field(nlayers, npts, ncomps=None, dtype=terra_model.VALUE_TYPE):
     if ncomps is None:
-        return np.random.rand(nlayers, npts)
+        return _RNG.random((nlayers, npts), dtype=dtype)
     else:
-        return np.random.rand(nlayers, npts, ncomps)
+        return _RNG.random((nlayers, npts, ncomps), dtype=dtype)
 
 
 def read_test_lateral_points():
