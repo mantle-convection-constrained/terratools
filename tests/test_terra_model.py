@@ -405,7 +405,7 @@ class TestTerraModelRepr(unittest.TestCase):
 
 
 class TestTerraBulkComposition(unittest.TestCase):
-    def test_get_bulk_composition(self):
+    def test_calc_bulk_composition(self):
         npts = 16
         nlayers = 3
         lon = np.linspace(0, 180, npts)
@@ -430,7 +430,7 @@ class TestTerraBulkComposition(unittest.TestCase):
             c_histogram_values=cvals,
         )
 
-        model.get_bulk_composition()
+        model.calc_bulk_composition()
         self.assertEqual(model.get_field("c").shape, model.get_field("t").shape)
 
         test_value = np.sum(c_hist_field[0, 0, :] * np.array(cvals))

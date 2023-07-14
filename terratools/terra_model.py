@@ -1211,9 +1211,9 @@ class TerraModel:
 
         return fig, ax
 
-    def get_bulk_composition(self):
+    def calc_bulk_composition(self):
         """
-        Get the bulk composition field from composition histograms.
+        Calculate the bulk composition field from composition histograms.
         Stored as new scalar field 'c'
         """
         c_hist = self.get_field("c_hist")
