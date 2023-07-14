@@ -608,21 +608,6 @@ class TerraModel:
             }
             return values
 
-    def write_netcdf(self, filename, fields=None):
-        """
-        Write the TerraModel to disk in NetCDF format with the given filename,
-        overwriting any existing file.
-
-        :param filename: Filename to which to save the model.
-        :type filename: str
-
-        :param fields: Names of fields to write to disk.  By default all
-            fields present in the model are written
-        :type fields: Iterable
-
-        :return: nothing
-        """
-
     def write_pickle(self, filename):
         """
         Save the terra model as a python pickle format with the
