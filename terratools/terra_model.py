@@ -826,7 +826,7 @@ class TerraModel:
         """
         return self._radius
 
-    def get_1d_mean(self, field):
+    def mean_1d_profile(self, field):
         """
         Return the mean of the given field at each radius
 
