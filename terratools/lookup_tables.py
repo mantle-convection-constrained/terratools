@@ -1,7 +1,12 @@
 import numpy as np
-from scipy.interpolate import interp2d, interp1d
+from scipy.interpolate import RegularGridInterpolator, interp1d
 import os
 import matplotlib.pyplot as plt
+from warnings import warn
+
+# Set of all table properties, in the order they appear in the table,
+# excluding pressure and temperature
+TABLE_FIELDS = ("vp", "vs", "vp_an", "vs_an", "vphi", "density", "qs", "t_sol")
 
 
 class SeismicLookupTable:
@@ -170,7 +175,7 @@ class SeismicLookupTable:
             nT = len(temperature)
             for arg, name in zip(
                 (vp, vs, vp_an, vs_an, vphi, density, qs, t_sol),
-                ("vp", "vs", "vp_an", "vs_an", "vphi", "density", "qs", "t_sol"),
+                TABLE_FIELDS,
             ):
                 if arg.shape != (nT, nP):
                     raise ValueError(
@@ -184,22 +189,37 @@ class SeismicLookupTable:
         self.p_min = np.min(self.pres)
 
         # Setup interpolator objects. These can be used for rapid querying of many individual points
-        self.vp_interp = interp2d(self.pres, self.temp, vp)
-        self.vs_interp = interp2d(self.pres, self.temp, vs)
-        self.vp_an_interp = interp2d(self.pres, self.temp, vp_an)
-        self.vs_an_interp = interp2d(self.pres, self.temp, vs_an)
-        self.vphi_interp = interp2d(self.pres, self.temp, vphi)
-        self.density_interp = interp2d(self.pres, self.temp, density)
-        self.qs_interp = interp2d(self.pres, self.temp, qs)
-        self.t_sol_interp = interp2d(self.pres, self.temp, t_sol)
+        self.vp_interp = RegularGridInterpolator(
+            (self.pres, self.temp), vp.T, method="linear"
+        )
+        self.vs_interp = RegularGridInterpolator(
+            (self.pres, self.temp), vs.T, method="linear"
+        )
+        self.vp_an_interp = RegularGridInterpolator(
+            (self.pres, self.temp), vp_an.T, method="linear"
+        )
+        self.vs_an_interp = RegularGridInterpolator(
+            (self.pres, self.temp), vs_an.T, method="linear"
+        )
+        self.vphi_interp = RegularGridInterpolator(
+            (self.pres, self.temp), vphi.T, method="linear"
+        )
+        self.density_interp = RegularGridInterpolator(
+            (self.pres, self.temp), density.T, method="linear"
+        )
+        self.qs_interp = RegularGridInterpolator(
+            (self.pres, self.temp), qs.T, method="linear"
+        )
+        self.t_sol_interp = RegularGridInterpolator(
+            (self.pres, self.temp), t_sol.T, method="linear"
+        )
 
         # Creat dictionary which holds the interpolator objects
-        # FIXME: Replace _ani with _an, since _ani implies anisotropy not anelasticity
         self.fields = {
             "vp": [2, vp, "km/s", self.vp_interp],
             "vs": [3, vs, "km/s", self.vs_interp],
-            "vp_ani": [4, vp_an, "km/s", self.vp_an_interp],
-            "vs_ani": [5, vs_an, "km/s", self.vs_an_interp],
+            "vp_an": [4, vp_an, "km/s", self.vp_an_interp],
+            "vs_an": [5, vs_an, "km/s", self.vs_an_interp],
             "vphi": [6, vphi, "km/s", self.vphi_interp],
             "density": [7, density, "$kg/m^3$", self.density_interp],
             "qs": [8, qs, "Hz", self.qs_interp],
@@ -215,12 +235,16 @@ class SeismicLookupTable:
 
     def interp_grid(self, press, temps, field):
         """
-        Routine for re-gridding lookup tables into new pressure-temperature space
+        Routine for re-gridding lookup tables into new pressure-temperature space.
+        Any values of pressure or temperatures which lie outside the range
+        of the original grid are set to lie at the edges of the original grid
+        in P-T space.
+
         :param press: Pressures (Pa)
         :type press: float or numpy array
         :param temps: Temperatures (K)
         :type temps: float or numpy array
-        :param field: Data field (eg. 'Vs')
+        :param field: Data field (eg. 'vs')
         :type field: string
         :return: interpolated values of a given table property
                 on a 2D grid defined by press and temps
@@ -230,46 +254,39 @@ class SeismicLookupTable:
         >>> t_test = [4,5,6]
         >>> p_test = 10
         >>> basalt = SeismicLookupTable('../tests/data/test_lookup_table.txt')
-        >>> basalt.interp_grid(p_test, t_test, 'Vs')
+        >>> basalt.interp_grid(p_test, t_test, 'vs')
         """
 
-        press = [press] if type(press) == int or type(press) == float else press
-        temps = [temps] if type(temps) == int or type(temps) == float else temps
-
-        _check_bounds(press, self.pres)
-        _check_bounds(temps, self.temp)
-        grid = self.fields[field.lower()][3]
-        return grid(press, temps)
+        press = _check_bounds(press, self.pres)
+        temps = _check_bounds(temps, self.temp)
+        interp_func = self.fields[field][3]
+        pressure_grid, temp_grid = np.meshgrid(press, temps, indexing="ij", sparse=True)
+        return interp_func((pressure_grid, temp_grid))
 
     def interp_points(self, press, temps, field):
         """
         Routine for interpolating gridded property data at one or more
-        pressure-temperature points.
+        pressure-temperature points.  Pressures and temperatures can be
+        arbitrary numpy arrays or scalars; output shape is subject to
+        normal broadcasting rules.
 
         :param press: Pressures (Pa)
         :type press: float or numpy array
         :param temps: Temperatures (K)
         :type temps: float or numpy array
-        :param field: Data field (eg. 'Vs')
+        :param field: Data field (eg. 'vs')
         :type field: string
 
         :return: interpolated values of a given table property
                 at points defined by press and temps
-        :rtype: 1D numpy array
+        :rtype: float or numpy array of same shape as inputs
         """
 
-        # If integers are passed in then convert to indexable lists
-        press = [press] if np.isscalar(press) else press
-        temps = [temps] if np.isscalar(temps) else temps
+        press = _check_bounds(press, self.pres)
+        temps = _check_bounds(temps, self.temp)
 
-        _check_bounds(press, self.pres)
-        _check_bounds(temps, self.temp)
-
-        grid = interp2d(self.pres, self.temp, self.fields[field.lower()][1])
-
-        out = np.zeros(len(press))
-        for i in range(len(press)):
-            out[i] = grid(press[i], temps[i])
+        interp_func = self.fields[field][3]
+        out = interp_func((press, temps))
 
         return out
 
@@ -280,7 +297,7 @@ class SeismicLookupTable:
 
         :param ax: matplotlib axis object to plot on.
         :type ax: matplotlib axis object
-        :param field: Data field (eg. 'Vs')
+        :param field: Data field (eg. 'vs')
         :type field: string
         :param cmap: matplotlib colourmap.
         :type cmap: string
@@ -293,7 +310,6 @@ class SeismicLookupTable:
 
         # temperature on x axis
         data = data.transpose()
-        print(data.shape)
 
         chart = ax.imshow(
             data,
@@ -338,25 +354,30 @@ class MultiTables:
         """
         Class to take in and process multiple tables at once.
 
-        :param tables: dictionary with keys describing the lookup table composition (e.g. "bas")
-                    and the associated lookup table filename to be read in or array of values.
+        :param tables: dictionary with keys describing the lookup table composition (e.g. "basalt")
+            whose values are either:
+            * the associated lookup table filename to be read in
+            * a ``SeismicLookupTable`` object
         :type tables: dictionary
 
         :return: multitable object.
         """
         self._tables = lookuptables
         self._lookup_tables = {}
-        for key in self._tables:
-            self._lookup_tables[key] = SeismicLookupTable(self._tables[key])
+        for key, value in self._tables.items():
+            if isinstance(value, SeismicLookupTable):
+                self._lookup_tables[key] = value
+            else:
+                self._lookup_tables[key] = SeismicLookupTable(value)
 
     def evaluate(self, P, T, fractions, field):
         """
         Returns the harmonic mean of a parameter over several lookup
         tables weighted by their fraction.
 
-        :param P: pressure value to evaluate.
+        :param P: pressure value to evaluate in Pa.
         :type P: float
-        :param T: temperature value to evaluate.
+        :param T: temperature value to evaluate in K.
         :type T: float
         :param fractions: relative proportions of
                           compositions. The keys in
@@ -401,12 +422,14 @@ def _harmonic_mean(data, fractions):
     :rtype: float or 2D numpy array of floats.
     """
 
-    m_total = np.zeros(data[0].shape)
+    m_total = np.zeros(np.shape(data[0]))
+    frac_total = np.zeros(np.shape(fractions[0]))
 
     for i in range(len(fractions)):
-        m_total += (1 / data[i]) * fractions[i]
+        m_total += fractions[i] / data[i]
+        frac_total += fractions[i]
 
-    hmean = np.sum(fractions) / (m_total)
+    hmean = frac_total / m_total
 
     return hmean
 
@@ -447,20 +470,15 @@ def _check_bounds(input, check):
     """
 
     if np.any(input > np.max(check)):
-        print(
+        warn(
             f"One or more of your inputs exceeds the table range, reverting to maximum table range"
         )
 
     elif np.any(input < np.min(check)):
-        print(
+        warn(
             f"One or more of your inputs is below the table range, reverting to minimum table range"
         )
 
-    # where the values are greater than the minimum keep the same
-    # but replace those below with the minimum
-    output = np.where(input > np.min(check), input, np.min(check))
-    # where the values are smaller than the maximum keep the same
-    # but replace those above with the maximum
-    output = np.where(output < np.max(check), output, np.max(check))
+    output = np.clip(input, np.min(check), np.max(check))
 
     return output

@@ -108,7 +108,7 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
     to the two points.
 
     Note that all input angles are in degrees, unless ``radians`` is
-    ``False``.
+    ``True``.
 
     :param lon1: Longitude of first point
     :type lon1: float or numpy array
@@ -145,6 +145,52 @@ def angular_distance(lon1, lat1, lon2, lat2, radians=False):
     )
 
     return distance
+
+
+def angular_step(lon, lat, azimuth, distance, radians=False):
+    """
+    Compute the final point on the surface of the sphere reached by travelling
+    along a great circle from some starting point along an initial azimuth.
+    The distance covered is in terms of the angle subtended between the start
+    and end points at the centre of the sphere.
+
+    Note that all input angles are in degrees, unless ``radians`` is
+    ``True``.
+
+    :param lon: Longitude of starting point
+    :type lon: float or numpy array
+    :param lat: Latitude of starting point
+    :type lon: float or numpy array
+    :param azimuth: Azimuth along which to travel from starting point
+    :type lon: float or numpy array
+    :param distance: Great circle distance between starting and final points
+        in terms of angle subtended between them at the centre of the sphere
+    :type lon: float or numpy array
+    :param radians: If ``True``, input angles are in radians and the output
+        is in radians also; otherwise all input and output are in degrees.
+    :type radians: book
+    :returns: final longitude and latitude
+    :rtype: float, float or two numpy arrays
+    """
+    if not radians:
+        lon = np.radians(lon)
+        lat = np.radians(lat)
+        azimuth = np.radians(azimuth)
+        distance = np.radians(distance)
+
+    lat2 = np.arcsin(
+        np.sin(lat) * np.cos(distance)
+        + np.cos(lat) * np.sin(distance) * np.cos(azimuth)
+    )
+    lon2 = lon + np.arctan2(
+        np.sin(azimuth) * np.sin(distance) * np.cos(lat),
+        np.cos(distance) - np.sin(lat) * np.sin(lat2),
+    )
+
+    if not radians:
+        lon2, lat2 = np.degrees(lon2), np.degrees(lat2)
+
+    return lon2, lat2
 
 
 def azimuth(lon1, lat1, lon2, lat2, radians=False):

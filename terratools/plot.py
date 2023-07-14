@@ -14,6 +14,7 @@ except ImportError as exception:
 
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import scipy.interpolate
 import scipy.stats
 import sys
@@ -28,6 +29,7 @@ def layer_grid(
     extent=(-180, 180, -90, 90),
     label=None,
     method="nearest",
+    coastlines=True,
     **subplots_kwargs,
 ):
     """
@@ -44,8 +46,13 @@ def layer_grid(
         and max latitude (all in degrees), defining the region to plot
     :param label: Label for values; e.g. "Temperature / K"
     :param method: Can be one of:
-        - "nearest": nearest neighbour only;
-        - "mean": mean of all values within each grid point
+        * "nearest": nearest neighbour only;
+        * "mean": mean of all values within each grid point
+    :param coastlines: If ``True`` (the default) use cartopy
+        to plot coastlines.  Otherwise, do not plot coastlines.
+        This works around an issue with Cartopy when
+        installed in certain situations.  See
+        https://github.com/SciTools/cartopy/issues/879 for details.
     :param **kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
@@ -55,7 +62,7 @@ def layer_grid(
         raise _CARTOPY_NOT_INSTALLED_EXCEPTION
 
     fig, ax = plt.subplots(
-        subplot_kw={"projection": ccrs.EqualEarth()}, **subplots_kwargs
+        subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
     )
 
     if len(extent) != 4:
@@ -95,13 +102,13 @@ def layer_grid(
         )
         grid = np.transpose(grid)
     else:
-        raise ValueError(f"unsupported method '{method}")
+        raise ValueError(f"unsupported method '{method}'")
 
     grid = np.flip(grid, axis=0)
 
     transform = ccrs.PlateCarree()
 
-    contours = ax.imshow(grid, transform=transform)
+    contours = ax.imshow(grid, transform=transform, extent=extent)
     ax.set_title(f"Radius {int(radius)} km")
     ax.set_xlabel(f"{label}", fontsize=12)
 
@@ -115,7 +122,11 @@ def layer_grid(
         label=(label if label is not None else ""),
     )
 
-    ax.coastlines()
+    # This leads to a segfault on machines where cartopy is not installed
+    # from conda-forge, or where it was not built from source:
+    # https://github.com/SciTools/cartopy/issues/879
+    if coastlines:
+        ax.coastlines()
 
     return fig, ax
 

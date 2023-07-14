@@ -1,7 +1,13 @@
 import numpy as np
 import unittest
 
-from terratools.geographic import angular_distance, azimuth, cart2geog, geog2cart
+from terratools.geographic import (
+    angular_distance,
+    angular_step,
+    azimuth,
+    cart2geog,
+    geog2cart,
+)
 
 
 def assert_tuples_close(testcase, tup1, tup2, atol=1e-7):
@@ -175,3 +181,27 @@ class TestAzimuth(unittest.TestCase):
         self.assertAlmostEqual(
             azimuth(0, 0, -0.1, 0, radians=True), -np.pi / 2, delta=1e-7
         )
+
+
+class TestAngularSte(unittest.TestCase):
+    def test_angular_step_degrees(self):
+        lon, lat = angular_step(0, 0, 0, 20)
+        self.assertAlmostEqual(lon, 0)
+        self.assertAlmostEqual(lat, 20)
+
+        lon, lat = angular_step(0, 0, -90, 40)
+        self.assertAlmostEqual(lon, -40)
+        self.assertAlmostEqual(lat, 0)
+
+        lon, lat = angular_step(45, 45, -60, 180)
+        self.assertAlmostEqual(lon, -135)
+        self.assertAlmostEqual(lat, -45)
+
+    def test_angular_step_radians(self):
+        lon, lat = angular_step(0, 0, np.pi / 2, np.pi / 3, radians=True)
+        self.assertAlmostEqual(lon, np.pi / 3)
+        self.assertAlmostEqual(lat, 0)
+
+        lon, lat = angular_step(-1, 0.5, 0.4, np.pi, radians=True)
+        self.assertAlmostEqual(lon, np.pi - 1)
+        self.assertAlmostEqual(lat, -0.5)

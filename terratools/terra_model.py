@@ -4,6 +4,7 @@ the data contained within a single time slice of a TERRA mantle
 convection simulation.
 """
 
+import healpy as hp
 import netCDF4
 import numpy as np
 import re
@@ -11,8 +12,10 @@ from sklearn.neighbors import NearestNeighbors
 import pickle
 from . import geographic
 from . import plot
-import healpy as hp
 from . import flow_conversion
+
+from .lookup_tables import TABLE_FIELDS, SeismicLookupTable, MultiTables
+from .properties.profiles import prem_pressure
 
 # Precision of coordinates in TerraModel
 COORDINATE_TYPE = np.float32
@@ -135,6 +138,19 @@ class SizeError(Exception):
         super().__init__(self.message)
 
 
+class FileFormatError(Exception):
+    """
+    Exception type raised when a netCDF file is not correctly formatted.
+    """
+
+    def __init__(self, file, name, expected_value, actual_value):
+        self.message = (
+            f"Unexpected value for {name} in file '{file}'. "
+            + f"Expected {expected_value} but got {actual_value}"
+        )
+        super().__init__(self.message)
+
+
 class TerraModel:
     """
     Class holding a TERRA model at a single point in time.
@@ -195,7 +211,16 @@ class TerraModel:
     """
 
     def __init__(
-        self, lon, lat, r, fields={}, c_histogram_names=None, lookup_tables=None
+        self,
+        lon,
+        lat,
+        r,
+        surface_radius=None,
+        fields={},
+        c_histogram_names=None,
+        c_histogram_values=None,
+        lookup_tables=None,
+        pressure_func=None,
     ):
         """
         Construct a TerraModel.
@@ -216,27 +241,45 @@ class TerraModel:
         elastic parameters predicted for these compositions, weighted
         by their proportion.  The field ``"c_hist"`` holds a 3D array
         whose last dimension gives the proportion of each component.
+        At each depth and position, the proportions must sum to unity,
+        and this is checked in the constructor.
+
         When using a composition histogram, you may pass the
-        ``c_histogram_name`` argument, giving the name of each component.
+        ``c_histogram_names`` argument, giving the name of each component,
+        and ``c_histogram_values``, giving the composition value of each.
         The ith component name corresponds to the proportion of the ith
         slice of the last dimension of the ``"c_hist"`` array.
 
         Seismic lookup tables should be passed to this constructor
-        when using multicomponent composition histograms; one for
-        each proportion.  Note that this is not enforced, however.
+        when using multicomponent composition histograms as a ``dict``
+        whose keys are the names in ``c_histogram_name`` and whose values
+        are instances of ``terratools.lookup_tables.SeismicLookupTable``.
+        Alternatively, ``lookup_tables`` may be an instance of
+        ``terratools.lookup_tables.MultiTables``.
 
         :param lon: Position in longitude of lateral points (degrees)
         :param lat: Position in latitude of lateral points (degrees).  lon and
             lat must be the same length
         :param r: Radius of nodes in radial direction.  Must increase monotonically.
+        :param surface_radius: Radius of surface of the model in km, if not the
+            same as the largest value of ``r``.  This may be useful
+            when using parts of models.
         :param fields: dict whose keys are the names of field, and whose
             values are numpy arrays of dimension (nlayers, npts) for
             scalar fields, and (nlayers, npts, ncomps) for a field
             with ``ncomps`` components at each point
         :param c_histogram_names: The names of each composition of the
             composition histogram, passed as a ``c_hist`` field
-        :param lookup_tables: An iterable of SeismicLookupTable corresponding
-            to the number of compositions for this model
+        :param c_histogram_values: The values of each composition of the
+            composition histogram, passed as a ``c_hist`` field
+        :param lookup_tables: A dict mapping composition name to the file
+            name of the associated seismic lookup table; or a
+            ``lookup_tables.MultiTables``
+        :param pressure_func: Function which takes a single argument
+            (the radius in km) and returns pressure in Pa.  By default
+            pressure is taken from PREM.  The user is responsible for
+            ensuring that ``pressure_func`` accepts all values in the radius
+            range of the model.
         """
 
         nlayers = len(r)
@@ -258,20 +301,39 @@ class TerraModel:
         if not np.all(self._radius[1:] - self._radius[:-1] > 0):
             raise ValueError("radii must increase or decrease monotonically")
 
+        # Surface radius
+        self._surface_radius = (
+            self._radius[-1] if surface_radius is None else surface_radius
+        )
+        if self._surface_radius < self._radius[-1]:
+            raise ValueError(
+                f"surface radius given ({surface_radius} km) is "
+                + f"less than largest model radius ({self._radius[-1]} km)"
+            )
+
         # Fit a nearest-neighbour search tree
         self._knn_tree = _fit_nn_tree(self._lon, self._lat)
 
         # The names of the compositions if using a composition histogram approach
         self._c_hist_names = c_histogram_names
 
-        #
+        # The values of the compositions if using a composition histogram approach
+        # This is not currently used, but will be shown if present
+        self._c_hist_values = c_histogram_values
+
+        # A set of lookup tables
+        self._lookup_tables = lookup_tables
 
         # All the fields are held within _fields, either as scalar or
         # 'vector' fields.
         self._fields = {}
 
-        # A set of lookup tables
-        self._lookup_tables = lookup_tables
+        # Use PREM for pressure if a function is not supplied
+        if pressure_func is None:
+            _pressure = prem_pressure()
+            self._pressure_func = lambda r: _pressure(1000 * self.to_depth(r))
+        else:
+            self._pressure_func = pressure_func
 
         # Check fields have the right shape and convert
         for key, val in fields.items():
@@ -288,10 +350,55 @@ class TerraModel:
                     if array.shape != (nlayers, npts, expected_ncomps):
                         raise FieldDimensionError(self, val, key)
 
+                # Special check for composition histograms
+                if key == "c_hist":
+                    if not _compositions_sum_to_one(array):
+                        sums = np.sum(array)
+                        min, max = np.min(sums), np.max(sums)
+                        raise ValueError(
+                            "composition proportions must sum to one for each point"
+                            f" (range is [{min}, {max}])"
+                        )
+
             else:
                 raise FieldNameError(key)
 
             self.set_field(key, array)
+
+        # Check lookup table arguments
+        if self._lookup_tables is not None and self._c_hist_names is None:
+            raise ValueError(
+                "must pass a list of composition histogram names "
+                + "as c_histogram_names if passing lookup_tables"
+            )
+
+        if self._c_hist_names is not None and self._lookup_tables is not None:
+            if isinstance(self._lookup_tables, MultiTables):
+                lookup_tables_keys = self._lookup_tables._lookup_tables.keys()
+            else:
+                lookup_tables_keys = self._lookup_tables.keys()
+
+            if sorted(self._c_hist_names) != sorted(lookup_tables_keys):
+                raise ValueError(
+                    "composition names in c_histogram_names "
+                    + f"({self._c_hist_names}) are not "
+                    + "the same as the keys in lookup_tables "
+                    + f"({self._lookup_tables.keys()})"
+                )
+
+            # Check composition values if given
+            if self._c_hist_values is not None:
+                if len(self._c_hist_values) != len(self._c_hist_names):
+                    raise ValueError(
+                        "length of c_histogram_values must be "
+                        + f"{len(self._c_hist_names)}, the same as for "
+                        + "c_histogram_names.  Is actually "
+                        + f"{len(self._c_hist_value)}."
+                    )
+
+            # Convert to MultiTables if not already
+            if not isinstance(self._lookup_tables, MultiTables):
+                self._lookup_tables = MultiTables(self._lookup_tables)
 
     def __repr__(self):
         return f"""TerraModel:
@@ -299,7 +406,31 @@ class TerraModel:
              radius limits: {(np.min(self._radius), np.max(self._radius))}
   number of lateral points: {self._npts}
                     fields: {[name for name in self.field_names()]}
-         composition names: {self.get_composition_names()}"""
+         composition names: {self.get_composition_names()}
+        composition values: {self.get_composition_values()}
+         has lookup tables: {self.has_lookup_tables()}"""
+
+    def add_lookup_tables(self, lookup_tables):
+        """
+        Add set of lookup tables to the model.  The tables must have the
+        same keys as the model has composition names.
+
+        :param lookup_tables: A ``lookup_tables.MultiTables`` containing
+            a lookup table for each composition in the model.
+        """
+        if not isinstance(lookup_tables, MultiTables):
+            raise ValueError(
+                "Tables must be provided as a lookup_tables.MultiTables object"
+            )
+
+        table_keys = lookup_tables._lookup_tables.keys()
+        if sorted(self.get_composition_names()) != sorted(table_keys):
+            raise ValueError(
+                "Tables must have the same keys as the model compositions. "
+                + f"Got {table_keys}; need {self.get_composition_names()}"
+            )
+
+        self._lookup_tables = lookup_tables
 
     def field_names(self):
         """
@@ -320,10 +451,10 @@ class TerraModel:
 
         There are two evaluation methods:
 
-        1. 'triangle': Finds the triangle surrounding the point of
+        #. ``"triangle"``: Finds the triangle surrounding the point of
            interest and performs interpolation between the values at
            each vertex of the triangle
-        2. 'nearest': Just returns the value of the closest point of
+        #. ``"nearest"``: Just returns the value of the closest point of
            the TerraModel
 
         In either case, linear interpolation is performed between the two
@@ -347,7 +478,7 @@ class TerraModel:
         radii = self.get_radii()
 
         if depth:
-            r = radii[-1] - r
+            r = self.to_radius(r)
 
         lons, lats = self.get_lateral_points()
         array = self.get_field(field)
@@ -410,6 +541,72 @@ class TerraModel:
         value = ((r2 - r) * val_layer1 + (r - r1) * val_layer2) / (r2 - r1)
 
         return value
+
+    def evaluate_from_lookup_tables(
+        self, lon, lat, r, fields=TABLE_FIELDS, method="triangle", depth=False
+    ):
+        """
+        Evaluate the value of a field at radius ``r`` km, longitude
+        ``lon`` degrees and latitude ``lat`` degrees by using
+        the composition or set of composition proportions at that point
+        and a set of seismic lookup tables to convert to seismic
+        properties.
+
+        :param lon: Longitude in degrees of point of interest
+        :param lat: Latitude in degrees of points of interest
+        :param r: Radius in km of point of interest
+        :param fields: Iterable of strings giving the names of the
+            field of interest, or a single string.  If a single string
+            is passed in, then a single value is returned.  By default,
+            all fields are returned.
+        :param method: String giving the name of the evaluation method; a
+            choice of ``'triangle'`` (default) or ``'nearest'``.
+        :param depth: If ``True``, treat ``r`` as a depth rather than a radius
+        :returns: If a set of fields are passed in, or all are requested
+            (the default), a ``dict`` mapping the names of the fields to
+            their values.  If a single field is requested, the value
+            of that field.
+        """
+        # Check that the fields we have requested are all valid
+        if isinstance(fields, str):
+            if fields not in TABLE_FIELDS:
+                raise ValueError(
+                    f"Field {fields} is not a valid "
+                    + f"seismic property. Must be one of {TABLE_FIELDS}."
+                )
+        else:
+            for field in fields:
+                if field not in TABLE_FIELDS:
+                    raise ValueError(
+                        f"Field {field} is not a valid "
+                        + f"seismic property. Must be one of {TABLE_FIELDS}."
+                    )
+
+        # Convert to radius now
+        if depth:
+            r = self.to_radius(r)
+
+        # Composition names
+        c_names = self.get_composition_names()
+
+        # Get composition proportions and temperature in K
+        c_hist = self.evaluate(lon, lat, r, "c_hist", method=method)
+        t = self.evaluate(lon, lat, r, "t", method=method)
+
+        # Pressure for this model in Pa
+        p = self._pressure_func(r)
+
+        # Evaluate chosen things from lookup tables
+        fraction_dict = {c_name: fraction for c_name, fraction in zip(c_names, c_hist)}
+        if isinstance(fields, str):
+            value = self._lookup_tables.evaluate(p, t, fraction_dict, fields)
+            return value
+        else:
+            values = {
+                field: self._lookup_tables.evaluate(p, t, fraction_dict, field)
+                for field in fields
+            }
+            return values
 
     def write_pickle(self, filename):
         """
@@ -504,6 +701,16 @@ class TerraModel:
         """
         return field in self._fields.keys()
 
+    def has_lookup_tables(self):
+        """
+        Return `True` if this TerraModel contains thermodynamic lookup
+        tables used to convert temperature, pressure and composition
+        into seismic properties.
+
+        :returns: `True` is the model has tables, and `False` otherwise
+        """
+        return self._lookup_tables is not None
+
     def get_field(self, field):
         """
         Return the array containing the values of field in a TerraModel.
@@ -560,6 +767,18 @@ class TerraModel:
         else:
             return None
 
+    def get_composition_values(self):
+        """
+        If a model contains a composition histogram field ('c_hist'),
+        return the values of the compositions; otherwise return None.
+
+        :returns: list of composition values
+        """
+        if self.has_field("c_hist"):
+            return self._c_hist_values
+        else:
+            return None
+
     def get_lateral_points(self):
         """
         Return two numpy.arrays, one each for the longitude and latitude
@@ -569,6 +788,18 @@ class TerraModel:
         :returns: (lon, lat) in degrees
         """
         return self._lon, self._lat
+
+    def get_lookup_tables(self):
+        """
+        Return the `terratools.lookup_tables.MultiTables` object which
+        holds the model's lookup tables if present, and `None` otherwise.
+
+        :returns: the lookup tables, or `None`.
+        """
+        if self.has_lookup_tables():
+            return self._lookup_tables
+        else:
+            return None
 
     def get_radii(self):
         """
@@ -727,16 +958,42 @@ class TerraModel:
             (the default); otherwise return layer index and depth in km
         """
         radii = self.get_radii()
-        surface_radius = radii[-1]
         if depth:
-            radius = surface_radius - radius
+            radius = self.to_radius(radius)
 
         index = _nearest_index(radius, radii)
 
         if depth:
-            return index, surface_radius - radii[index]
+            return index, self.to_depth(radii[index])
         else:
             return index, radii[index]
+
+    def pressure_at_radius(self, r):
+        """
+        Evaluate the pressure in the model at a radius of ``r`` km.
+
+        :param r: Radius in km
+        :returns: Pressure in GPa
+        """
+        return self._pressure_func(r)
+
+    def to_depth(self, radius):
+        """
+        Convert a radius in km to a depth in km.
+
+        :param radius: Radius in km
+        :returns: Depth in km
+        """
+        return self._surface_radius - radius
+
+    def to_radius(self, depth):
+        """
+        Convert a radius in km to a depth in km.
+
+        :param depth: Depth in km
+        :returns: Radius in km
+        """
+        return self._surface_radius - depth
 
     def _pixelise(self, signal, nside, lons, lats):
         """
@@ -942,12 +1199,15 @@ class TerraModel:
         Get the bulk composition field from composition histograms.
         Stored as new scalar field 'c'
         """
-        _c_hists = self.get_field("c_hist")
-        bc = np.zeros((_c_hists.shape[0], _c_hists.shape[1]))
-        _cnames = self.get_composition_names()
-        for i, comp in enumerate(_cnames):
-            bc = bc + _c_hists[:, :, i] * _cnames[comp]["c-val"]
-        self.set_field("c", bc)
+        c_hist = self.get_field("c_hist")
+        bulk_composition = np.zeros((c_hist.shape[0], c_hist.shape[1]))
+        cnames = self.get_composition_names()
+        cvals = self.get_composition_values()
+
+        for i, value in enumerate(cvals):
+            bulk_composition += c_hist[:, :, i] * value
+
+        self.set_field("c", bulk_composition)
 
     def plot_layer(
         self,
@@ -958,6 +1218,7 @@ class TerraModel:
         delta=None,
         extent=(-180, 180, -90, 90),
         method="nearest",
+        coastlines=True,
         show=True,
     ):
         """
@@ -976,7 +1237,11 @@ class TerraModel:
             in degrees
         :param method: May be one of: "nearest" (plot nearest value to each
             plot grid point); or "mean" (mean value in each pixel)
-        :param show: If True (the default), show the plot
+        :param coastlines: If ``True`` (default), plot coastlines.
+            This may lead to a segfault on machines where cartopy is not
+            installed in the recommended way.  In this case, pass ``False``
+            to avoid this.
+        :param show: If ``True`` (the default), show the plot
         :returns: figure and axis handles
         """
         if radius is None and index is None:
@@ -997,7 +1262,15 @@ class TerraModel:
         label = _SCALAR_FIELDS[field]
 
         fig, ax = plot.layer_grid(
-            lon, lat, layer_radius, values, delta=delta, extent=extent, label=label
+            lon,
+            lat,
+            layer_radius,
+            values,
+            delta=delta,
+            extent=extent,
+            label=label,
+            method=method,
+            coastlines=coastlines,
         )
 
         if depth:
@@ -1076,10 +1349,6 @@ def read_netcdf(
         (default 6370 km)
     :returns: a new TerraModel
     """
-
-    from io import StringIO
-    import sys
-
     if len(files) == 0:
         raise ValueError("files argument cannot be empty")
 
@@ -1106,6 +1375,12 @@ def read_netcdf(
                 nlayers = nc.dimensions["depths"].size
                 # Take the radii from the first file
                 _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
+
+                # If composition is present, get number of compositions from here
+                # to check for consistency later
+                if "composition_fractions" in nc.variables:
+                    ncomps = nc.dimensions["compositions"].size + 1
+
         nfiles = len(files)
     else:
         file = files
@@ -1128,7 +1403,8 @@ def read_netcdf(
     _fields = {}
     _lat = np.empty((npts_total,), dtype=COORDINATE_TYPE)
     _lon = np.empty((npts_total,), dtype=COORDINATE_TYPE)
-    _c_hist_names = {}
+    _c_hist_names = []
+    _c_hist_values = []
 
     npts_pointer = 0
 
@@ -1222,8 +1498,8 @@ def read_netcdf(
                 else:
                     fields_read.add(field_name)
 
-                ncomps = _VECTOR_FIELD_NCOMPS[field_name]
-                uxyz = np.empty((nlayers, npts, ncomps), dtype=VALUE_TYPE)
+                u_ncomps = _VECTOR_FIELD_NCOMPS[field_name]
+                uxyz = np.empty((nlayers, npts, u_ncomps), dtype=VALUE_TYPE)
 
                 if not cat:
                     uxyz[:, :, 0] = nc["velocity_x"][:]
@@ -1236,65 +1512,85 @@ def read_netcdf(
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
-                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE
+                        (nlayers, npts_total, u_ncomps), dtype=VALUE_TYPE
                     )
                 _fields[field_name][:, npts_range, :] = uxyz
 
-            # Special case for other vector fields; i.e. c_hist
+            # Special case for c_hist
             if "c_hist" in fields_to_read and field_name == "c_hist":
                 if field_name in fields_read:
                     continue
                 else:
                     fields_read.add(field_name)
 
-                ncomps = nc.dimensions["compositions"].size
-                # Get the composition attributes and populate dictionary with names and c-values
-                for it, attr in enumerate(nc["composition_fractions"].ncattrs()):
-                    num = int((it / 2) + 1)
-                    if "name" in attr:
-                        string1 = "nc['composition_fractions']." + str(attr)
-                        attr_val1 = eval(string1)
+                # Check for consistency in number of compositions
+                this_ncomps = nc.dimensions["compositions"].size + 1
+                if ncomps != this_ncomps:
+                    raise FileFormatError(
+                        file, "number of compositions", ncomps, this_ncomps
+                    )
+
+                # Get the composition attributes.
+                # The first (ncomps - 1) compositions are those stored in
+                # the composition_fractions variable, in that order.
+                # Use the fact that we know there should be ncomps
+                # attributes to check for consistency and get the names
+                _check_has_composition_attributes(file, nc, ncomps)
+
+                # Get the names and values from the first file, and check
+                # for consistency in the other files
+                for composition_index in range(ncomps):
+                    composition_number = composition_index + 1
+                    composition_name = getattr(
+                        nc["composition_fractions"],
+                        f"composition_{composition_number}_name",
+                    )
+                    composition_val = getattr(
+                        nc["composition_fractions"],
+                        f"composition_{composition_number}_c",
+                    )
+
+                    # This will only be filled the first time around
+                    if len(_c_hist_names) >= composition_number:
+                        # Check the names and values are the same for all files
+                        if _c_hist_names[composition_index] != composition_name:
+                            raise FileFormatError(
+                                file,
+                                f"composition_fractions:composition_{composition_number}_name",
+                                _c_hist_names[composition_index],
+                                composition_name,
+                            )
+                        if _c_hist_values[composition_index] != composition_val:
+                            raise FileFormatError(
+                                file,
+                                f"composition_fractions:composition_{composition_number}_val",
+                                _c_hist_values[composition_index],
+                                composition_val,
+                            )
                     else:
-                        string2 = "nc['composition_fractions']." + str(attr)
-                        attr_val2 = eval(string2)
-
-                    if np.mod(it, 2) == 1:
-                        _c_hist_names.update(
-                            {
-                                f"composition_{num}": {
-                                    "name": attr_val1.lower(),
-                                    "c-val": attr_val2,
-                                },
-                            }
-                        )
-
-                # List of variables to read
-                vars_to_read = _variable_names_from_field(field_name)
+                        _c_hist_names.append(composition_name)
+                        _c_hist_values.append(composition_val)
 
                 if field_name not in _fields.keys():
                     _fields[field_name] = np.empty(
-                        (nlayers, npts_total, ncomps + 1), dtype=VALUE_TYPE
+                        (nlayers, npts_total, ncomps), dtype=VALUE_TYPE
                     )
 
-                # fractions must sum to 1, so nth frac is the difference of the sum of the given fractions to 1.
-                nth_comp = np.zeros(
-                    (nc.dimensions["depths"].size, nc.dimensions["nps"].size)
+                # Handle case that indices are in different order in file
+                # compared to TerraModel
+                for icomp in range(ncomps - 1):
+                    _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+
+                # Calculate final composition fraction slice using the property
+                # that all composition fractions must sum to 1
+                _fields[field_name][:, npts_range, ncomps - 1] = 1 - np.sum(
+                    [_fields[field_name][:, npts_range, i] for i in range(ncomps - 1)],
+                    axis=0,
                 )
-                nth_comp = nth_comp + 1.0
-                for local_var in vars_to_read:
-                    for c in range(ncomps):
-                        if not cat:
-                            nth_comp = nth_comp - nc[local_var][c, :, :]
-                            _fields["c_hist"][:, npts_range, c] = nc[local_var][c, :, :]
-                        else:
-                            nth_comp = nth_comp - nc[local_var][file_number, c, :, :]
-                            _fields["c_hist"][:, npts_range, c] = nc[local_var][
-                                file_number, c, :, :
-                            ]
-                    _fields["c_hist"][:, npts_range, -1] = nth_comp[:]
-                _test_composition(_fields["c_hist"][:, npts_range, :])
-        if not cat:  # close only if reading in list of files
+
+        if not cat:
             nc.close()
+
         npts_pointer += npts
 
     # Check for need to sort points in increasing radius
@@ -1310,6 +1606,7 @@ def read_netcdf(
     _lon = _lon[unique_indices]
     _lat = _lat[unique_indices]
 
+    # Remove duplicate points and flip radius axis if needed
     for field_name, array in _fields.items():
         ndims = array.ndim
         if ndims == 2:
@@ -1329,7 +1626,12 @@ def read_netcdf(
             )
 
     return TerraModel(
-        r=_r, lon=_lon, lat=_lat, fields=_fields, c_histogram_names=_c_hist_names
+        r=_r,
+        lon=_lon,
+        lat=_lat,
+        fields=_fields,
+        c_histogram_names=_c_hist_names,
+        c_histogram_values=_c_hist_values,
     )
 
 
@@ -1384,12 +1686,13 @@ def _calculate_adiabat(depth):
     return adiabat
 
 
-def _test_composition(compfracs):
+def _compositions_sum_to_one(compfracs, atol=np.finfo(VALUE_TYPE).eps):
     """
-    Test to make sure that total composition fraction is equal to 1
+    Return ``True`` if the sum of composition fractions is equal to 1 (within
+    ``atol``) for all points; otherwise return ``False``.
     """
 
-    assert np.all(np.sum(compfracs[:, :, :], axis=2))
+    return np.allclose(np.sum(compfracs, axis=2), 1, atol=atol)
 
 
 def _check_version(nc):
@@ -1405,6 +1708,24 @@ def _check_version(nc):
     # Old file types raise exception
     if version < 1.0:
         raise VersionError(version)
+
+
+def _check_has_composition_attributes(file, nc, ncomps):
+    """
+    If the netCDF4.Dataset ``nc`` does not contain the correct
+    attributes for the ``"composition_fractions"`` variable,
+    raise a ``FileFormatError``.
+    """
+    for composition_number in range(1, ncomps + 1):
+        for attribute in ("name", "c"):
+            att_name = f"composition_{composition_number}_{attribute}"
+            if att_name not in nc["composition_fractions"].ncattrs():
+                raise FileFormatError(
+                    file,
+                    "composition_fractions:" + att_name,
+                    "it to be present",
+                    "no such attribute",
+                )
 
 
 def _is_valid_field_name(field):

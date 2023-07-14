@@ -30,6 +30,7 @@ healpy = "^1.16.2"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.5.0"
+black = "^22.10.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"

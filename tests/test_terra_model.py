@@ -19,6 +19,8 @@ from terratools.terra_model import TerraModel
 coord_tol = np.finfo(terra_model.COORDINATE_TYPE).eps
 value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 
+# Random number generator to use here
+_RNG = np.random.default_rng()
 
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
@@ -44,11 +46,11 @@ def random_coordinates(nlayers, npts):
     return lon, lat, r
 
 
-def random_field(nlayers, npts, ncomps=None):
+def random_field(nlayers, npts, ncomps=None, dtype=terra_model.VALUE_TYPE):
     if ncomps is None:
-        return np.random.rand(nlayers, npts)
+        return _RNG.random((nlayers, npts), dtype=dtype)
     else:
-        return np.random.rand(nlayers, npts, ncomps)
+        return _RNG.random((nlayers, npts, ncomps), dtype=dtype)
 
 
 def read_test_lateral_points():
@@ -116,6 +118,16 @@ class TestTerraModelHelpers(unittest.TestCase):
         self.assertEqual(terra_model._expected_vector_field_ncomps("u_geog"), 3)
         self.assertEqual(terra_model._expected_vector_field_ncomps("c_hist"), None)
 
+    def test_compositions_sum_to_one(self):
+        comps = np.zeros((4, 3, 2))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps))
+        comps[:, :, -1] = 1
+        self.assertTrue(terra_model._compositions_sum_to_one(comps))
+        comps[:, :, -1] = 0.9
+        self.assertTrue(terra_model._compositions_sum_to_one(comps, atol=0.2))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps, atol=1.0e-7))
+        self.assertFalse(terra_model._compositions_sum_to_one(comps))
+
 
 class TestTerraModelConstruction(unittest.TestCase):
     """Tests for construction and validation of fields"""
@@ -171,6 +183,20 @@ class TestTerraModelConstruction(unittest.TestCase):
         with self.assertRaises(ValueError):
             TerraModel([1], [2, 3], [1, 2, 3])
 
+    def test_composition_proportions_do_not_sum_to_one(self):
+        nlayers = 3
+        npts = 2
+        ncomps = 4
+        lon, lat, r = random_coordinates(nlayers, npts)
+        c_hist_field = random_field(nlayers, npts, ncomps)
+        with self.assertRaises(ValueError):
+            TerraModel(lon, lat, r, fields={"c_hist": c_hist_field})
+
+    def test_surface_radius_too_small(self):
+        lon, lat, r = random_coordinates(3, 2)
+        with self.assertRaises(ValueError):
+            TerraModel(lon, lat, r, surface_radius=r[-1] - 1)
+
     def test_construction(self):
         """Ensure the things we pass in are put in the right place"""
         nlayers = 3
@@ -180,13 +206,23 @@ class TestTerraModelConstruction(unittest.TestCase):
         scalar_fields = [random_field(nlayers, npts) for _ in scalar_field_names]
         u_field = random_field(nlayers, npts, 3)
         c_hist_field = random_field(nlayers, npts, 2)
+        # Ensure each composition histogram sums to unity
+        c_hist_field[:, :, 1] = 1 - c_hist_field[:, :, 0]
         fields = {name: field for name, field in zip(scalar_field_names, scalar_fields)}
         fields["u_xyz"] = u_field
         fields["u_geog"] = u_field
         fields["c_hist"] = c_hist_field
         c_hist_names = ["A", "B"]
+        c_hist_values = [1, 2]
 
-        model = TerraModel(lon, lat, r, fields=fields, c_histogram_names=c_hist_names)
+        model = TerraModel(
+            lon,
+            lat,
+            r,
+            fields=fields,
+            c_histogram_names=c_hist_names,
+            c_histogram_values=c_hist_values,
+        )
 
         _lon, _lat = model.get_lateral_points()
         self.assertTrue(coords_are_equal(lon, _lon))
@@ -205,6 +241,7 @@ class TestTerraModelConstruction(unittest.TestCase):
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
         self.assertEqual(model.number_of_compositions(), 2)
         self.assertEqual(model.get_composition_names(), ["A", "B"])
+        self.assertEqual(model.get_composition_values(), [1, 2])
 
         # Use set because we don't need to enforce that the fields
         # are in the same order
@@ -263,6 +300,19 @@ class TestTerraModelGetters(unittest.TestCase):
         self.assertCountEqual(model.nearest_layer(6.5), (1, 7.0), 2)
         self.assertCountEqual(model.nearest_layer(7.0), (1, 7.0), 2)
 
+    def test_get_composition_values(self):
+        model = dummy_model(c_histogram_names=["A", "B"], c_histogram_values=[1, 2])
+        model.new_field("c_hist", 2)
+        self.assertEqual(model.get_composition_values(), [1, 2])
+
+    def test_pressure_at_radius(self):
+        # Default PREM pressure
+        model = TerraModel(lon=[1], lat=[1], r=[6371], surface_radius=6371)
+        self.assertAlmostEqual(model.pressure_at_radius(3480), 135.751e9, 2)
+        # Some arbitrary function
+        model = TerraModel(lon=[1], lat=[1], r=[6371], pressure_func=lambda r: 2 * r)
+        self.assertEqual(model.pressure_at_radius(100), 200)
+
 
 class TestTerraModelNewField(unittest.TestCase):
     def test_wrong_ncomps(self):
@@ -305,6 +355,22 @@ class TestTerraModelNewField(unittest.TestCase):
         )
 
 
+class TerraModelDepthConversion(unittest.TestCase):
+    def test_to_depth(self):
+        model = dummy_model(surface_radius=10000)
+        self.assertEqual(model.to_depth(2500), 7500)
+        model = dummy_model()
+        surface_radius = model.get_radii()[-1]
+        self.assertAlmostEqual(model.to_depth(1), surface_radius - 1, 3)
+
+    def test_to_radius(self):
+        model = dummy_model(surface_radius=10000)
+        self.assertEqual(model.to_radius(2500), 7500)
+        model = dummy_model()
+        surface_radius = model.get_radii()[-1]
+        self.assertAlmostEqual(model.to_radius(1), surface_radius - 1, 3)
+
+
 class TestTerraModelRepr(unittest.TestCase):
     def test_repr(self):
         npts = 3
@@ -314,6 +380,8 @@ class TestTerraModelRepr(unittest.TestCase):
         r = [1000, 1999, 2000]
         t_field = random_field(nlayers, npts)
         c_hist_field = random_field(nlayers, npts, 2)
+        # Require compositions sum to 1
+        c_hist_field[:, :, 1] = 1 - c_hist_field[:, :, 0]
         cnames = ["a", "b"]
         model = TerraModel(
             lon,
@@ -330,9 +398,13 @@ class TestTerraModelRepr(unittest.TestCase):
              radius limits: (1000.0, 2000.0)
   number of lateral points: 3
                     fields: ['t', 'c_hist']
-         composition names: ['a', 'b']""",
+         composition names: ['a', 'b']
+        composition values: None
+         has lookup tables: False""",
         )
 
+
+class TestTerraBulkComposition(unittest.TestCase):
     def test_get_bulk_composition(self):
         npts = 16
         nlayers = 3
@@ -340,22 +412,29 @@ class TestTerraModelRepr(unittest.TestCase):
         lat = np.linspace(0, 90, npts)
         r = [1000, 1999, 2000]
         t_field = random_field(nlayers, npts)
-        c_hist_field = np.zeros((nlayers, npts, 3))
-        cnames = {
-            "composition_0": {"name": "a", "c-val": 0.0},
-            "composition_1": {"name": "b", "c-val": 0.2},
-            "composition_2": {"name": "c", "c-val": 1.0},
-        }
+        c_hist_field = random_field(nlayers, npts, 3)
+        # Ensure values sum to 1
+        c_hist_field[:, :, 2] = 1 - c_hist_field[:, :, 0] - c_hist_field[:, :, 1]
+        cnames = [
+            "composition_0",
+            "composition_1",
+            "composition_2",
+        ]
+        cvals = [0.0, 0.2, 1.0]
         model = TerraModel(
             lon,
             lat,
             r,
             fields={"t": t_field, "c_hist": c_hist_field},
             c_histogram_names=cnames,
+            c_histogram_values=cvals,
         )
 
         model.get_bulk_composition()
         self.assertEqual(model.get_field("c").shape, model.get_field("t").shape)
+
+        test_value = np.sum(c_hist_field[0, 0, :] * np.array(cvals))
+        self.assertAlmostEqual(model.get_field("c")[0, 0], test_value)
 
 
 class TestTerraModelNearestIndex(unittest.TestCase):
