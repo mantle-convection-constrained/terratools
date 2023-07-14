@@ -35,10 +35,10 @@ if __name__ == "__main__":
     # %% [markdown]
     """
     We can convert the composition histograms of harzburgite, lherzolite and basalt
-    into a bulk composition scalar field using `model.get_bulk_composition()`
+    into a bulk composition scalar field using `model.calc_bulk_composition()`
     """
 
-    model.get_bulk_composition()
+    model.calc_bulk_composition()
 
     # %% [markdown]
     """
