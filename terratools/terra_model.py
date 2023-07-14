@@ -845,7 +845,7 @@ class TerraModel:
 
         return profile
 
-    def get_1d_profile(self, field, lat, lon):
+    def get_1d_profile(self, field, lon, lat):
         """
         Return the 1d profile of the given field
         at a given latitude and longitude point.

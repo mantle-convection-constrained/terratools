@@ -26,7 +26,7 @@ class TestAdiabat(unittest.TestCase):
 
     def test_mean_1d_profile(self):
         t_profile = np.array([5, 5, 5])
-        out_profile = self.m.mean_1d_profilen(field="t")
+        out_profile = self.m.mean_1d_profile(field="t")
 
         self.assertEqual(t_profile[0], out_profile[0], "mean 1d profile failed.")
         self.assertEqual(t_profile[1], out_profile[1], "mean 1d profile failed.")
