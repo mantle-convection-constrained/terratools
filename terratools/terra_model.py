@@ -1012,31 +1012,6 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def _pixelise(self, signal, nside, lons, lats):
-        """
-        Grid input data to healpix grid
-        :param signal: input data length n
-        :param nside: healpy param, number of sides for healpix grid
-        :param lons: input longitudes length n
-        :param lats: input latitudes length n
-        :returns: healpix grid
-        """
-        npix = hp.nside2npix(nside)
-        pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
-        amap = np.zeros(npix)
-        count = np.zeros(npix)
-        nsample = len(signal)
-        for i in range(nsample):
-            pix = pixnum[i]
-            amap[pix] += signal[i]
-            count[pix] += 1.0
-        for i in range(npix):
-            if count[i] > 0:
-                amap[i] = amap[i] / count[i]
-            else:
-                amap[i] = hp.UNSEEN
-        return amap
-
     def hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False):
         """
         :param field: input field of shape (nr, nps)
@@ -1061,7 +1036,7 @@ class TerraModel:
         nr = len(self.get_radii())
         hp_ir = {}
         for r in range(nr):
-            hpmap = self._pixelise(field[r, :], nside, lons, lats)
+            hpmap = _pixelise(field[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
             hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
             if savemap:
@@ -1750,6 +1725,32 @@ def _is_valid_field_name(field):
     Return True if field is a valid name of a field in a TerraModel.
     """
     return field in _ALL_FIELDS.keys()
+
+
+def _pixelise(signal, nside, lons, lats):
+    """
+    Grid input data to healpix grid
+    :param signal: input data length n
+    :param nside: healpy param, number of sides for healpix grid
+    :param lons: input longitudes length n
+    :param lats: input latitudes length n
+    :returns: healpix grid
+    """
+    npix = hp.nside2npix(nside)
+    pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
+    amap = np.zeros(npix)
+    count = np.zeros(npix)
+    nsample = len(signal)
+    for i in range(nsample):
+        pix = pixnum[i]
+        amap[pix] += signal[i]
+        count[pix] += 1.0
+    for i in range(npix):
+        if count[i] > 0:
+            amap[i] = amap[i] / count[i]
+        else:
+            amap[i] = hp.UNSEEN
+    return amap
 
 
 def _variable_names_from_field(field):
