@@ -45,9 +45,9 @@ if __name__ == "__main__":
     We can perform spherical harmonic decompositions of scalar field. In terratools we make
     use of healpy (python wrapper for healpix) to do this.
 
-    `hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False)`:
+    `calc_spherical_harmonics(self, field, fname, nside=2**6, lmax=16, savemap=False)`:
 
-        :param `field`: input field of shape (nr, nps)
+        :param `field`: input field
         :param `fname`: string, name under which to save spherical harmonic
             coefficients and power spectra ``data.sph[fname]``
         :param `nside`: healpy param, number of sides for healpix grid, power
@@ -56,14 +56,14 @@ if __name__ == "__main__":
         :param `savemap`: Default (``False``) do not save the healpix map
 
     For example we would do:
-    `model.hp_sph(model.get_field('t'),'temp')`
+    `model.calc_hp_sph(model.get_field('t'),'temp')`
     to get the spherical harmonic coefficients and power spectra of the temperature field.
     """
 
-    model.hp_sph(model.get_field("t"), "temp")
-    model.hp_sph(model.get_field("c"), "comp")
+    model.calc_spherical_harmonics("t")
+    model.calc_spherical_harmonics("c")
 
-    for key in model.sph.keys():
+    for key in model._sph.keys():
         print(key)
 
     # %% [markdown]
@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     """
 
-    fig, ax = model.plot_spectral_heterogeneity("comp", lyrmin=0, lyrmax=-1, show=False)
+    fig, ax = model.plot_spectral_heterogeneity("c", lyrmin=0, lyrmax=-1, show=False)
 
     plt.show()
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     Note that either `index` or `radius` must be passed in
     """
-    model.plot_hp_map("temp", index=1, nside=2**5, show=False)
+    model.plot_hp_map("t", index=1, nside=2**5, show=False)
 
     plt.show()
 
