@@ -1390,6 +1390,8 @@ def read_netcdf(
         nlayers = nc.dimensions["depths"].size
         _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
         nfiles = nc.dimensions["record"].size
+        if "composition_fractions" in nc.variables:
+            ncomps = nc.dimensions["compositions"].size + 1
 
     # Passed to constructor
     _fields = {}
@@ -1571,7 +1573,10 @@ def read_netcdf(
                 # Handle case that indices are in different order in file
                 # compared to TerraModel
                 for icomp in range(ncomps - 1):
-                    _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    if not cat :
+                        _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    else :
+                        _fields[field_name][:, npts_range, icomp] = nc[var][file_number,icomp,:,:]
 
                 # Calculate final composition fraction slice using the property
                 # that all composition fractions must sum to 1
