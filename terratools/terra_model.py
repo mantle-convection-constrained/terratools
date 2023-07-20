@@ -752,10 +752,10 @@ class TerraModel:
     def get_spherical_harmonics(self, field):
         """
         Return the spherical harmonic coefficients and power per l (and maps if calculated) or raise NoSphError
-        
+
         :param field: Name of field
         :type  field: str
-        
+
         :returns: dictionary containing spherical harmonic coefficients and power per l
                   at each layer
         """
@@ -1111,38 +1111,38 @@ class TerraModel:
         Create heatmap of a field recreated from the spherical harmonic coefficients
         :param field: name of field as created using ``data.calc_spherical_harmonics()``
         :type  field: str
-        
+
         :param index: index of layer to plot
         :type  index: int
-        
+
         :param radius: radius to plot (nearest model radius is shown)
         :type  radius: float
-        
+
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
         :type  nside: int (power of 2)
-        
+
         :param title: name of field to be included in title
         :type  title: str
-        
+
         :param delta: Grid spacing of plot in degrees
         :type  delta: float
-        
+
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
         :type  extent: tuple of length 4
-        
+
         :param method: May be one of: "nearest" (plot nearest value to each
             plot grid point); or "mean" (mean value in each pixel)
         :type  method: str
-        
+
         :param show: If True (the default), show the plot
         :tpye  show: bool
-        
+
         :param **subplot_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
-        
+
         :returns: figure and axis handles
         """
 
@@ -1204,34 +1204,34 @@ class TerraModel:
         spectrum over depth.
         :param field: name of field to plot as created using model.calc_spherical_harmonics()
         :type  field: str
-        
+
         :param title: title of plot
         :type  title: str
-        
+
         :param saveplot: flag to save an image of the plot to file
         :type  saveplot: bool
-        
+
         :param savepath: path under which to save plot to
         :type  savepath: str
-        
+
         :param lmin: minimum spherical harmonic degree to plot (default=1)
         :type  lmin: int
-        
+
         :param lmax: maximum spherical harmonic degree to plot (default to plot all)
         :type  lmax: int
-        
+
         :param lyrmin: min layer to plot (default omits boundary)
         :type  lyrmin: int
-        
+
         :param lyrmax: max layer to plot (default omits boundary)
         :type  lyrmax: int
-        
+
         :param show: if True (default) show the plot
         :type  show: bool
-        
+
         :param **subplot_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
-            
+
         :returns: figure and axis handles
         """
         dat = self.get_spherical_harmonics(field)
