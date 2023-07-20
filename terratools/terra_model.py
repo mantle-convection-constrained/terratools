@@ -1076,12 +1076,12 @@ class TerraModel:
             hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
             if savemap:
                 hp_ir[r] = {
-                    "map": hmap,
-                    "power per l": power_per_l,
+                    "map": hpmap,
+                    "power_per_l": power_per_l,
                     "coeffs": hp_coeffs,
                 }
             else:
-                hp_ir[r] = {"power per l": power_per_l, "coeffs": hp_coeffs}
+                hp_ir[r] = {"power_per_l": power_per_l, "coeffs": hp_coeffs}
         try:
             self._sph[field] = hp_ir
         except:
@@ -1138,7 +1138,7 @@ class TerraModel:
         npix = hp.nside2npix(nside)
         radii = self.get_radii()
         rad = radii[layer_index]
-        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power per l"]) - 1
+        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
         hp_remake = hp.sphtfunc.alm2map(dat, nside=nside, lmax=lmax)
 
         lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
@@ -1192,10 +1192,10 @@ class TerraModel:
         """
         dat = self.get_spherical_harmonics(field)
         nr = len(dat)
-        lmax_dat = len(dat[0]["power per l"]) - 1
+        lmax_dat = len(dat[0]["power_per_l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
         for r in range(nr):
-            powers[r, :] = dat[r]["power per l"][:]
+            powers[r, :] = dat[r]["power_per_l"][:]
 
         if lmax == None or lmax > lmax_dat:
             lmax = lmax_dat
