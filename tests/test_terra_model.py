@@ -590,14 +590,15 @@ class TestTerraModelEvaluate(unittest.TestCase):
 class TestModelHealpy(unittest.TestCase):
     def test_hp_sph(self):
         model = dummy_model(with_fields=True)
-        model.hp_sph(model.get_field("t"), "temp")
-        self.assertEqual(len(model.sph), 1)
-        self.assertEqual(len(model.sph["temp"]), 3)
+        model.calc_spherical_harmonics("t")
+        a = model.get_spherical_harmonics("t")
+        self.assertEqual(len(a), 3)
+        self.assertEqual(len(a[0]), 2)
 
     def test_plot_spectral_heterogeneity(self):
         model = dummy_model(with_fields=True)
-        model.hp_sph(model.get_field("t"), "temp")
-        fig, ax = model.plot_spectral_heterogeneity("temp", lyrmin=0, lyrmax=-1)
+        model.calc_spherical_harmonics("t")
+        fig, ax = model.plot_spectral_heterogeneity("t", lyrmin=0, lyrmax=-1)
         self.assertIsInstance(fig, Figure)
         self.assertEqual(ax.get_xlabel(), "L")
         self.assertEqual(ax.get_ylabel(), "Depth (km)")
@@ -678,8 +679,8 @@ if _CARTOPY_INSTALLED:
     class TestPlotHealpy(unittest.TestCase):
         def test_plot_hp_map(self):
             model = dummy_model(with_fields=True)
-            model.hp_sph(model.get_field("t"), "temp")
-            fig, ax = model.plot_hp_map("temp", index=1)
+            model.calc_spherical_harmonics("t")
+            fig, ax = model.plot_hp_map("t", index=1)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 
