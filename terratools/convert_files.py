@@ -17,6 +17,27 @@ class FileTypeError(Exception):
             + "Please convert .comp files and use terra_model to determine seismic properties."
         )
         super().__init__(self.message)
+        
+class DepthDimError(Exception):
+    """
+    Exception type raised when trying to convert layer file that already has depth dimension
+    """
+
+    def __init__(self, file):
+        self.message = (
+            f"File {file} already contains a depth dimension, conversion is not supported."
+        )
+        super().__init__(self.message)
+        
+class CopyError(Exception):
+    """
+    Exception type raised when values of variable in old file and new file do not match
+    """
+    def __init__(self, file, var):
+        self.message = (
+            f"Variable {var} in file {file} was incorrectly converted"
+        )
+        super().__init__(self.message)
 
 
 def convert(files, test=False):
@@ -120,6 +141,84 @@ def convert(files, test=False):
             print("ncks is not available on your PATH so cannot clean up old variables")
             print("ncks is available with NCO (NetCDF Operators)")
 
+def convert_layer(files,newfile_suff="convert",replace=False):
+    """
+    Converts old single layer files into new format which includes depth dimension
+    
+    :param files: list of files to convert
+    :type  files: list of strings
+    
+    :param newfile_suff: string to append to new files
+    :type  newfile_suff: str
+    
+    :param replace: toggle replacement of old files
+    :type  replace: bool
+    """
+    
+    for file in files:
+        dat=nc4.Dataset(file)
+        newfile_name=f"{file}_{newfile_suff}"
+        if os.path.exists(newfile_name):
+            os.remove(newfile_name)
+        _touch(newfile_name)
+        os.chmod(
+        newfile_name,
+        stat.S_IWUSR
+        | stat.S_IWGRP
+        | stat.S_IWOTH
+        | stat.S_IRUSR
+        | stat.S_IRGRP
+        | stat.S_IROTH,
+        )
+        newfile=nc4.Dataset(newfile_name, "w", format="NETCDF3_CLASSIC")
+        for name in dat.ncattrs():
+            newfile.setncattr(name, dat.getncattr(name))
+        # copy dimensions
+        for name in dat.dimensions:
+            if name=="depths" or name == "depth":
+                raise(DepthDimError(file))
+            if dat.dimensions[name].isunlimited():
+                newfile.createDimension( name, None)
+            else:
+                size=dat.dimensions[name].size
+                newfile.createDimension( name, size)
+        #Now add the depth dimension
+        newfile.createDimension("depths", 1)
+        
+        for name, variable in dat.variables.items():
+            if len(variable.dimensions)==2:
+                x = newfile.createVariable(name, variable.datatype, (variable.dimensions[0], "depths", variable.dimensions[1],))
+            else:
+                x = newfile.createVariable(name, variable.datatype,("depths",)+variable.dimensions)
+            newfile.variables[name][:] = dat.variables[name][:]
+            for attr in variable.ncattrs():
+                val=variable.getncattr(attr)
+                x.setncattr(attr,val)
+
+            #test that old file and new file have same contents
+            if not np.all(newfile[name][:]==dat[name][:]):
+                raise CopyError(file,name)
+                
+        #create new depth variable
+        x = newfile.createVariable("depths" , variable.datatype, ("depths",))
+        try:
+            depth_from_attr=dat.getncattr("depth (km)")
+        except:
+            depth_from_attr=0.
+        newfile.variables["depths"][:]=depth_from_attr
+        x.setncattr("units","km")
+        x.setncattr("radius",6370.)
+                                                                     
+
+        if replace:
+            #remove old file then rename newfile
+            os.remove(file)
+            os.rename(newfile_name,file)
+            
+
+def _touch(path):
+    with open(path, 'a'):
+        os.utime(path, None)
 
 def _tool_exists(toolname):
     """Check whether `toolname` exists on PATH."""

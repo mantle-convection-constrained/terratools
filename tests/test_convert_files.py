@@ -66,6 +66,43 @@ def make_old_file(filename):
 
     return file
 
+def make_old_layer(filename):
+    nps=64
+    file = Dataset(filename, mode="w")
+    nps_dim = file.createDimension("nps", nps)
+
+    fields = {
+        "temperature": {"units": "K"},
+        "velocity_x": {"units": "km/s"},
+        "velocity_y": {"units": "km/s"},
+        "velocity_z": {"units": "km/s"},
+    }
+
+    lon_var = file.createVariable(
+        "longitude", terra_model.COORDINATE_TYPE, ("nps")
+    )
+    lon_var.units = "degrees"
+
+    lat_var = file.createVariable(
+        "latitude", terra_model.COORDINATE_TYPE, ("nps")
+    )
+    lat_var.units = "degrees"
+
+    lon_var[:] = np.linspace(0, 360, nps)
+    lat_var[:] = np.linspace(-90, 90, nps)
+
+    for field in fields:
+        fields[field]["vals"] = np.random.rand(nps).astype(
+            terra_model.VALUE_TYPE
+        )
+
+    for field in fields:
+        this_var = file.createVariable(field, terra_model.VALUE_TYPE, ("nps"))
+        this_var[:] = fields[field]["vals"]
+        if len(fields[field]["units"]) > 0:
+            this_var.units = fields[field]["units"] 
+
+    return file
 
 class TestConvertFiles(unittest.TestCase):
     def test_convert_files(self):
@@ -106,6 +143,32 @@ class TestConvertFiles(unittest.TestCase):
                     newfile["composition_fractions"][0, :, :]
                     == 1 - oldfile["BasaltFrac"][:, :] - oldfile["LherzFrac"][:, :]
                 )
+            )
+
+class TestConvertLayerFiles(unittest.TestCase):
+    def test_convert_layer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            oldfilepath = os.path.join(directory, "test_file_layer_old.nc")
+            oldfile = make_old_layer(oldfilepath)
+
+            convert_files.convert_layer([oldfilepath])
+
+            newfile=Dataset(f"{oldfilepath}_convert")
+
+            self.assertEqual(
+                newfile.dimensions["nps"].size, oldfile.dimensions["nps"].size
+            )
+            self.assertTrue(
+                np.all(newfile["temperature"][:] == oldfile["temperature"][:])
+            )
+            self.assertTrue(
+                np.all(newfile["velocity_x"][:] == oldfile["velocity_x"][:])
+            )
+            self.assertTrue(
+                np.all(newfile["velocity_y"][:] == oldfile["velocity_y"][:])
+            )
+            self.assertTrue(
+                np.all(newfile["velocity_z"][:] == oldfile["velocity_z"][:])
             )
 
 
