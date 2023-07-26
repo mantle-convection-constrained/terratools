@@ -107,6 +107,17 @@ class NoFieldError(Exception):
         super().__init__(self.message)
 
 
+class NoSphError(Exception):
+    """
+    Exception type raised when trying to access spherical harmonics which have
+    not yet been calculated.
+    """
+
+    def __init__(self, field):
+        self.message = f"Spherical hamronic coefficients for {field} have not yet been calculated, use `calc_spherical_harmonics`"
+        super().__init__(self.message)
+
+
 class FieldDimensionError(Exception):
     """
     Exception type raised when trying to set a field when the dimensions
@@ -753,6 +764,29 @@ class TerraModel:
         self._check_has_field(field)
         return self._fields[field]
 
+    def get_spherical_harmonics(self, field):
+        """
+        Return the spherical harmonic coefficients and power per l (and maps if calculated) or raise NoSphError
+
+        :param field: Name of field
+        :type  field: str
+
+        :returns: dictionary containing spherical harmonic coefficients and power per l
+                  at each layer
+        """
+        if self._check_has_sph(field):
+            return self._sph[field]
+
+    def _check_has_sph(self, field):
+        """
+        Return True or False if spherical harmonics for the given field
+        have been calcualted or not.
+        """
+        if field in self._sph.keys():
+            return True
+        else:
+            raise NoSphError(field)
+
     def _check_has_field(self, field):
         """
         If field is not present in this model, raise a NoFieldError
@@ -841,7 +875,7 @@ class TerraModel:
         """
         return self._radius
 
-    def get_1d_mean(self, field):
+    def mean_1d_profile(self, field):
         """
         Return the mean of the given field at each radius
 
@@ -860,7 +894,7 @@ class TerraModel:
 
         return profile
 
-    def get_1d_profile(self, field, lat, lon):
+    def get_1d_profile(self, field, lon, lat):
         """
         Return the 1d profile of the given field
         at a given latitude and longitude point.
@@ -1027,75 +1061,57 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def _pixelise(self, signal, nside, lons, lats):
+    def calc_spherical_harmonics(self, field, nside=2**6, lmax=16, savemap=False):
         """
-        Grid input data to healpix grid
-        :param signal: input data length n
-        :param nside: healpy param, number of sides for healpix grid
-        :param lons: input longitudes length n
-        :param lats: input latitudes length n
-        :returns: healpix grid
-        """
-        npix = hp.nside2npix(nside)
-        pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
-        amap = np.zeros(npix)
-        count = np.zeros(npix)
-        nsample = len(signal)
-        for i in range(nsample):
-            pix = pixnum[i]
-            amap[pix] += signal[i]
-            count[pix] += 1.0
-        for i in range(npix):
-            if count[i] > 0:
-                amap[i] = amap[i] / count[i]
-            else:
-                amap[i] = hp.UNSEEN
-        return amap
+        :param field: input field
+        :type  field: str
 
-    def hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False):
-        """
-        :param field: input field of shape (nr, nps)
-        :param fname: string, name under which to save spherical harmonic
-            coefficients and power spectra ``data.sph[fname]``
         :param nside: healpy param, number of sides for healpix grid, power
                       of 2 less than 2**30 (default 2**6)
+        :type  nside: int (power of 2)
+
         :param lmax: maximum spherical harmonic degree (default 16)
+        :type  lmax: int
+
         :param savemap: Default (``False``) do not save the healpix map
+        :type  savemap: bool
         """
+
+        field_values = self.get_field(field)
 
         lons, lats = self.get_lateral_points()
 
         # Check that lon, lat and field are same length
         if (
             len(lons) != len(lats)
-            or len(lats) != field.shape[1]
-            or len(lons) != field.shape[1]
+            or len(lats) != field_values.shape[1]
+            or len(lons) != field_values.shape[1]
         ):
             raise (SizeError)
 
         nr = len(self.get_radii())
         hp_ir = {}
         for r in range(nr):
-            hpmap = self._pixelise(field[r, :], nside, lons, lats)
+            hpmap = _pixelise(field_values[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
             hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
             if savemap:
                 hp_ir[r] = {
-                    "map": hmap,
-                    "power per l": power_per_l,
+                    "map": hpmap,
+                    "power_per_l": power_per_l,
                     "coeffs": hp_coeffs,
                 }
             else:
-                hp_ir[r] = {"power per l": power_per_l, "coeffs": hp_coeffs}
+                hp_ir[r] = {"power_per_l": power_per_l, "coeffs": hp_coeffs}
         try:
-            self.sph[fname] = hp_ir
+            self._sph[field] = hp_ir
         except:
-            self.sph = {}
-            self.sph[fname] = hp_ir
+            self._sph = {}
+            self._sph[field] = hp_ir
 
     def plot_hp_map(
         self,
-        fname,
+        field,
         index=None,
         radius=None,
         nside=2**6,
@@ -1108,21 +1124,40 @@ class TerraModel:
     ):
         """
         Create heatmap of a field recreated from the spherical harmonic coefficients
-        :param fname: name of field as created using ``data.hp_sph()``
+        :param field: name of field as created using ``data.calc_spherical_harmonics()``
+        :type  field: str
+
         :param index: index of layer to plot
+        :type  index: int
+
         :param radius: radius to plot (nearest model radius is shown)
+        :type  radius: float
+
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
+        :type  nside: int (power of 2)
+
         :param title: name of field to be included in title
+        :type  title: str
+
         :param delta: Grid spacing of plot in degrees
+        :type  delta: float
+
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
+        :type  extent: tuple of length 4
+
         :param method: May be one of: "nearest" (plot nearest value to each
             plot grid point); or "mean" (mean value in each pixel)
+        :type  method: str
+
         :param show: If True (the default), show the plot
+        :tpye  show: bool
+
         :param **subplot_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
+
         :returns: figure and axis handles
         """
 
@@ -1139,20 +1174,19 @@ class TerraModel:
             layer_index = index
             layer_radius = radii[index]
 
+        dat = self.get_spherical_harmonics(field)[layer_index]["coeffs"]
         npix = hp.nside2npix(nside)
         radii = self.get_radii()
         rad = radii[layer_index]
-        lmax = len(self.sph[fname][layer_index]["power per l"]) - 1
-        hp_remake = hp.sphtfunc.alm2map(
-            self.sph[fname][layer_index]["coeffs"], nside=nside, lmax=lmax
-        )
+        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
+        hp_remake = hp.sphtfunc.alm2map(dat, nside=nside, lmax=lmax)
 
         lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
         mask = lon > 180.0
         lon2 = (lon - 360) * mask
         lon = lon2 + lon * ~mask
         if title == None:
-            label = fname
+            label = field
         else:
             label = title
 
@@ -1169,7 +1203,7 @@ class TerraModel:
 
     def plot_spectral_heterogeneity(
         self,
-        fname,
+        field,
         title=None,
         saveplot=False,
         savepath=None,
@@ -1183,24 +1217,44 @@ class TerraModel:
         """
         Plot spectral heterogenity maps of the given field, that is the power
         spectrum over depth.
-        :param fname: name of field to plot as created using model.hp_sph()
-        :param title: title of plot (string)
+        :param field: name of field to plot as created using model.calc_spherical_harmonics()
+        :type  field: str
+
+        :param title: title of plot
+        :type  title: str
+
         :param saveplot: flag to save an image of the plot to file
+        :type  saveplot: bool
+
         :param savepath: path under which to save plot to
+        :type  savepath: str
+
         :param lmin: minimum spherical harmonic degree to plot (default=1)
+        :type  lmin: int
+
         :param lmax: maximum spherical harmonic degree to plot (default to plot all)
+        :type  lmax: int
+
         :param lyrmin: min layer to plot (default omits boundary)
+        :type  lyrmin: int
+
         :param lyrmax: max layer to plot (default omits boundary)
+        :type  lyrmax: int
+
         :param show: if True (default) show the plot
+        :type  show: bool
+
         :param **subplot_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
+
         :returns: figure and axis handles
         """
-        nr = len(self.sph[fname])
-        lmax_dat = len(self.sph[fname][0]["power per l"]) - 1
+        dat = self.get_spherical_harmonics(field)
+        nr = len(dat)
+        lmax_dat = len(dat[0]["power_per_l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
         for r in range(nr):
-            powers[r, :] = self.sph[fname][r]["power per l"][:]
+            powers[r, :] = dat[r]["power_per_l"][:]
 
         if lmax == None or lmax > lmax_dat:
             lmax = lmax_dat
@@ -1226,9 +1280,9 @@ class TerraModel:
 
         return fig, ax
 
-    def get_bulk_composition(self):
+    def calc_bulk_composition(self):
         """
-        Get the bulk composition field from composition histograms.
+        Calculate the bulk composition field from composition histograms.
         Stored as new scalar field 'c'
         """
         c_hist = self.get_field("c_hist")
@@ -1448,6 +1502,8 @@ def read_netcdf(
         nlayers = nc.dimensions["depths"].size
         _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
         nfiles = nc.dimensions["record"].size
+        if "composition_fractions" in nc.variables:
+            ncomps = nc.dimensions["compositions"].size + 1
 
     # Passed to constructor
     _fields = {}
@@ -1629,7 +1685,12 @@ def read_netcdf(
                 # Handle case that indices are in different order in file
                 # compared to TerraModel
                 for icomp in range(ncomps - 1):
-                    _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    if not cat:
+                        _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    else:
+                        _fields[field_name][:, npts_range, icomp] = nc[var][
+                            file_number, icomp, :, :
+                        ]
 
                 # Calculate final composition fraction slice using the property
                 # that all composition fractions must sum to 1
@@ -1792,6 +1853,32 @@ def _is_valid_field_name(field):
     Return True if field is a valid name of a field in a TerraModel.
     """
     return field in _ALL_FIELDS.keys()
+
+
+def _pixelise(signal, nside, lons, lats):
+    """
+    Grid input data to healpix grid
+    :param signal: input data length n
+    :param nside: healpy param, number of sides for healpix grid
+    :param lons: input longitudes length n
+    :param lats: input latitudes length n
+    :returns: healpix grid
+    """
+    npix = hp.nside2npix(nside)
+    pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
+    amap = np.zeros(npix)
+    count = np.zeros(npix)
+    nsample = len(signal)
+    for i in range(nsample):
+        pix = pixnum[i]
+        amap[pix] += signal[i]
+        count[pix] += 1.0
+    for i in range(npix):
+        if count[i] > 0:
+            amap[i] = amap[i] / count[i]
+        else:
+            amap[i] = hp.UNSEEN
+    return amap
 
 
 def _variable_names_from_field(field):
