@@ -86,6 +86,12 @@ for key, vals in _FIELD_NAME_TO_VARIABLE_NAME.items():
     for val in vals:
         _VARIABLE_NAME_TO_FIELD_NAME[val] = key
 
+# Mapping of field name to default colour scale
+_FIELD_COLOUR_SCALE = {
+    field: ("turbo_r" if field.startswith("v") or field == "density" else "turbo")
+    for field in _SCALAR_FIELDS
+}
+
 
 class FieldNameError(Exception):
     """
@@ -1364,6 +1370,135 @@ class TerraModel:
 
         if show:
             fig.show()
+
+        return fig, ax
+
+    def plot_section(
+        self,
+        field,
+        lon,
+        lat,
+        azimuth,
+        distance,
+        minradius=None,
+        maxradius=None,
+        delta_distance=1,
+        delta_radius=50,
+        method="nearest",
+        levels=25,
+        cmap=None,
+        show=True,
+    ):
+        """
+        Create a plot of a cross-section through a model for one
+        of the fields in the model.
+
+        :param field: Name of field to plot
+        :type field: str
+
+        :param lon: Longitude of starting point of section in degrees
+        :type lon: float
+
+        :param lat: Latitude of starting point of section in degrees
+        :type lat: float
+
+        :param azimuth: Azimuth of cross section at starting point in degrees
+        :type azimuth: float
+
+        :param distance: Distance of cross section, given as the angle
+            subtended at the Earth's centre between the starting and
+            end points of the section, in degrees.
+        :type distance: float
+
+        :param minradius: Minimum radius to plot in km.  If this is smaller
+            than the minimum radius in the model, the model's value is used.
+        :type minradius: float
+
+        :param maxradius: Maximum radius to plot in km.  If this is larger
+            than the maximum radius in the model, the model's value is used.
+        :type maxradius: float
+
+        :param method: May be one of "nearest" (default) or "triangle",
+            controlling how points are calculated at each plotting grid
+            point.  "nearest" simply finds the nearest model point to the
+            required grid points; "triangle" perform triangular interpolation
+            around the grid point.
+        :type method: str
+
+        :param delta_distance: Grid spacing in lateral distance, expressed
+            in units of degrees of angle subtended about the centre of the
+            Earth.  Default 1°.
+        :type delta_distance: float
+
+        :param delta_radius: Grid spacing in radial directions in km.  Default
+            50 km.
+        :type delta_radius: float
+
+        :param levels: Number of levels or set of levels to plot
+        :type levels: int or set of floats
+
+        :param cmap: Colour map to be used (default "turbo")
+        :type cmap: str
+
+        :param show: If `True` (default), show the plot
+        :type show: bool
+
+        :returns: figure and axis handles
+        """
+        if not _is_scalar_field(field):
+            raise ValueError(f"Cannot plot non-scalr field '{field}'")
+        if not self.has_field(field) and not self.has_lookup_tables():
+            raise ValueError(
+                f"Model does not contain field '{field}', not does it "
+                + "contain lookup tables with which to compute it"
+            )
+
+        model_radii = self.get_radii()
+        min_model_radius = np.min(model_radii)
+        max_model_radius = np.max(model_radii)
+
+        if minradius is None:
+            minradius = min_model_radius
+        if maxradius is None:
+            maxradius = max_model_radius
+
+        # For user-supplied numbers, clip them to lie in the range
+        # min_model_radius to max_model_radius
+        minradius = np.clip(minradius, min_model_radius, max_model_radius)
+        maxradius = np.clip(maxradius, min_model_radius, max_model_radius)
+
+        # Catch cases where both values are above or below the model and
+        # which have been clipped
+        if minradius >= maxradius:
+            raise ValueError("minradius must be less than maxradius")
+
+        radii = np.arange(minradius, maxradius, delta_radius)
+        distances = np.arange(0, distance, delta_distance)
+
+        nradii = len(radii)
+        ndistances = len(distances)
+
+        grid = np.empty((ndistances, nradii))
+        for i, distance in enumerate(distances):
+            this_lon, this_lat = geographic.angular_step(lon, lat, azimuth, distance)
+            for j, radius in enumerate(radii):
+                if self.has_field(field):
+                    grid[i, j] = self.evaluate(
+                        this_lon, this_lat, radius, field, method=method
+                    )
+                elif self.has_lookup_tables():
+                    grid[i, j] = self.evaluate_from_lookup_tables(
+                        this_lon, this_lat, radius, field, method=method
+                    )
+
+        label = _SCALAR_FIELDS[field]
+
+        if cmap is None:
+            cmap = _FIELD_COLOUR_SCALE[field]
+
+        fig, ax = plot.plot_section(
+            distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
+        )
 
         return fig, ax
 

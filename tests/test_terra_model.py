@@ -10,6 +10,7 @@ except ImportError:
     _CARTOPY_INSTALLED = False
 
 from matplotlib.figure import Figure
+from matplotlib.projections.polar import PolarAxes
 
 from terratools import terra_model
 from terratools.terra_model import TerraModel
@@ -633,6 +634,14 @@ class TestBoundingIndices(unittest.TestCase):
         self.assertCountEqual(
             terra_model._bounding_indices(-3, [-4, -3, -2]), (1, 1), 2
         )
+
+
+class TestPlotSection(unittest.TestCase):
+    def test_plot_section(self):
+        model = dummy_model(with_fields=True)
+        fig, ax = model.plot_section("t", 10, 20, 30, 120, show=False)
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, PolarAxes)
 
 
 if _CARTOPY_INSTALLED:
