@@ -74,8 +74,8 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vs_an": ("vs_anelastic",),
     "density": ("density",),
     "visc": ("viscosity",),
-    "sigma_z": ("radial stress",),
-    "h_cmb": ("cmb heat flux",),
+    "sigma_z": ("radial_stress",),
+    "h_cmb": ("cmb_heat_flux",),
 }
 
 

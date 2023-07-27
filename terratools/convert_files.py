@@ -197,16 +197,17 @@ def convert_layer(files, newfile_suff="convert", replace=False):
                     ),
                 )
             else:
+                name_new=name.replace(" ","_")
                 x = newfile.createVariable(
-                    name, variable.datatype, ("depths",) + variable.dimensions
+                    name_new, variable.datatype, ("depths",) + variable.dimensions
                 )
-            newfile.variables[name][:] = dat.variables[name][:]
+            newfile.variables[name_new][:] = dat.variables[name][:]
             for attr in variable.ncattrs():
                 val = variable.getncattr(attr)
                 x.setncattr(attr, val)
 
             # test that old file and new file have same contents
-            if not np.all(newfile[name][:] == dat[name][:]):
+            if not np.all(newfile[name_new][:] == dat[name][:]):
                 raise CopyError(file, name)
 
         # create new depth variable
