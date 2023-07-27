@@ -197,7 +197,7 @@ def convert_layer(files, newfile_suff="convert", replace=False):
                     ),
                 )
             else:
-                name_new=name.replace(" ","_")
+                name_new = name.replace(" ", "_")
                 x = newfile.createVariable(
                     name_new, variable.datatype, ("depths",) + variable.dimensions
                 )
