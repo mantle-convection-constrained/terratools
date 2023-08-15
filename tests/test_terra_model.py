@@ -23,6 +23,7 @@ value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 # Random number generator to use here
 _RNG = np.random.default_rng()
 
+
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
     lon, lat, r = random_coordinates(nlayers, npts)

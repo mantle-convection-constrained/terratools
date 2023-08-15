@@ -42,7 +42,6 @@ def get_rotmat_to_geographical(lon, lat):
     else:
         raise AssertionError("latitude type not acceptable")
 
-
     # Unit vectors on global system
     x_hat = np.array([1.0, 0.0, 0.0])
     y_hat = np.array([0.0, 1.0, 0.0])
