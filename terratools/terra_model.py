@@ -45,13 +45,13 @@ _SCALAR_FIELDS = {
 # at each node of the grid.
 _VECTOR_FIELDS = {
     "u_xyz": "Flow field in Cartesian coordinates (three components) [m/s]",
-    "u_geog": "Flow field in geographic coordinates (three components) [m/s]",
+    "u_enu": "Flow field in geographic coordinates (three components) [m/s]",
     "c_hist": "Composition histogram (_nc components) [unitles]",
 }
 
 _VECTOR_FIELD_NCOMPS = {
     "u_xyz": 3,
-    "u_geog": 3,
+    "u_enu": 3,
     "c_hist": None,
 }
 
@@ -1511,7 +1511,7 @@ class TerraModel:
 
     def add_geog_flow(self):
         """
-        Add the field u_geog which holds the flow vector which
+        Add the field u_enu which holds the flow vector which
         has been rotated from cartesian to geographical.
 
         :param: none
@@ -1520,25 +1520,25 @@ class TerraModel:
 
         flow_xyz = self.get_field("u_xyz")
 
-        flow_geog = np.zeros(flow_xyz.shape)
+        flow_enu = np.zeros(flow_xyz.shape)
 
         for point in range(self._npts):
-            lat = self._lat[point]
             lon = self._lon[point]
+            lat = self._lat[point]
 
             # get flow vector for one lon, lat
             # at all radii
             flows_point_all_radii = flow_xyz[:, point]
 
             # rotate vectors
-            flow_geog_point = flow_conversion.rotate_vector(
+            flow_enu_point = flow_conversion.rotate_vector(
                 lon=lon, lat=lat, vec=flows_point_all_radii
             )
 
             # populate array with rotated vectors
-            flow_geog[:, point] = flow_geog_point
+            flow_enu[:, point] = flow_enu_point
 
-        self.set_field(field="u_geog", values=flow_geog)
+        self.set_field(field="u_enu", values=flow_enu)
 
 
 def read_netcdf(
@@ -1620,7 +1620,6 @@ def read_netcdf(
         nc = netCDF4.Dataset(file)
 
     for file_number in range(nfiles):
-
         # read in next file if not loading from concatenated file
         if not cat:
             file = files[file_number]
