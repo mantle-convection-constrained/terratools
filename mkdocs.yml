@@ -3,8 +3,9 @@ nav:
     - Home: index.md
     - About: about.md
     - TerraTools fundamentals:
-        - Model interrogation: model.md
+        - Model objects: model.md
         - Physical properties: properties.md
+        - Reference frames: reference_frames.md
     - Examples: reference_examples/
     - Code Reference: reference/
 
