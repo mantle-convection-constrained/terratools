@@ -131,6 +131,69 @@ def layer_grid(
     return fig, ax
 
 
+def plot_section(
+    distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
+):
+    """
+    Create a plot of a cross-section.
+
+    :param distances: Distances along cross section, given as the angle
+        subtended at the Earth's centre between the starting and
+        end points of the section, in degrees.
+    :type distance: set of floats
+
+    :param radii: Radii of cross section.
+    :type minradius: set of floats
+
+    :param grid: Values of the field evaluated at each distance and radius
+        point, where the first axis given the distance index, and the second
+        axis gives the radius index.
+    :type grid: 2d array
+
+    :param label: Label for colour scale
+    :type label: str
+
+    :param levels: Number of levels or set of levels to plot
+    :type levels: int or set of floats
+
+    :param cmap: Colour map to be used (default "turbo")
+    :type cmap: str
+
+    :param show: If `True` (default), show the plot
+    :type show: bool
+
+    :returns: figure and axis handles
+    """
+
+    distances_radians = np.radians(distances)
+    min_distance = np.min(distances_radians)
+    max_distance = np.max(distances_radians)
+
+    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+    contours = ax.contourf(distances_radians, radii, grid.T, levels=levels, cmap=cmap)
+    ax.set_rorigin(0)
+    ax.set_thetalim(min_distance, max_distance)
+    # Rotate plot so that the middle of the section is up
+    ax.set_theta_offset((min_distance + max_distance) / 2 + np.pi / 2)
+    # Make distance increase to the right (i.e., clockwise)
+    ax.set_theta_direction(-1)
+
+    cbar = plt.colorbar(
+        contours,
+        ax=ax,
+        orientation="horizontal",
+        pad=0.05,
+        aspect=30,
+        shrink=0.5,
+        label=(label if label is not None else ""),
+    )
+
+    if show:
+        plt.show()
+
+    return fig, ax
+
+
 def spectral_heterogeneity(
     indat,
     title,
@@ -189,6 +252,3 @@ def spectral_heterogeneity(
         )
 
     return fig, ax
-
-
-# def plot_hp_layer
