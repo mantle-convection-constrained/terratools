@@ -104,5 +104,5 @@ import tempfile
 
 file = tempfile.NamedTemporaryFile(suffix=".pdf")
 fig.savefig(file.name)
-print(f"Saved plot to file {file.name}")
+print(f"Saved plot to file")
 file.close()
