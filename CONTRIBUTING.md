@@ -52,6 +52,6 @@ Certain modules and classes follow specific conventions on names of functions an
   - On the other hand, functions which return something which cannot be used to update the model are not prefixed with `get_`.  E.g., `terra_model.TerraModel.evaluate` returns values from the model at a certain point in space.
 
 ## License
-TerraTools is published under the [MIT](LICENSE); while you
+TerraTools is published under the [MIT license](LICENSE); while you
 will retain copyright on your contributions, all changes to the code
 must be provided under this common license.
