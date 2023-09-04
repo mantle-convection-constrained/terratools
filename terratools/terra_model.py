@@ -1457,6 +1457,9 @@ class TerraModel:
         if minradius >= maxradius:
             raise ValueError("minradius must be less than maxradius")
 
+        # Allow us to plot at least two points
+        if (maxradius - minradius) / 2 < delta_radius:
+            delta_radius = (maxradius - minradius) / 2
         radii = np.arange(minradius, maxradius, delta_radius)
         distances = np.arange(0, distance, delta_distance)
 

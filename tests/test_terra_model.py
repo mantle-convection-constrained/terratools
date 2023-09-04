@@ -644,6 +644,16 @@ class TestPlotSection(unittest.TestCase):
         self.assertIsInstance(fig, Figure)
         self.assertIsInstance(ax, PolarAxes)
 
+    def test_plot_section_one_layer(self):
+        model = dummy_model(with_fields=True)
+        radii = model.get_radii()
+        radius_diff = radii[-1] - radii[0]
+        fig, ax = model.plot_section(
+            "t", 10, 20, 30, 120, delta_radius=radius_diff + 1, show=False
+        )
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, PolarAxes)
+
 
 if _CARTOPY_INSTALLED:
 
