@@ -23,6 +23,7 @@ value_tol = np.finfo(terra_model.VALUE_TYPE).eps
 # Random number generator to use here
 _RNG = np.random.default_rng()
 
+
 # Helper functions for the tests
 def dummy_model(nlayers=3, npts=4, with_fields=False, **kwargs):
     lon, lat, r = random_coordinates(nlayers, npts)
@@ -116,7 +117,7 @@ class TestTerraModelHelpers(unittest.TestCase):
 
     def test_expected_vector_field_ncomps(self):
         self.assertEqual(terra_model._expected_vector_field_ncomps("u_xyz"), 3)
-        self.assertEqual(terra_model._expected_vector_field_ncomps("u_geog"), 3)
+        self.assertEqual(terra_model._expected_vector_field_ncomps("u_enu"), 3)
         self.assertEqual(terra_model._expected_vector_field_ncomps("c_hist"), None)
 
     def test_compositions_sum_to_one(self):
@@ -211,7 +212,7 @@ class TestTerraModelConstruction(unittest.TestCase):
         c_hist_field[:, :, 1] = 1 - c_hist_field[:, :, 0]
         fields = {name: field for name, field in zip(scalar_field_names, scalar_fields)}
         fields["u_xyz"] = u_field
-        fields["u_geog"] = u_field
+        fields["u_enu"] = u_field
         fields["c_hist"] = c_hist_field
         c_hist_names = ["A", "B"]
         c_hist_values = [1, 2]
@@ -236,7 +237,7 @@ class TestTerraModelConstruction(unittest.TestCase):
 
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
 
-        for field in ("u_xyz", "u_geog"):
+        for field in ("u_xyz", "u_enu"):
             self.assertTrue(fields_are_equal(model.get_field(field), u_field))
 
         self.assertTrue(fields_are_equal(model.get_field("c_hist"), c_hist_field))
@@ -248,7 +249,7 @@ class TestTerraModelConstruction(unittest.TestCase):
         # are in the same order
         self.assertEqual(set(model.field_names()), set(fields.keys()))
 
-        for field in (*scalar_field_names, "u_geog", "u_xyz", "c_hist"):
+        for field in (*scalar_field_names, "u_enu", "u_xyz", "c_hist"):
             self.assertTrue(model.has_field(field))
         self.assertFalse(model.has_field("vs_an"))
 
@@ -640,6 +641,16 @@ class TestPlotSection(unittest.TestCase):
     def test_plot_section(self):
         model = dummy_model(with_fields=True)
         fig, ax = model.plot_section("t", 10, 20, 30, 120, show=False)
+        self.assertIsInstance(fig, Figure)
+        self.assertIsInstance(ax, PolarAxes)
+
+    def test_plot_section_one_layer(self):
+        model = dummy_model(with_fields=True)
+        radii = model.get_radii()
+        radius_diff = radii[-1] - radii[0]
+        fig, ax = model.plot_section(
+            "t", 10, 20, 30, 120, delta_radius=radius_diff + 1, show=False
+        )
         self.assertIsInstance(fig, Figure)
         self.assertIsInstance(ax, PolarAxes)
 
