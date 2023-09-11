@@ -36,8 +36,6 @@ if __name__ == "__main__":
 
     model = terra_model.read_netcdf(files)
 
-    
-
     # %% [markdown]
     """
     ##Read a concatenated file

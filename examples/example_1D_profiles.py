@@ -75,4 +75,3 @@ if __name__ == "__main__":
     ax.set_title(f"1D temperature profile \n at {lon}E {lat}N")
     print(f"Plotted profile at {lon}E, {lat}N.")
     plt.show()
-
