@@ -1105,6 +1105,7 @@ class TerraModel:
         field,
         index=None,
         radius=None,
+        depth=False,
         nside=2**6,
         title=None,
         delta=None,
@@ -1185,7 +1186,10 @@ class TerraModel:
             lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
 
-        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+        if depth:
+            ax.set_title(f"Depth = {int(layer_radius)} km")
+        else:
+            ax.set_title(f"Radius = {int(layer_radius)} km")
 
         if show:
             fig.show()
