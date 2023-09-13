@@ -25,8 +25,6 @@ plugins:
                 selection_opt: true
                 rendering_opt: "value"
                 docstring_style: "sphinx"
-    watch:
-    - terratools
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
