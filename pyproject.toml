@@ -26,6 +26,7 @@ netcdf4 = "^1"
 matplotlib = "^3.5"
 scikit-learn = "^1.1.2"
 healpy = "^1.16.2"
+pooch = "^1.7"
 
 
 [tool.poetry.dev-dependencies]

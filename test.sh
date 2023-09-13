@@ -63,6 +63,7 @@ else
   sed -i.bak -e '/cannot be converted with the encoding. Glyph may be wrong/d' $t.tmp #remove font warning crap
   sed -i.bak -e '/time old .* time new/d' $t.tmp #remove timing from tests/debye.py
   sed -i.bak -e '/  relative central core pressure error.*/d' $t.tmp #remove residuals from examples/example_build_planet
+  sed -i.bak -e '/Downloading file /d' $t.tmp #remove pooch file download reports
 
   rm -f $t.tmp.bak
 

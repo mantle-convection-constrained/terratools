@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from terratools import lookup_tables
+from terratools import example_data as examples
 
 if __name__ == "__main__":
 
@@ -17,9 +18,9 @@ if __name__ == "__main__":
     # Load in three example sesimic lokoup tables
     # This creates interpolation objects that can be queried for the sesimic property
     # at a temperature and pressure at each point.
-    hzb_table = lookup_tables.SeismicLookupTable("./data/example_hzb_table.dat")
-    lhz_table = lookup_tables.SeismicLookupTable("./data/example_lhz_table.dat")
-    bas_table = lookup_tables.SeismicLookupTable("./data/example_bas_table.dat")
+    hzb_table = lookup_tables.SeismicLookupTable(examples.example_hzb_table())
+    lhz_table = lookup_tables.SeismicLookupTable(examples.example_lhz_table())
+    bas_table = lookup_tables.SeismicLookupTable(examples.example_bas_table())
 
     # In this example we will find Vp at a simple range of temperatures and
     # pressures for two compostions (hzb (C=0) and lhz(C=0.2)).
