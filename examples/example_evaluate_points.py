@@ -101,6 +101,8 @@ can evaluate the points:
 
 Let's look at the difference between them for this random model:
 """
+
+# %%
 profile_ts_nearest = model.evaluate(
     profile_lons, profile_lats, 3480, "t", method="nearest"
 )
@@ -125,7 +127,7 @@ a set of points within a window and plot the field, with the points
 scattered on top, defining a function to do the heavy lifting:
 """
 
-
+# %%
 def plot_field(
     model,
     lon_lims=(-20, 20),
