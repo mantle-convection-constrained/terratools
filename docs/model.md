@@ -27,7 +27,7 @@ At a minimum, a `TerraModel` instance will usually contain information about:
 Depending on the contents of the model file, it may contain some of the
 following fields:
 
-- Scalar fields:
+* Scalar fields:
   - `"t"`: Temperature field [K]
   - `"c"`: Scalar composition field [unitless]
   - `"p"`: Pressure field [GPa]
@@ -41,13 +41,14 @@ following fields:
   - `"qp"`: P-wave quality factor [unitless]
   - `"qs"`: S-wave quality factor [unitless]
   - `"visc"`: Viscosity [Pa s]
-- Vector fields:
+* Vector fields:
   - `"u_xyz"`: Flow field in Cartesian coordinates (three components) [m/s]
   - `"u_enu"`: Flow field in local geographic coordinates (three components) [m/s]
   - `"c_hist"`: Composition histogram [unitles]
 
 ### Field coordinates
 All fields are defined in space by two indices:
+
 - The first index gives the layer number, starting from `0` at the lowest part of
   the model.  Layer radii can be given using
   [terra_model.TerraModel.get_radii][terratools.terra_model.TerraModel.get_radii].
@@ -97,6 +98,7 @@ interpolation.
 
 ### Plotting
 Fields can be plotted in various ways:
+
 - Cross sections can be made with [TerraModel.plot_section][terratools.terra_model.TerraModel.plot_section]
 - Depth slices can be made with [TerraModel.plot_layer][terratools.terra_model.TerraModel.plot_layer].
 - Spherical harmonic power by degree across all layers can be plotted with
