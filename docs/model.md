@@ -8,7 +8,7 @@ related to using `TerraModel`s.  Load it with
 `from terratools import terra_model`.
 
 ## Reading NetCDF files
-`terratools` defines a NetCDF [file format](file_formats), which can be
+`terratools` defines a NetCDF [file format](file_formats.md), which can be
 read using [terra_model.read_netcdf][terratools.terra_model.read_netcdf].
 
 `terra_model.read_netcdf` will read these and return a `TerraModel` object.
