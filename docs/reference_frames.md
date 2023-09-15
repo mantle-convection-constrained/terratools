@@ -1,9 +1,6 @@
 This page describes the different reference frames used by TERRA and
 `terratools`.
 
-## Accessing individual components
-In both cases below, individual elements in fields are accessed
-
 ## Global geographic frame
 Most commonly, you will interact with points based on their geographic
 position.  This is given in terms of
@@ -43,3 +40,18 @@ directions:
 - `u`: radial direction, pointing away from the centre of the Earth
 
 ![Reference frames used by terratools](images/reference_frames.svg)
+
+## Accessing individual components of multicomponent fields
+For multicomponent fields (those with more than two dimensions when
+returned from [model.get_field][terratools.terra_model.TerraModel.get_field]),
+the final dimension is that over which the different directions are given.
+To access the components, index the final dimensions with `0`, `1` or `2`
+for the first, second or third component.
+
+For example, for a `TerraModel` `m`, you can get all of the $x$ components
+of the flow field like so:
+
+```python
+u_xyz = m.get_field("u_xyz")
+xs = u_xyz[:,:,0]
+```
