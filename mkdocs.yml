@@ -6,6 +6,7 @@ nav:
         - Model objects: model.md
         - Physical properties: properties.md
         - Reference frames: reference_frames.md
+        - File formats: file_formats.md
     - Examples: reference_examples/
     - Code Reference: reference/
 

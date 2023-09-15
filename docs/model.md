@@ -8,7 +8,7 @@ related to using `TerraModel`s.  Load it with
 `from terratools import terra_model`.
 
 ## Reading NetCDF files
-`terratools` defines a NetCDF file format [REF TO FILE FORMAT], which can be
+`terratools` defines a NetCDF [file format](file_formats), which can be
 read using [terra_model.read_netcdf][terratools.terra_model.read_netcdf].
 
 `terra_model.read_netcdf` will read these and return a `TerraModel` object.
@@ -59,6 +59,7 @@ All fields are defined in space by two indices:
   returns a tuple of `lon, lat`, where `lon` and `lat` are both the global
   geographic coordinates of each lateral point.  Therefore the coordinates of
   the `j`th lateral point for model `m` are given by
+  
   ```python
   lon, lat = m.get_lateral_points()
   lon[j], lat[j]
@@ -103,6 +104,6 @@ Fields can be plotted in various ways:
 
 ### Spherical harmonics
 Spherical harmonics can be analysed for fields with the
-[m.cal_spherical_harmonics][terratools.terra_model.TerraModel.calc_spherical_harmonics]
+[m.calc_spherical_harmonics][terratools.terra_model.TerraModel.calc_spherical_harmonics]
 function.  These can then be retrieved using
 [m.get_spherical_harmonics][terratools.terra_model.TerraModel.get_spherical_harmonics].
