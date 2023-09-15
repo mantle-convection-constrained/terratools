@@ -40,6 +40,27 @@ This will give others a chance to review your code.
 - For new features (new functions, modules or new options to existing functions), add documentation for them (in `docs`).
 - Take note of [semantic versioning](https://semver.org).  This means that if you want to change the way that terratools works, a new major (X+1.0.0) version of the software will need to be released.  Mention this in your pull request.  Any new features which are backward-compatible require a new minor (X.Y+1.0) version.
 
+## Adding examples
+To add a new example script, add it to `examples`, copying the formatting in
+one of the existing example scripts (e.g., `examples/example_attenuation.py`).
+This include the comment blocks which enable an example script to be rendered
+on the documentation website.
+
+Run the script, verify that it works, and copy the correct output to the
+`misc/ref` directory.  For example, if your new example is called
+`examples/example_cool_new_thing.py`, do the following:
+
+```sh
+python examples/example_cool_new_thing.py > misc/ref/example_cool_new_thing.py.out
+```
+
+Then run the package tests to make sure your script when run produces the
+expected output.
+
+Once you have done that, add an entry to `docs/copy_ref_examples.py` for
+the example script you have added.  This will ensure it is built when the
+website documentation is made and its name is added to the list of examples.
+
 ### Code conventions
 General conventions:
 - Module global variables should be prefixed with a `_` unless they are meant to be used by users.  E.g., `plot._CARTOPY_INSTALLED` is not meant to be part of the public interface, but `terra_model.VALUE_TYPE` can be used externally.
