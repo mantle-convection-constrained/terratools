@@ -6,7 +6,6 @@ from terratools import terra_model
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-
     # %% [markdown]
     """
     For the purposes of this example we first create some example 'old' data
