@@ -60,9 +60,8 @@ All fields are defined in space by two indices:
   geographic coordinates of each lateral point.  Therefore the coordinates of
   the `j`th lateral point for model `m` are given by
   
-  ```
+  ```python
   lon, lat = m.get_lateral_points()
-  
   lon[j], lat[j]
   ```
 
