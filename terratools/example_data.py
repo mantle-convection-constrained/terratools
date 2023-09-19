@@ -16,7 +16,7 @@ import pooch
 
 _EXAMPLE_DATA = pooch.create(
     path=pooch.os_cache("terratools"),
-    base_url="doi:10.6084/m9.figshare.24100362.v1",
+    base_url="doi:10.6084/m9.figshare.24100362.v2",
     registry=None,
 )
 
@@ -90,3 +90,20 @@ def example_lhz_table():
     """
     filename = _EXAMPLE_DATA.fetch("example_lhz_table.dat")
     return filename
+
+
+def example_terra_model():
+    """
+    Return the full filename for an example mantle convection model.
+
+    This is a NetCDF file of a mantle convection model containing 
+    the temperature, composition and flow velicity fields at 64 radii 
+    with each radii having 2562 points. 
+    
+    This model was downsampled from a higher resolution model for the 
+    purposes of saving memory. 
+
+    """
+    filename = _EXAMPLE_DATA.fetch("example_model.nc")
+    return filename
+
