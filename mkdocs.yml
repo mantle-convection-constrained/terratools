@@ -3,8 +3,10 @@ nav:
     - Home: index.md
     - About: about.md
     - TerraTools fundamentals:
-        - Model interrogation: model.md
+        - Model objects: model.md
         - Physical properties: properties.md
+        - Reference frames: reference_frames.md
+        - File formats: file_formats.md
     - Examples: reference_examples/
     - Code Reference: reference/
 
@@ -24,8 +26,6 @@ plugins:
                 selection_opt: true
                 rendering_opt: "value"
                 docstring_style: "sphinx"
-    watch:
-    - terratools
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
@@ -48,6 +48,7 @@ markdown_extensions:
         check_paths: true
     - pymdownx.arithmatex:
         generic: true
+    - pymdownx.superfences
 
 extra_javascript:
   - javascripts/mathjax.js
