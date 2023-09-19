@@ -1052,8 +1052,16 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def calc_spherical_harmonics(self, field, nside=2**6, lmax=16, savemap=False):
+    def calc_spherical_harmonics(
+        self, field, nside=2**6, lmax=16, savemap=False, use_pixel_weights=False
+    ):
         """
+        Function to calculate spherical harmonic coefficients for given global field.
+        Model is re-gridded to an equal area healpix grid of size nside (see
+        https://healpix.sourceforge.io/ for details) and then expanded to spherical
+        harmonic coefficients up to degree lmax, with pixels being uniformally weighted
+        by 4pi/n_pix (see https://healpy.readthedocs.io/en/latest/index.html for details).
+
         :param field: input field
         :type  field: str
 
@@ -1085,7 +1093,9 @@ class TerraModel:
         for r in range(nr):
             hpmap = _pixelise(field_values[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
-            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
+            hp_coeffs = hp.sphtfunc.map2alm(
+                hpmap, lmax=lmax, use_pixel_weights=use_pixel_weights
+            )
             if savemap:
                 hp_ir[r] = {
                     "map": hpmap,
