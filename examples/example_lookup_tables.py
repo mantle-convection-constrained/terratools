@@ -12,6 +12,7 @@ Import required modules.
 import numpy as np
 import matplotlib.pyplot as plt
 from terratools import lookup_tables
+from terratools import example_data as examples
 
 # %% [markdown]
 """
