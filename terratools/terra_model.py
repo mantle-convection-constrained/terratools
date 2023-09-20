@@ -1052,8 +1052,16 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def calc_spherical_harmonics(self, field, nside=2**6, lmax=16, savemap=False):
+    def calc_spherical_harmonics(
+        self, field, nside=2**6, lmax=16, savemap=False, use_pixel_weights=False
+    ):
         """
+        Function to calculate spherical harmonic coefficients for given global field.
+        Model is re-gridded to an equal area healpix grid of size nside (see
+        https://healpix.sourceforge.io/ for details) and then expanded to spherical
+        harmonic coefficients up to degree lmax, with pixels being uniformally weighted
+        by 4pi/n_pix (see https://healpy.readthedocs.io/en/latest/index.html for details).
+
         :param field: input field
         :type  field: str
 
@@ -1085,7 +1093,9 @@ class TerraModel:
         for r in range(nr):
             hpmap = _pixelise(field_values[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
-            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
+            hp_coeffs = hp.sphtfunc.map2alm(
+                hpmap, lmax=lmax, use_pixel_weights=use_pixel_weights
+            )
             if savemap:
                 hp_ir[r] = {
                     "map": hpmap,
@@ -1105,6 +1115,7 @@ class TerraModel:
         field,
         index=None,
         radius=None,
+        depth=False,
         nside=2**6,
         title=None,
         delta=None,
@@ -1185,7 +1196,10 @@ class TerraModel:
             lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
 
-        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+        if depth:
+            ax.set_title(f"Depth = {int(layer_radius)} km")
+        else:
+            ax.set_title(f"Radius = {int(layer_radius)} km")
 
         if show:
             fig.show()
@@ -1457,6 +1471,9 @@ class TerraModel:
         if minradius >= maxradius:
             raise ValueError("minradius must be less than maxradius")
 
+        # Allow us to plot at least two points
+        if (maxradius - minradius) / 2 < delta_radius:
+            delta_radius = (maxradius - minradius) / 2
         radii = np.arange(minradius, maxradius, delta_radius)
         distances = np.arange(0, distance, delta_distance)
 
