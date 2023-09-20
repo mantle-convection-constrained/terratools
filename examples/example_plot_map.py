@@ -72,9 +72,9 @@ Rather than defining a radius, we can give an index for the layer we want to plo
 
 # %%
 
-fig, ax = model.plot_layer(field="t", index=0, show=False)
+fig, ax = model.plot_layer(field="t", index=10, show=False)
 fig.set_size_inches(8, 6)
-ax.set_title("Temperature at the highest radius.")
+ax.set_title("Temperature at the index 10.")
 plt.show()
 
 # %% [markdown]
