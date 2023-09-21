@@ -21,7 +21,7 @@ import cartopy.crs as ccrs
 
 # %% [markdown]
 """
-Now lets download and read in the example mantle convection model netcdf file
+Now let's download and read in the example mantle convection model netcdf file
  and print some summary information.
 """
 

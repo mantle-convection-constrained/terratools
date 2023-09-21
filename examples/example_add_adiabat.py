@@ -21,7 +21,7 @@ from terratools.terra_model import _calculate_adiabat
 
 # %% [markdown]
 """
-Now lets download and read in the example mantle convection model
+Now let's download and read in the example mantle convection model
 netcdf file and print some summary information.
 """
 
