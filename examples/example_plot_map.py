@@ -111,5 +111,5 @@ fig, ax = model.plot_layer(
 )
 fig.set_size_inches(8, 6)
 ax.set_title("Temperature in a small region at 2800 km depth.")
-ax.set_extent(region, ccrs.PlateCarree())
+# ax.set_extent(region, ccrs.PlateCarree())
 plt.show()
