@@ -10,9 +10,14 @@ nav = mkdocs_gen_files.Nav()
 examples = [
     "example_evaluate_points",
     "example_cross_section",
-    # "example_spherical_harmonics", # FIXME: Not working because of `tests` import
+    "example_spherical_harmonics", 
     "example_attenuation",
-    # "example_convert", # FIXME: Not working because of `tests` import
+    "example_convert", 
+    "example_add_adiabat",
+    "example_lookup_tables",
+    "example_plot_map",
+    "example_triangle_interpolation",
+    "example_fit_Simon_Glatzel"
 ]
 
 # The rest of this script does all the copying
