@@ -1,8 +1,6 @@
 import terratools
 from terratools.terra_model import read_netcdf
 from terratools.example_data import example_terra_model
-import glob
-import os
 import matplotlib.pyplot as plt
 
 # %% [markdown]
@@ -15,7 +13,7 @@ First we download and read in the example mantle convection model:
 path = example_terra_model()
 
 # read in the model
-model = read_netcdf(glob.glob(path))
+model = read_netcdf([path])
 
 
 # %% [markdown]

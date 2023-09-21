@@ -27,7 +27,6 @@ import numpy as np
 
 from terratools.terra_model import read_netcdf
 from terratools.example_data import example_terra_model
-import glob
 
 from terratools.geographic import triangle_interpolation
 
@@ -52,7 +51,7 @@ Download and read in the example model.
 path = example_terra_model()
 
 # read in the model
-model = read_netcdf(glob.glob(path))
+model = read_netcdf([path])
 
 # %% [markdown]
 """
