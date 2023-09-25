@@ -35,7 +35,7 @@ from terratools.geographic import triangle_interpolation
 Next define a function to create a grid of points.
 """
 
-
+# %%
 def grid(lon1, lon2, lat1, lat2, delta):
     lons = np.arange(lon1, lon2, delta)
     lats = np.arange(lat1, lat2, delta)
@@ -65,8 +65,8 @@ model get_lateral_points().
 lon, lat = model.get_lateral_points()
 
 # create grid
-delta = 0.1
-gridlon, gridlat = grid(-2, 2, -2, 2, delta)
+delta = 10
+gridlon, gridlat = grid(-180, 180, -90, 90, delta)
 nlon, nlat = len(gridlon), len(gridlat)
 
 # %% [markdown]
@@ -93,3 +93,5 @@ plt.pcolormesh(gridlon, gridlat, np.transpose(interpolated_values))
 plt.scatter(lon, lat, edgecolors="white", s=0.5)
 plt.colorbar()
 plt.show()
+
+# %%
