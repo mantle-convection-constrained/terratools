@@ -39,11 +39,11 @@ model = read_netcdf(glob.glob(path))
 At this point we are able to extract points at arbitrary positions.
 
 Let's first find a single point, at about the coordinates of Cardiff
-and at 30 km below the surface:
+and at 200 km below the surface:
 """
 
 # %%
-model.evaluate(lon=-3.1789, lat=51.48772, r=6340, field="t")
+model.evaluate(lon=-3.1789, lat=51.48772, r=6170, field="t")
 
 # %% [markdown]
 """
@@ -52,19 +52,20 @@ in km rather than a radius in km, getting the same answer.
 """
 
 # %%
-model.evaluate(-3.1789, 51.48772, 30, "t", depth=True)
+model.evaluate(-3.1789, 51.48772, 200, "t", depth=True)
 
 # %% [markdown]
 """
-We can also ask for multiple points at once, providing that `lon` and `lat`
-are both lists or arrays of the same length.  For example, we can get a profile
-along the Greenwich meridian at the core-mantle boundary:
+We can also ask for multiple points at once, providing that `lon`, `lat` and `r`
+are all lists or arrays of the same length.  For example, we can get a profile
+along the Greenwich meridian 200 km above the core-mantle boundary:
 """
 
 # %%
 profile_lats = np.arange(-90, 90)
 profile_lons = np.zeros_like(profile_lats)
-profile_ts = model.evaluate(profile_lons, profile_lats, 3480, "t")
+profile_radii = 3680 * np.ones(len(profile_lats))
+profile_ts = model.evaluate(profile_lons, profile_lats, profile_radii, "t")
 
 plt.plot(profile_lats, profile_ts)
 plt.xlabel("Latitude / °")
@@ -84,7 +85,7 @@ Let's look at the difference between them for this random model:
 
 # %%
 profile_ts_nearest = model.evaluate(
-    profile_lons, profile_lats, 3480, "t", method="nearest"
+    profile_lons, profile_lats, profile_radii, "t", method="nearest"
 )
 
 plt.plot(profile_lats, profile_ts, label="Method: 'triangle'")
@@ -135,8 +136,11 @@ def plot_field(
     interp_lons = np.linspace(lon_lims[0], lon_lims[1], nlons)
     interp_lats = np.linspace(lat_lims[0], lat_lims[1], nlats)
     mesh_lons, mesh_lats = np.meshgrid(interp_lons, interp_lats)
+    interp_radii = 3680 * np.ones(len(mesh_lons.flat))
     interp_ts = np.reshape(
-        model.evaluate(mesh_lons.flat, mesh_lats.flat, 3480, "t", method=method),
+        model.evaluate(
+            mesh_lons.flat, mesh_lats.flat, interp_radii, "t", method=method
+        ),
         (nlons, nlats),
     )
 
