@@ -5,6 +5,7 @@ nav:
     - TerraTools fundamentals:
         - Model objects: model.md
         - Physical properties: properties.md
+        - Lookup Table objects: SeismicLookupTable.md
         - Reference frames: reference_frames.md
         - File formats: file_formats.md
     - Examples: reference_examples/
