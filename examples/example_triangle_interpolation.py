@@ -35,6 +35,7 @@ from terratools.geographic import triangle_interpolation
 Next define a function to create a grid of points.
 """
 
+
 # %%
 def grid(lon1, lon2, lat1, lat2, delta):
     lons = np.arange(lon1, lon2, delta)
