@@ -13,7 +13,8 @@ We begin by importing the required things:
 
 # %%
 import terratools
-from terratools.terra_model import TerraModel
+from terratools.terra_model import read_netcdf
+from terratools.example_data import example_terra_model
 
 from pathlib import Path
 import numpy as np
@@ -21,49 +22,27 @@ import matplotlib.pyplot as plt
 
 # %% [markdown]
 """
-Normally at this point, you would read in your model by calling
-`terratools.terra_model.read_netcdf`, but here instead we create a
-synthetic TERRA model just to demonstrate how to
-get points out of it.
-
-First we read in the points on which the model is defined:
+First we download and read in the example mantle convection model:
 """
 
 # %%
-# Find where terratools is installed
-root_dir = str(Path(terratools.__file__).parent.parent)
-coords_file = f"{root_dir}/examples/data/example_mesh_points.txt"
-coords = np.loadtxt(coords_file)
-lons = coords[:, 0]
-lats = coords[:, 1]
-npts = len(lons)
+# Download and cache model
+path = example_terra_model()
 
-nlayers = 40
-radii = np.linspace(3480, 6370, nlayers)
+# read in the model
+model = read_netcdf([path])
 
-model = TerraModel(lons, lats, radii)
-
-# %% [markdown]
-"""
-Now we create a temperature field whose values are a function of
-position in space:
-"""
-
-# %%
-lateral_field = np.cos(np.radians(lons)) * np.sin(np.radians(lats)) * 100
-t_field = (radii / 10 + np.repeat(np.reshape(lateral_field, (npts, 1)), nlayers, 1)).T
-model.set_field("t", t_field)
 
 # %% [markdown]
 """
 At this point we are able to extract points at arbitrary positions.
 
 Let's first find a single point, at about the coordinates of Cardiff
-and at 30 km below the surface:
+and at 200 km below the surface:
 """
 
 # %%
-model.evaluate(lon=-3.1789, lat=51.48772, r=6340, field="t")
+model.evaluate(lon=-3.1789, lat=51.48772, r=6170, field="t")
 
 # %% [markdown]
 """
@@ -72,19 +51,20 @@ in km rather than a radius in km, getting the same answer.
 """
 
 # %%
-model.evaluate(-3.1789, 51.48772, 30, "t", depth=True)
+model.evaluate(-3.1789, 51.48772, 200, "t", depth=True)
 
 # %% [markdown]
 """
-We can also ask for multiple points at once, providing that `lon` and `lat`
-are both lists or arrays of the same length.  For example, we can get a profile
-along the Greenwich meridian at the core-mantle boundary:
+We can also ask for multiple points at once, providing that `lon`, `lat` and `r`
+are all lists or arrays of the same length.  For example, we can get a profile
+along the Greenwich meridian 200 km above the core-mantle boundary:
 """
 
 # %%
 profile_lats = np.arange(-90, 90)
 profile_lons = np.zeros_like(profile_lats)
-profile_ts = model.evaluate(profile_lons, profile_lats, 3480, "t")
+profile_radii = 3680 * np.ones(len(profile_lats))
+profile_ts = model.evaluate(profile_lons, profile_lats, profile_radii, "t")
 
 plt.plot(profile_lats, profile_ts)
 plt.xlabel("Latitude / °")
@@ -104,7 +84,7 @@ Let's look at the difference between them for this random model:
 
 # %%
 profile_ts_nearest = model.evaluate(
-    profile_lons, profile_lats, 3480, "t", method="nearest"
+    profile_lons, profile_lats, profile_radii, "t", method="nearest"
 )
 
 plt.plot(profile_lats, profile_ts, label="Method: 'triangle'")
@@ -126,6 +106,7 @@ Finally, just to visualise the interpolation across the field, we take
 a set of points within a window and plot the field, with the points
 scattered on top, defining a function to do the heavy lifting:
 """
+
 
 # %%
 def plot_field(
@@ -154,8 +135,11 @@ def plot_field(
     interp_lons = np.linspace(lon_lims[0], lon_lims[1], nlons)
     interp_lats = np.linspace(lat_lims[0], lat_lims[1], nlats)
     mesh_lons, mesh_lats = np.meshgrid(interp_lons, interp_lats)
+    interp_radii = 3680 * np.ones(len(mesh_lons.flat))
     interp_ts = np.reshape(
-        model.evaluate(mesh_lons.flat, mesh_lats.flat, 3480, "t", method=method),
+        model.evaluate(
+            mesh_lons.flat, mesh_lats.flat, interp_radii, "t", method=method
+        ),
         (nlons, nlats),
     )
 

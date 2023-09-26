@@ -12,7 +12,8 @@ We begin by importing the required things:
 
 # %%
 import terratools
-from terratools.terra_model import TerraModel
+from terratools.terra_model import read_netcdf
+from terratools.example_data import example_terra_model
 
 from pathlib import Path
 import numpy as np
@@ -20,38 +21,15 @@ import matplotlib.pyplot as plt
 
 # %% [markdown]
 """
-Normally at this point, you would read in your model by calling
-`terratools.terra_model.read_netcdf`, but here instead we create a
-synthetic TERRA model just to demonstrate how to
-get points out of it.
-
-First we read in the points on which the model is defined:
+First we download and read in the example mantle convection model:
 """
 
 # %%
-# Find where terratools is installed
-root_dir = str(Path(terratools.__file__).parent.parent)
-coords_file = f"{root_dir}/examples/data/example_mesh_points.txt"
-coords = np.loadtxt(coords_file)
-lons = coords[:, 0]
-lats = coords[:, 1]
-npts = len(lons)
+# Download and cache model
+path = example_terra_model()
 
-nlayers = 40
-radii = np.linspace(3480, 6370, nlayers)
-
-model = TerraModel(lons, lats, radii)
-
-# %% [markdown]
-"""
-Now we create a temperature field whose values are a function of
-position in space:
-"""
-
-# %%
-lateral_field = np.cos(np.radians(lons)) * np.sin(np.radians(lats)) * 100
-t_field = (radii / 10 + np.repeat(np.reshape(lateral_field, (npts, 1)), nlayers, 1)).T
-model.set_field("t", t_field)
+# read in the model
+model = read_netcdf([path])
 
 # %% [markdown]
 """
@@ -99,6 +77,8 @@ the figure and axis using their methods.
 Use the keyword argument `show=False` to `model.plot_section` to avoid
 displaying the figure, which is useful in batch processing.
 """
+
+# %%
 import os
 import tempfile
 
