@@ -65,4 +65,5 @@ fig.set_figwidth(10)
 fig.colorbar(psm, label="Radial velocity (cm/yr)")
 ax.set_xlabel("Longitude ($^\circ$)")
 ax.set_ylabel("Latitude ($^\circ$)")
+
 plt.show()
