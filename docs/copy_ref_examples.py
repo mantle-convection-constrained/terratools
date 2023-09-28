@@ -16,6 +16,7 @@ examples = [
     "example_add_adiabat",
     "example_lookup_tables",
     "example_plot_map",
+    "example_plot_flowfield",
     "example_triangle_interpolation",
     "example_fit_Simon_Glatzel"
 ]
