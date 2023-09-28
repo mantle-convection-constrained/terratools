@@ -4,9 +4,14 @@
 
 In this example we plot the instantaneous flow-field as a function of position for a fixed depth in a time-step of a TERRA model.
 
-First, we import the methods we require, including the example model.
 """
 
+# %% [markdown]
+"""
+Let's import all the necessary python objects.
+"""
+
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,17 +24,20 @@ Read in the example TERRA model (in netCDF format), and convert the flow field f
 reference frame.
 """
 
-# Download and cache model
+# %%
+# Download (cache) and read the example model
 path = example_terra_model()
-
-# read in the model
 m = read_netcdf([path])
 
+# Calculate the model's geographical flowfield
 m.add_geog_flow()
+
 # %% [markdown]
 """
 Generate latitude and longitude grids at which to evaluate the flow-field.
 """
+
+# %%
 nlon = 37
 lon = np.linspace(-30, 330, nlon)
 nlat = 19
@@ -41,6 +49,8 @@ flow_velocity = np.empty((3, nlon, nlat))
 """
 Loop over the spatial grid at a fixed depth, extracting the flow vector, and scaling to cm/yr.
 """
+
+# %%
 depth = 100
 for i in range(nlon):
     for j in range(nlat):
@@ -54,6 +64,8 @@ for i in range(nlon):
 Finally, plot the flow velocities. The colour scale represents the radial velocity, and the arrows the horizontal velocity. The local
 geographic vector is defined as positive [east, north, up].
 """
+
+# %%
 fig, ax = plt.subplots()
 max_zvel = np.nanmax(flow_velocity[2, :, :])
 psm = ax.pcolor(
