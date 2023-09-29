@@ -588,6 +588,40 @@ class TestTerraModelEvaluate(unittest.TestCase):
         )
 
 
+class TestRadialProfile(unittest.TestCase):
+    def test_radial_profile_triangular_interpolation(self):
+        # Create model
+        lons, lats = read_test_lateral_points()
+        radii = np.arange(0.5, 1, 0.1)
+        m = TerraModel(lons, lats, radii)
+        t = m.new_field("t")
+
+        def layer_func(lons, lats, index):
+            return index * lons**2 * np.sin(np.radians(lats))
+
+        for ilayer in range(len(radii)):
+            t[ilayer, :] = layer_func(lons, lats, ilayer)
+
+        # True values
+        test_lon, test_lat = -1, -1
+        test_profile = layer_func(test_lon, test_lat, np.arange(len(radii)))
+
+        profile = m.radial_profile("t", test_lon, test_lat, method="triangle")
+
+        self.assertTrue(np.allclose(profile, test_profile, atol=0.001))
+
+    def test_radial_profile_is_not_a_view(self):
+        """
+        Ensure that when getting a radial profile with `method="nearest"`
+        the returned array can't be used to change the model.
+        """
+        m = dummy_model(with_fields=True)
+        field_copy = m.get_field("t").copy()
+        profile = m.radial_profile("t", 0, 0)
+        profile[:] = 999
+        self.assertTrue(np.all(m.get_field("t") == field_copy))
+
+
 class TestModelHealpy(unittest.TestCase):
     def test_hp_sph(self):
         model = dummy_model(with_fields=True)
