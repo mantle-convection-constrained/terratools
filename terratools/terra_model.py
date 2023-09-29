@@ -890,11 +890,11 @@ class TerraModel:
         Return the radial profile of the given field
         at a given longitude and latitude point.
 
-        :param lat: Longitude at which to get radial profile.
-        :type lat: float
-
-        :param lon: Latitude at which to get radial profile.
+        :param lon: Longitude at which to get radial profile.
         :type lon: float
+
+        :param lat: Latitude at which to get radial profile.
+        :type lat: float
 
         :param field: Name of field.
         :type field: str
