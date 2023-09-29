@@ -50,8 +50,8 @@ temps = model.get_field("t")
 quantile_25 = np.quantile(temps, 0.25, axis=1)
 quantile_75 = np.quantile(temps, 0.75, axis=1)
 
-# Extract the mean 1D temperature profile
-temp_profile_no_adiabat = model.mean_1d_profile("t")
+# Extract the mean radial temperature profile
+temp_profile_no_adiabat = model.mean_radial_profile("t")
 
 # Plot mean temperature with depth
 
@@ -97,8 +97,8 @@ temps_adiabat = model.get_field("t")
 quantile_25_adiabat = np.quantile(temps, 0.25, axis=1)
 quantile_75_adiabat = np.quantile(temps, 0.75, axis=1)
 
-# Extract the new mean 1D temperature profile
-temp_profile_adiabat = model.mean_1d_profile("t")
+# Extract the new mean radial temperature profile
+temp_profile_adiabat = model.mean_radial_profile("t")
 
 
 fig = plt.figure(figsize=(6, 8))
