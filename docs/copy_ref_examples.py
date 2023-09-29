@@ -7,7 +7,19 @@ import mkdocs_gen_files
 nav = mkdocs_gen_files.Nav()
 
 # List of the examples to copy
-examples = ["example_attenuation"]
+examples = [
+    "example_evaluate_points",
+    "example_cross_section",
+    "example_spherical_harmonics", 
+    "example_attenuation",
+    "example_convert", 
+    "example_add_adiabat",
+    "example_lookup_tables",
+    "example_plot_map",
+    "example_plot_flowfield",
+    "example_triangle_interpolation",
+    "example_fit_Simon_Glatzel"
+]
 
 # The rest of this script does all the copying
 path = "docs/reference_examples/"

@@ -13,3 +13,4 @@ ipykernel>=6.15.0
 pygments>=2.12
 pymdown-extensions>=9.4
 git+https://github.com/bobmyhill/mdx_bib
+cartopy>=0.21.1
