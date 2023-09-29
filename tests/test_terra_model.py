@@ -606,7 +606,7 @@ class TestRadialProfile(unittest.TestCase):
         test_lon, test_lat = -1, -1
         test_profile = layer_func(test_lon, test_lat, np.arange(len(radii)))
 
-        profile = m.radial_profile("t", test_lon, test_lat, method="triangle")
+        profile = m.radial_profile(test_lon, test_lat, "t", method="triangle")
 
         self.assertTrue(np.allclose(profile, test_profile, atol=0.001))
 
@@ -617,7 +617,7 @@ class TestRadialProfile(unittest.TestCase):
         """
         m = dummy_model(with_fields=True)
         field_copy = m.get_field("t").copy()
-        profile = m.radial_profile("t", 0, 0)
+        profile = m.radial_profile(0, 0, "t")
         profile[:] = 999
         self.assertTrue(np.all(m.get_field("t") == field_copy))
 

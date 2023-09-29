@@ -885,19 +885,19 @@ class TerraModel:
 
         return profile
 
-    def radial_profile(self, field, lon, lat, method="nearest"):
+    def radial_profile(self, lon, lat, field, method="nearest"):
         """
         Return the radial profile of the given field
         at a given longitude and latitude point.
-
-        :param field: Name of field.
-        :type field: str
 
         :param lat: Longitude at which to get radial profile.
         :type lat: float
 
         :param lon: Latitude at which to get radial profile.
         :type lon: float
+
+        :param field: Name of field.
+        :type field: str
 
         :param method: Method by which the lateral points are evaluated.
             if ``method`` is ``"nearest"`` (the default), the nearest

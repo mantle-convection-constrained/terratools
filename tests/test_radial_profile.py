@@ -12,7 +12,7 @@ class TestRadialProfile(unittest.TestCase):
 
     def test_incorrect_method(self):
         with self.assertRaises(ValueError):
-            self.m.radial_profile("t", 0, 0, method="incorrect method")
+            self.m.radial_profile(0, 0, "t", method="incorrect method")
 
     def test_recover_radial_profile(self):
         t_profile = np.array([0, 0, 0])
