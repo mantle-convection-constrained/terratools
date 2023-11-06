@@ -23,10 +23,13 @@ def plume_kmeans(model, depth_range=(400, 2600), n_init="auto"):
     Performs K-means clustering on the model at each depth containing a layer within the range specified
     Currently only works when nclust=2
 
-    Model = name of model variable
-    Depths = minimum and maximum depths used (list) (km)
-    nclust = no of clusters
-    Deg per cell = angle between two consecutive cells
+    :param model: TerraModel object
+    :param depth_range: (min_depth, max_depth) over which to look for plumes
+    :param n_init: number of times to run k-means with different starting centroids
+    :return plume_binary: Array of shape (maxlyr-minlyr+1,nps) containing binary
+        information on whether a plume was detected
+    :return toplot: Layers of the TerraModel which were searched for plumes
+    :return depths_flip: Corresponding depths of layers which were searched for plumes.
     """
 
     # We will be looking for 2 clusters - those which are plume like and those which are not.
@@ -103,6 +106,11 @@ def kmeans_analysis(gridin, nclusts, n_init="auto"):
     """
     perform kmeans clusters analysis on given grid using sklearn package
     for nclust clusters. Return grid filled with values 0 to nclust-1.
+
+    :param gridin: Input data for K-means analysis
+    :param nclusts: Number of clusters to search for
+    :param n_init: Numer of times to run K-means with different starting centroids
+    :return result_clusts: Result of K-means analysis with clusters numerated
     """
     from sklearn.cluster import KMeans
 
@@ -132,10 +140,17 @@ def plume_dbscan(
 ):
     """
     Performs either DBSCAN or HDBSCAN on the output array from the K-means function.
-    Model = the model being used
-    Epsilon = Epsilon or
-    Minpnts = Minsamples or?
-    Algorithm = 'DBSCAN' or 'HDBSCAN'
+
+    :param model: Input TerraModel
+    :param kmeans: Result from the K-means analysis
+    :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
+    :param epsilon: Threshold distance parameter for DBSCAN
+    :param minsamples: Minimum number of samples in a cluster for DBSCAN and HDBSCAN
+    :param depth_range: (min_depth, max_depth) over which to look for plumes
+
+    :return labels: Corresponding cluster label for each input point (-1 = noise)
+    :return n_clusts: Number of clusters detected
+    :return n_noise: Number of noise points
     """
 
     # Separate the minimum and maximum depths to be used by the clustering algorithm
@@ -189,7 +204,7 @@ def plume_dbscan(
         # MINCLUST=150
         # MINSAMPLE=150
 
-        density_scan = HDBSCAN(min_cluster_size=epsilon, min_samples=minsamples).fit(
+        density_scan = HDBSCAN(min_cluster_size=minsamples, min_samples=minsamples).fit(
             pnts_norm
         )
 
@@ -214,6 +229,11 @@ def plume_dbscan(
 def plume_centroids(plumeID, plm_obj):
     """
     Returns the coordinates of the centroids of each depth layer within the plume
+
+    :param plumeID: plumeID number for the plume in question
+    :param plm_obj: Plume object
+    :return plume_nth_centroids: Centroid of plume at each radial layer that it
+        was detected
     """
     # Select the points within plume 'plumeID'
     plume_nth = plm_obj.pnts_plms[plm_obj._plm_clusts == plumeID]
@@ -247,6 +267,11 @@ def get_centre(lons, lats):
     """
     Function to take in data lons and lats of a contour line and
     returns the centroid lon, lat
+
+    :param lons: Input longitudes
+    :param lats: Input latitudes
+    :return lon_out: longitude of centroid
+    :return lat_out: latitude of centroid
     """
 
     bigX = 0.0
@@ -287,6 +312,8 @@ def rad2deg(indat):
     """
     convert radians to degrees
 
+    :param indat: Input radians
+    :return outdat: Output degress
     """
     outdat = indat * 180.0 / np.pi
     return outdat
@@ -295,6 +322,9 @@ def rad2deg(indat):
 def deg2rad(indat):
     """
     convert degrees to radians
+
+    :param indat: Input degrees
+    :return outdat: Output radians
     """
     outdat = indat * np.pi / 180.0
     return outdat

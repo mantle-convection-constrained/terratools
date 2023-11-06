@@ -252,3 +252,14 @@ def spectral_heterogeneity(
         )
 
     return fig, ax
+
+
+def point(ax, lon, lat, color="red", size=4, text=None, textcolor="black", fontsize=11):
+    transform = ccrs.PlateCarree()
+    ax.scatter(lon, lat, transform=transform, color=color, s=size)
+    if text != None:
+        ax.text(
+            lon, lat, f"{text}", transform=transform, c=textcolor, fontsize=fontsize
+        )
+
+    return ax

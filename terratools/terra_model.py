@@ -1599,10 +1599,15 @@ class TerraModel:
         Our scheme is a two stage process, first plume-like regions identified
         using a K-means clustering algorithm, then the resultant points are
         spatially clustered using a density based clustering algorithm to identify
-        individual plumes.
+        individual plumes. An inner 'plumes' class is created within the TerraModel to
+        store information pertaining to detected plumes.
 
-        :param:
-
+        :param depth_range: (min_depth, max_depth) over which to look for plumes
+        :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
+        :param n_init: Number of times to run k-means with different starting centroids
+        :param epsilon: Threshold distance parameter for DBSCAN
+        :param minsamples: Minimum number of samples in a cluster for DBSCAN and HDBSCAN
+        :return: none
         """
 
         # First we need to check that we have the correct fields
@@ -1620,7 +1625,7 @@ class TerraModel:
         print("k-means analysis")
         #        self._kmeans_plms=plume_detection.plume_kmeans(self,depth_range=depth_range)
         kmeans, plm_layers, plm_depths = plume_detection.plume_kmeans(
-            self, depth_range=depth_range
+            self, depth_range=depth_range, n_init=n_init
         )
 
         # Now the density based clustering to identify individual plumes
@@ -1641,12 +1646,20 @@ class TerraModel:
         """
         An inner class of TerraModel, this class hold information pertaining to plumes
         which have been detected using the `model.detect_plumes` method.
-
         """
 
         def __init__(self, kmeans, plm_layers, plm_depths, clust_result, model):
             """
             Initialise new plumes inner class
+
+            :param kmeans: Array of shape (nps,maxlyr-minlyr+1) where nps is the number
+                of points in radial layer of a TerraModel and minlyr and maxlyr are the
+                min and max layers over which we searched for plumes. Array contains binary information on whether a plume was detected.
+            :param plm_layers: Layers of the TerraModel over which we searched for plumes
+            :param plm_depths: Depths corresponding to the plm_layers
+            :param clust_result: Cluster labels assigned by the spatial clustering
+            :param model: TerraModel, needed to access fields in the inner class
+            :return: none
             """
             self._kmeans_plms = kmeans
             self.plm_lyrs_range = plm_layers
@@ -1684,6 +1697,9 @@ class TerraModel:
             """
             Method calculates the centroids of each plume at each layer
             that the plume has been detected.
+
+            :param: none
+            :return: none
             """
 
             self.centroids = {}
@@ -1692,8 +1708,15 @@ class TerraModel:
 
         def radial_field(self, field):
             """
-            Method to return the min, max, mean and centroid
+            Method to find the values of a given field at points which have been
+            detected as plumes.
+
+            :param field: A field which exists in the TerraModel.
+            :return: none
             """
+
+            if field not in self._model.field_names.keys():
+                raise FieldNameError(field)
 
             # initialise dictionary which will store the plume fields
             if not hasattr(self, "plm_flds"):
@@ -1746,6 +1769,71 @@ class TerraModel:
                         self.plm_flds[field][plumeID][d] = fld_plm[
                             pnts_plmid[:, 2] == dep
                         ]  # get points at this depth
+
+        def plot_kmeans_stack(
+            self,
+            centroids=0,
+            delta=None,
+            extent=(-180, 180, -90, 90),
+            method="nearest",
+            coastlines=True,
+            show=True,
+        ):
+            """
+            Create a heatmap of vertically stacked results of k-means analysis
+
+            :param centroids: layer for which to plot centroids, eg 0 will plot
+                plot the centroid of the uppermost layer for each plume, None
+                will cause to not plot centorids.
+            :param delta: Grid spacing of plot in degrees
+            :param extent: Tuple giving the longitude and latitude extent of
+                plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+                in degrees
+            :param method: May be one of: "nearest" (plot nearest value to each
+                plot grid point); or "mean" (mean value in each pixel)
+            :param coastlines: If ``True`` (default), plot coastlines.
+                This may lead to a segfault on machines where cartopy is not
+                installed in the recommended way.  In this case, pass ``False``
+                to avoid this.
+            :param show: If ``True`` (the default), show the plot
+            :returns: figure and axis handles
+            """
+
+            if not hasattr(self, "centroids"):
+                print("calculating centroid of plume layers")
+                self.calc_centroids()
+
+            sumkmeans = np.sum(self._kmeans_plms, axis=1)
+            lon, lat = self._model.get_lateral_points()
+            label = "n-layers plume detected"
+            radius = 0.0
+
+            fig, ax = plot.layer_grid(
+                lon,
+                lat,
+                radius,
+                sumkmeans,
+                delta=delta,
+                extent=extent,
+                label=label,
+                method=method,
+                coastlines=coastlines,
+            )
+
+            mindep = np.min(self.plm_depth_range)
+            maxdep = np.max(self.plm_depth_range)
+
+            ax.set_title(f"Depth range {int(mindep)} - {int(maxdep)} km")
+
+            if centroids != None:
+                for p in range(self.n_plms):
+                    lon, lat, rad = self.centroids[p][centroids, :]
+                    plot.point(ax, lon, lat, text=p)
+
+            if show:
+                fig.show()
+
+            return fig, ax
 
 
 def read_netcdf(
