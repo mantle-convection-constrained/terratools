@@ -13,6 +13,7 @@ import pickle
 from . import geographic
 from . import plot
 from . import flow_conversion
+from . import plume_detection
 
 from .lookup_tables import TABLE_FIELDS, SeismicLookupTable, MultiTables
 from .properties.profiles import prem_pressure
@@ -39,6 +40,7 @@ _SCALAR_FIELDS = {
     "qp": "P-wave quality factor [unitless]",
     "qs": "S-wave quality factor [unitless]",
     "visc": "Viscosity [Pas]",
+    "mage": "Time of last melting [yr]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -72,6 +74,7 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vs_an": ("vs_anelastic",),
     "density": ("density",),
     "visc": ("viscosity",),
+    "mage": ("meltage",),
 }
 
 
@@ -96,6 +99,18 @@ class FieldNameError(Exception):
 
     def __init__(self, field):
         self.message = f"'{field}' is not a valid TerraModel field name"
+        super().__init__(self.message)
+
+
+class PlumeFieldError(Exception):
+    """
+    Exception type raised when correct fields not available for plume detection
+    """
+
+    def __init__(self, field):
+        self.message = (
+            f"'{field}' is required as a field in the TerraModel for plume detection."
+        )
         super().__init__(self.message)
 
 
@@ -1570,6 +1585,167 @@ class TerraModel:
             flow_enu[:, point] = flow_enu_point
 
         self.set_field(field="u_enu", values=flow_enu)
+
+    def detect_plumes(
+        self,
+        depth_range=(400, 2600),
+        algorithm="HDBSCAN",
+        n_init="auto",
+        epsilon=150,
+        minsamples=150,
+    ):
+        """
+        Uses the temperature and velocity fields to detect mantle plumes.
+        Our scheme is a two stage process, first plume-like regions identified
+        using a K-means clustering algorithm, then the resultant points are
+        spatially clustered using a density based clustering algorithm to identify
+        individual plumes.
+
+        :param:
+
+        """
+
+        # First we need to check that we have the correct fields
+        fields = self.field_names()
+        if "t" not in fields:
+            raise PlumeFieldError("t")
+        if "u_enu" not in fields:
+            if "u_xyz" in fields:
+                print("adding geographic flow velocities")
+                self.add_geog_flow()
+            else:
+                raise PlumeFieldError("u_xyz")
+
+        # Perform K-means analysis save the binary locations of plumes
+        print("k-means analysis")
+        #        self._kmeans_plms=plume_detection.plume_kmeans(self,depth_range=depth_range)
+        kmeans, plm_layers, plm_depths = plume_detection.plume_kmeans(
+            self, depth_range=depth_range
+        )
+
+        # Now the density based clustering to identify individual plumes
+        print("density based clustering")
+        clust_result = plume_detection.plume_dbscan(
+            self,
+            kmeans,
+            algorithm=algorithm,
+            epsilon=epsilon,
+            minsamples=minsamples,
+            depth_range=depth_range,
+        )
+
+        # Initialize Plumes inner class
+        self.plumes = self.Plumes(kmeans, plm_layers, plm_depths, clust_result, self)
+
+    class Plumes:
+        """
+        An inner class of TerraModel, this class hold information pertaining to plumes
+        which have been detected using the `model.detect_plumes` method.
+
+        """
+
+        def __init__(self, kmeans, plm_layers, plm_depths, clust_result, model):
+            """
+            Initialise new plumes inner class
+            """
+            self._kmeans_plms = kmeans
+            self.plm_lyrs_range = plm_layers
+            self.plm_depth_range = plm_depths
+            self._plm_clusts = clust_result[0]
+            self.n_plms = clust_result[1]
+            self.n_noise = clust_result[2]
+            self._model = model
+
+            # Get lon and lat locations for points in plumes
+            pnts_in_plm = np.argwhere(self._kmeans_plms)
+            pnts = np.zeros((np.shape(pnts_in_plm)[0], 3))
+            n = 0
+            for i, d in enumerate(plm_depths):
+                boolarr = self._kmeans_plms[:, i].astype(dtype=bool)
+                pnts[n : (n + np.sum(boolarr)), 0] = model.get_lateral_points()[0][
+                    boolarr
+                ]  # fill lons
+                pnts[n : (n + np.sum(boolarr)), 1] = s = model.get_lateral_points()[1][
+                    boolarr
+                ]  # fill lats
+                pnts[n : (n + np.sum(boolarr)), 2] = self.plm_depth_range[
+                    i
+                ]  # fill depths
+                n = n + np.sum(boolarr)
+
+            self.pnts_plms = pnts
+
+            self.plm_depths = {}
+            for plumeID in range(self.n_plms):
+                plume_nth = self.pnts_plms[self._plm_clusts == plumeID]
+                self.plm_depths[plumeID] = np.unique(plume_nth[:, 2])
+
+        def calc_centroids(self):
+            """
+            Method calculates the centroids of each plume at each layer
+            that the plume has been detected.
+            """
+
+            self.centroids = {}
+            for plumeID in range(self.n_plms):
+                self.centroids[plumeID] = plume_detection.plume_centroids(plumeID, self)
+
+        def radial_field(self, field):
+            """
+            Method to return the min, max, mean and centroid
+            """
+
+            # initialise dictionary which will store the plume fields
+            if not hasattr(self, "plm_flds"):
+                self.plm_flds = {}
+
+            # create mask from kmeans outputs
+            minlyr = np.min(self.plm_lyrs_range)
+            maxlyr = np.max(self.plm_lyrs_range)
+            mask = np.transpose(self._kmeans_plms.astype(dtype=bool))
+
+            self.plm_flds[field] = {}
+            fld = np.flip(self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0)[
+                mask
+            ]
+
+            if _is_vector_field(field):
+                for i in range(np.shape(self._model.get_field(field))[-1]):
+                    fld = np.flip(
+                        self._model.get_field(field)[minlyr : maxlyr + 1, :, i], axis=0
+                    )[mask]
+                    self.plm_flds[field][i] = {}
+
+                    for plumeID in range(self.n_plms):
+                        fld_plm = fld[
+                            self._plm_clusts == plumeID
+                        ]  # get data for this plume
+                        pnts_plmid = self.pnts_plms[self._plm_clusts == plumeID]
+                        deps = np.unique(self.plm_depths[plumeID])
+                        self.plm_flds[field][i][plumeID] = {}
+
+                        for d, dep in enumerate(deps):
+                            self.plm_flds[field][i][plumeID][d] = fld_plm[
+                                pnts_plmid[:, 2] == dep
+                            ]  # get points at this depth
+
+            else:
+                fld = np.flip(
+                    self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0
+                )[mask]
+
+                for plumeID in range(self.n_plms):
+                    fld_plm = fld[
+                        self._plm_clusts == plumeID
+                    ]  # get data for this plume
+                    pnts_plmid = self.pnts_plms[self._plm_clusts == plumeID]
+                    deps = np.unique(self.plm_depths[plumeID])
+                    self.plm_flds[field][plumeID] = {}
+
+                    for d, dep in enumerate(deps):
+                        self.plm_flds[field][plumeID][d] = fld_plm[
+                            pnts_plmid[:, 2] == dep
+                        ]  # get points at this depth
 
 
 def read_netcdf(
