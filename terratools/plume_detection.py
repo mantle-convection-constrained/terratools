@@ -144,8 +144,8 @@ def plume_dbscan(
     :param model: Input TerraModel
     :param kmeans: Result from the K-means analysis
     :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
-    :param epsilon: Threshold distance parameter for DBSCAN
-    :param minsamples: Minimum number of samples in a cluster for DBSCAN and HDBSCAN
+    :param epsilon: Threshold distance parameter for DBSCAN, min_cluster_size for HDBSCAN
+    :param minsamples: Minimum number of samples in a neighbourhood for DBSCAN and HDBSCAN
     :param depth_range: (min_depth, max_depth) over which to look for plumes
 
     :return labels: Corresponding cluster label for each input point (-1 = noise)
@@ -204,7 +204,7 @@ def plume_dbscan(
         # MINCLUST=150
         # MINSAMPLE=150
 
-        density_scan = HDBSCAN(min_cluster_size=minsamples, min_samples=minsamples).fit(
+        density_scan = HDBSCAN(min_cluster_size=epsilon, min_samples=minsamples).fit(
             pnts_norm
         )
 
@@ -236,7 +236,7 @@ def plume_centroids(plumeID, plm_obj):
         was detected
     """
     # Select the points within plume 'plumeID'
-    plume_nth = plm_obj.pnts_plms[plm_obj._plm_clusts == plumeID]
+    plume_nth = plm_obj._pnts_plms[plm_obj._plm_clusts == plumeID]
 
     # Obtain a list of depths occupied by the plume
     plume_nth_depths = np.unique(plume_nth[:, 2])

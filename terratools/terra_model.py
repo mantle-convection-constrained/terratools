@@ -1605,8 +1605,8 @@ class TerraModel:
         :param depth_range: (min_depth, max_depth) over which to look for plumes
         :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
         :param n_init: Number of times to run k-means with different starting centroids
-        :param epsilon: Threshold distance parameter for DBSCAN
-        :param minsamples: Minimum number of samples in a cluster for DBSCAN and HDBSCAN
+        :param epsilon: Threshold distance parameter for DBSCAN, min_cluster_size for HDBSCAN
+        :param minsamples: Minimum number of samples in a neighbourhood for DBSCAN and HDBSCAN
         :return: none
         """
 
@@ -1686,12 +1686,21 @@ class TerraModel:
                 ]  # fill depths
                 n = n + np.sum(boolarr)
 
-            self.pnts_plms = pnts
+            self._pnts_plms = pnts
 
             self.plm_depths = {}
             for plumeID in range(self.n_plms):
-                plume_nth = self.pnts_plms[self._plm_clusts == plumeID]
+                plume_nth = self._pnts_plms[self._plm_clusts == plumeID]
                 self.plm_depths[plumeID] = np.unique(plume_nth[:, 2])
+
+            # Add the lon,lat,depth of points assoicated with each plume
+            self.plm_coords = {}
+            for plumeID in range(self.n_plms):
+                pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                deps = np.unique(self.plm_depths[plumeID])
+                self.plm_coords[plumeID] = {}
+                for d, dep in enumerate(deps):
+                    self.plm_coords[plumeID][d] = pnts_plmid[pnts_plmid[:, 2] == dep]
 
         def calc_centroids(self):
             """
@@ -1715,7 +1724,7 @@ class TerraModel:
             :return: none
             """
 
-            if field not in self._model.field_names.keys():
+            if field not in self._model.field_names():
                 raise FieldNameError(field)
 
             # initialise dictionary which will store the plume fields
@@ -1743,7 +1752,7 @@ class TerraModel:
                         fld_plm = fld[
                             self._plm_clusts == plumeID
                         ]  # get data for this plume
-                        pnts_plmid = self.pnts_plms[self._plm_clusts == plumeID]
+                        pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
                         deps = np.unique(self.plm_depths[plumeID])
                         self.plm_flds[field][i][plumeID] = {}
 
@@ -1761,7 +1770,7 @@ class TerraModel:
                     fld_plm = fld[
                         self._plm_clusts == plumeID
                     ]  # get data for this plume
-                    pnts_plmid = self.pnts_plms[self._plm_clusts == plumeID]
+                    pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
                     deps = np.unique(self.plm_depths[plumeID])
                     self.plm_flds[field][plumeID] = {}
 
