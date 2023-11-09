@@ -219,6 +219,9 @@ def convert_layer(files, newfile_suff="convert", replace=False):
         newfile.variables["depths"][:] = depth_from_attr
         x.setncattr("units", "km")
         x.setncattr("radius", 6370.0)
+        
+        newfile.version = 1.0
+        newfile.close()
 
         if replace:
             # remove old file then rename newfile
