@@ -881,11 +881,11 @@ class TerraModel:
         """
         return self._radius
 
-    def mean_1d_profile(self, field):
+    def mean_radial_profile(self, field):
         """
-        Return the mean of the given field at each radius
+        Return the mean of the given field at each radius.
 
-        :param field: name of field.
+        :param field: name of field
         :type field: str
 
         :returns profile: mean values of field at each radius.
@@ -900,32 +900,46 @@ class TerraModel:
 
         return profile
 
-    def get_1d_profile(self, field, lon, lat):
+    def radial_profile(self, lon, lat, field, method="nearest"):
         """
-        Return the 1d profile of the given field
-        at a given latitude and longitude point.
+        Return the radial profile of the given field
+        at a given longitude and latitude point.
 
-        :param field: name of field.
+        :param lon: Longitude at which to get radial profile.
+        :type lon: float
+
+        :param lat: Latitude at which to get radial profile.
+        :type lat: float
+
+        :param field: Name of field.
         :type field: str
 
-        :param field: latitude to get 1d profile.
-        :type field: float
-
-        :param field: longitude to get 1d profile.
-        :type field: float
+        :param method: Method by which the lateral points are evaluated.
+            if ``method`` is ``"nearest"`` (the default), the nearest
+            point to (lon, lat) is found.  If ``method`` is ``"triangle"``,
+            then triangular interpolation is used to calculate the value
+            of the field at the exact (lon, lat) point.
+        :type method: str
 
         :returns profile: values of field for each radius
-                          at a given latitude and longitude.
+                          at a given longitude and latitude.  The radii
+                          of each point can be obtained using
+                          ``TerraModel.get_radii()``.
         :rtype profile: 1d numpy array of floats.
         """
 
-        i = self.nearest_index(lon, lat)
+        if method == "nearest":
+            i = self.nearest_index(lon, lat)
+            # shape is [nradii, npoints]
+            field_values = self.get_field(field)
+            # Ensure we return a copy, since this isn't a 'get_'ter
+            profile = field_values[:, i].copy()
 
-        # shape is [nradii, npoints]
-        field_values = self.get_field(field)
-
-        # take mean across the radii layers
-        profile = field_values[:, i]
+        else:
+            radii = self.get_radii()
+            lons = lon * np.ones_like(radii)
+            lats = lat * np.ones_like(radii)
+            profile = self.evaluate(lons, lats, radii, field, method=method)
 
         return profile
 
@@ -1067,8 +1081,16 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def calc_spherical_harmonics(self, field, nside=2**6, lmax=16, savemap=False):
+    def calc_spherical_harmonics(
+        self, field, nside=2**6, lmax=16, savemap=False, use_pixel_weights=False
+    ):
         """
+        Function to calculate spherical harmonic coefficients for given global field.
+        Model is re-gridded to an equal area healpix grid of size nside (see
+        https://healpix.sourceforge.io/ for details) and then expanded to spherical
+        harmonic coefficients up to degree lmax, with pixels being uniformally weighted
+        by 4pi/n_pix (see https://healpy.readthedocs.io/en/latest/index.html for details).
+
         :param field: input field
         :type  field: str
 
@@ -1100,7 +1122,9 @@ class TerraModel:
         for r in range(nr):
             hpmap = _pixelise(field_values[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
-            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
+            hp_coeffs = hp.sphtfunc.map2alm(
+                hpmap, lmax=lmax, use_pixel_weights=use_pixel_weights
+            )
             if savemap:
                 hp_ir[r] = {
                     "map": hpmap,
@@ -1120,6 +1144,7 @@ class TerraModel:
         field,
         index=None,
         radius=None,
+        depth=False,
         nside=2**6,
         title=None,
         delta=None,
@@ -1200,7 +1225,10 @@ class TerraModel:
             lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
 
-        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+        if depth:
+            ax.set_title(f"Depth = {int(layer_radius)} km")
+        else:
+            ax.set_title(f"Radius = {int(layer_radius)} km")
 
         if show:
             fig.show()
