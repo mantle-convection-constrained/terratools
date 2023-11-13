@@ -10,8 +10,6 @@ from terratools import convert_files
 from terratools import terra_model
 from terratools.terra_model import TerraModel
 
-import netCDF4 as nc
-
 
 class TestReadLayer(unittest.TestCase):
     def test_read_layer(self):
@@ -20,8 +18,6 @@ class TestReadLayer(unittest.TestCase):
             oldfile = tst.make_old_layer(oldfilepath)
 
             convert_files.convert_layer([oldfilepath], replace=True)
-
-            aa = nc.Dataset(oldfilepath)
 
             layer = terra_model.read_netcdf([f"{oldfilepath}"])
 
