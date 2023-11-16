@@ -1635,7 +1635,8 @@ def read_netcdf(
         fields are read in.
     :param surface_radius: Radius of the surface of the model in km
         (default 6370 km)
-    :returns: a new TerraModel
+    :returns: a new `TerraModel` or `TerraModelLayer`, depending on
+        the contents of the file
     """
     if len(files) == 0:
         raise ValueError("files argument cannot be empty")
