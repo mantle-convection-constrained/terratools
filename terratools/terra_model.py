@@ -40,7 +40,7 @@ _SCALAR_FIELDS = {
     "qs": "S-wave quality factor [unitless]",
     "visc": "Viscosity [Pas]",
     "sigma_z": "Radial Stress [Pa]",
-    "h_cmb": "CMB heat flux (mW/m^2)",
+    "h_cmb": "CMB heat flux [mW/m^2]",
 }
 
 # These are 'vector' fields which contain more than one component
