@@ -1601,25 +1601,10 @@ class TerraModelLayer(TerraModel):
     def add_adiabat(self):
         raise LayerMethodError(self.add_adiabat.__name__)
 
-    def get_1d_profile(self, field, lat, lon):
+    def get_1d_profile(self, *args):
         raise LayerMethodError(self.get_1d_profile.__name__)
 
-    def plot_section(
-        self,
-        field,
-        lon,
-        lat,
-        azimuth,
-        distance,
-        minradius=None,
-        maxradius=None,
-        delta_distance=1,
-        delta_radius=50,
-        method="nearest",
-        levels=25,
-        cmap=None,
-        show=True,
-    ):
+    def plot_section(self, *args, **kwargs):
         raise LayerMethodError(self.plot_section.__name__)
 
 
