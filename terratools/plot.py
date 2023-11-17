@@ -254,12 +254,33 @@ def spectral_heterogeneity(
     return fig, ax
 
 
-def point(ax, lon, lat, color="red", size=4, text=None, textcolor="black", fontsize=11):
+def point(
+    ax,
+    lon,
+    lat,
+    color="red",
+    size=4,
+    text=None,
+    textcolor="black",
+    fontsize=11,
+    **subplots_kwargs,
+):
+    """
+    Plot point(s) onto a axis.
+    :param ax: axis handle on which to draw
+    :param lon: array of longitudinal points
+    :param lat: array of latitudinal points
+    :param color: color of points
+    :param size: size of point to plot
+    :param text: string to label point
+    :param textcolor: color of text
+    :param fontsize: fontsize for text:
+    :param **subplot_kwargs: Extra keyword arguments passed to
+            `matplotlib.pyplot.subplots`
+    """
     transform = ccrs.PlateCarree()
     ax.scatter(lon, lat, transform=transform, color=color, s=size)
     if text != None:
         ax.text(
             lon, lat, f"{text}", transform=transform, c=textcolor, fontsize=fontsize
         )
-
-    return ax
