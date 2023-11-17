@@ -109,3 +109,17 @@ Spherical harmonics can be analysed for fields with the
 [m.calc_spherical_harmonics][terratools.terra_model.TerraModel.calc_spherical_harmonics]
 function.  These can then be retrieved using
 [m.get_spherical_harmonics][terratools.terra_model.TerraModel.get_spherical_harmonics].
+
+## `TerraModelLayer`
+
+`TerraModelLayer` is a subclass of the `TerraModel` class. This holds the information about a single
+layer in a simulation, typically something at the surface, such as radial stresses, or at the lowermost
+layer, such as CMB heat flux. The `TerraModelLayer` class has all of the functionality of the `TerraModel`
+class except for the `add_adiabat`, `get_1d_profile`, and `plot_section` methods which, if called, will
+cause an exception to be raised.
+
+To read in Terra Layer files to a `TerraModelLayer` object simply pass their paths into 
+`terra_model.read_netcdf`, as you would to create and`TerraModel` object, and `terratools` will recognise
+that they are for a single layer. 
+
+
