@@ -33,8 +33,9 @@ Instead we use dimensions of 'depths' and 'nps'.
 As the spherically projected icosahedral grid is repeated at each radial layer, grid points fall on the same latitude and longitude at each radial layers. 
 The dimension 'depths' is therefore the size of the number of radial layers in the simulation and 'nps' is the number of grid points that are controlled by a process at each radial layer. 
 The longitude and latitude of each 'nps' point is saved as a variable in the NetCDF file. 
+Terra Layer files follow the same conventions as the full 3D output files but the length of the depth dimension is 1. 
 
-All sumlation outputs, such as flow velocity, temperature, density, seismic velocities, are written out as variables with dimensions of (depths, nps), with the exception of the bulk composition (C), which has an extra 'compositions' dimension.
+All simlation outputs, such as flow velocity, temperature, density, seismic velocities, are written out as variables with dimensions of (depths, nps), with the exception of the bulk composition (C), which has an extra 'compositions' dimension.
 In the TERRA simulations, C is represented by a 1D value which varies between 0 and 1 (or 0 and 2 if the simulation includes primordial material). 
 We can interpret the bulk composition value to represent a mechanical mixture of end-member components.
 Nominmally these are harzburgite ($C=0$), lherzolite ($C=0.2$) and basaltic oceanic crust ($C=1$), with primordial ($C=2$) material being optional. 
