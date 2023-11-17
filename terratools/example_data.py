@@ -16,7 +16,7 @@ import pooch
 
 _EXAMPLE_DATA = pooch.create(
     path=pooch.os_cache("terratools"),
-    base_url="doi:10.6084/m9.figshare.24100362.v2",
+    base_url="doi:10.6084/m9.figshare.24100362.v3",
     registry=None,
 )
 
@@ -105,4 +105,20 @@ def example_terra_model():
 
     """
     filename = _EXAMPLE_DATA.fetch("example_model.nc")
+    return filename
+
+
+def example_terra_layer():
+    """
+    Return the full filename for an example layer file from a mantle
+    circulation model.
+
+    This is a concatenated NetCDF file of a Terra Model Layer, produced
+    using `ncecat` which is available through the NetCDF Operators
+    (NCO) package.
+
+    It consists of a single radial layer and 163842 lateral points.
+
+    """
+    filename = _EXAMPLE_DATA.fetch("example_layer.nc")
     return filename

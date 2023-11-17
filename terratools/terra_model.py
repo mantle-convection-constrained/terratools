@@ -41,6 +41,8 @@ _SCALAR_FIELDS = {
     "qs": "S-wave quality factor [unitless]",
     "visc": "Viscosity [Pas]",
     "mage": "Time of last melting [yr]",
+    "sigma_z": "Radial Stress [Pa]",
+    "h_cmb": "CMB heat flux [mW/m^2]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -75,6 +77,8 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "density": ("density",),
     "visc": ("viscosity",),
     "mage": ("meltage",),
+    "sigma_z": ("radial_stress",),
+    "h_cmb": ("cmb_heat_flux",),
 }
 
 
@@ -167,6 +171,17 @@ class SizeError(Exception):
 
     def __init__(self):
         self.message = f"Input params lons, lats, field mut be of same length"
+        super().__init__(self.message)
+
+
+class LayerMethodError(Exception):
+    """
+    Exception type raised when trying to call incompatible TerraModel method for
+    a TerraModelLayer object
+    """
+
+    def __init__(self, name):
+        self.message = f"Method {name} is incompatible with TerraModelLayer objects"
         super().__init__(self.message)
 
 
@@ -1873,6 +1888,27 @@ class TerraModel:
                 fig.show()
 
 
+class TerraModelLayer(TerraModel):
+    """
+    A subclass of the TerraModel superclass, TerraModelLayer is for storing 2D layer
+    information which is written out of a TERRA simulation. Typically this might be some
+    boundary information, eg CMB heat flux or radial surface radial stresses, but could be
+    from any radial layer of the simulation in principle.
+
+    Methods of the TerraModel class which are not compatible with TerraModelLayer are
+    overwritten and will raise a LayerMethodError exception
+    """
+
+    def add_adiabat(self):
+        raise LayerMethodError(self.add_adiabat.__name__)
+
+    def get_1d_profile(self, *args):
+        raise LayerMethodError(self.get_1d_profile.__name__)
+
+    def plot_section(self, *args, **kwargs):
+        raise LayerMethodError(self.plot_section.__name__)
+
+
 def read_netcdf(
     files, fields=None, surface_radius=6370.0, test_lateral_points=False, cat=False
 ):
@@ -1885,7 +1921,8 @@ def read_netcdf(
         fields are read in.
     :param surface_radius: Radius of the surface of the model in km
         (default 6370 km)
-    :returns: a new TerraModel
+    :returns: a new `TerraModel` or `TerraModelLayer`, depending on
+        the contents of the file
     """
     if len(files) == 0:
         raise ValueError("files argument cannot be empty")
@@ -1958,11 +1995,11 @@ def read_netcdf(
             nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
-
-        for dimension in ("nps", "depths", "compositions"):
-            assert (
-                dimension in nc.dimensions
-            ), f"Can't find {dimension} in dimensions of file {file}"
+        if len(nc["depths"][:]) != 1:
+            for dimension in ("nps", "depths", "compositions"):
+                assert (
+                    dimension in nc.dimensions
+                ), f"Can't find {dimension} in dimensions of file {file}"
 
         # Number of lateral points in this file
         npts = nc.dimensions["nps"].size
@@ -2168,15 +2205,24 @@ def read_netcdf(
             raise ValueError(
                 f"field {field_name} has an unexpected number of dimensions ({ndims})"
             )
-
-    return TerraModel(
-        r=_r,
-        lon=_lon,
-        lat=_lat,
-        fields=_fields,
-        c_histogram_names=_c_hist_names,
-        c_histogram_values=_c_hist_values,
-    )
+    if len(_r) == 1:
+        return TerraModelLayer(
+            r=_r,
+            lon=_lon,
+            lat=_lat,
+            fields=_fields,
+            c_histogram_names=_c_hist_names,
+            c_histogram_values=_c_hist_values,
+        )
+    else:
+        return TerraModel(
+            r=_r,
+            lon=_lon,
+            lat=_lat,
+            fields=_fields,
+            c_histogram_names=_c_hist_names,
+            c_histogram_values=_c_hist_values,
+        )
 
 
 def load_model_from_pickle(filename):
