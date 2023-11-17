@@ -13,6 +13,7 @@ except ImportError as exception:
     _CARTOPY_NOT_INSTALLED_EXCEPTION = exception
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import os
 import scipy.interpolate
@@ -254,6 +255,68 @@ def spectral_heterogeneity(
     return fig, ax
 
 
+def plumes_3d(
+    plmobj,
+    elev=10,
+    azim=70,
+    roll=0,
+    dist=20,
+    cmap="terrain",
+    **subplots_kwargs,
+):
+    """
+    Generate 3D scatter plot of grid points which correspond to plumes
+    coloured by plumeID. First convert from lon,lat,depth to cartesian
+    for plotting.
+
+    :param elev: camera elevation (degrees)
+    :param azim: camera azimuth (degrees)
+    :param roll: camera roll (degrees)
+    :param dist: camera distance (unitless)
+    :param cmap: string corresponding to matplotlib colourmap
+    :param show: If ``True`` (the default), show the plot
+    """
+
+    nplms = plmobj.n_plms
+
+    map = mpl.colormaps[cmap]
+    maplin = map(np.linspace(0, 1, nplms))
+
+    fig = plt.figure(figsize=(12, 12))
+    ax = plt.subplot(projection="3d")
+
+    ax.dist = dist
+
+    for i in range(nplms):
+        plm_pnts = plmobj.plm_coords[i]
+        for j, depth in enumerate(plmobj.plm_depths[i]):
+            r = plmobj._model.get_radii()[-1] - plm_pnts[j][:, 2]
+            x, y, z = _latlon2xyz(plm_pnts[j][:, 1], plm_pnts[j][:, 0], r)
+            if j == 0:
+                ax.scatter(x, y, z, color=[maplin[i]], label=str(i))
+            else:
+                ax.scatter(x, y, z, color=[maplin[i]])
+
+    # draw sphere
+    u, v = np.mgrid[0 : 2 * np.pi : 100j, 0 : np.pi : 50j]
+    x = 3480 * np.cos(u) * np.sin(v)
+    y = 3480 * np.sin(u) * np.sin(v)
+    z = 3480 * np.cos(v)
+    ax.plot_surface(x, y, z, color="gray")
+    ax.view_init(
+        elev=elev,
+        azim=azim,
+        roll=roll,
+    )
+    ax.set_title(f"{nplms} plumes detected", y=0.9)
+    ax.set_xlabel("X (km)")
+    ax.set_ylabel("Y (km)")
+    ax.set_zlabel("Z (km)")
+    ax.legend(title="PlumeID", loc="lower center", ncol=int(nplms / 2))
+
+    return fig, ax
+
+
 def point(
     ax,
     lon,
@@ -284,3 +347,17 @@ def point(
         ax.text(
             lon, lat, f"{text}", transform=transform, c=textcolor, fontsize=fontsize
         )
+
+
+def _latlon2xyz(lats, lons, r):
+    """
+    Lats, lons, r(kilometers) taken as input (flattened)
+    returns cartesian x,y,z centered around the center
+    of the Earth.
+    """
+    lats = np.deg2rad(lats)
+    lons = np.deg2rad(lons)
+    x = r * np.cos(lats) * np.cos(lons)
+    y = r * np.cos(lats) * np.sin(lons)
+    z = r * np.sin(lats)
+    return x, y, z

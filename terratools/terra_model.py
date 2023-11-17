@@ -1844,6 +1844,34 @@ class TerraModel:
 
             return fig, ax
 
+        def plot_plumes_3d(
+            self,
+            elev=10,
+            azim=70,
+            roll=0,
+            dist=20,
+            cmap="terrain",
+            show=True,
+        ):
+            """
+            Call to generate 3D scatter plot of points which constitute plumes
+            coloured by plumeID
+
+            :param elev: camera elevation (degrees)
+            :param azim: camera azimuth (degrees)
+            :param roll: camera roll (degrees)
+            :param dist: camera distance (unitless)
+            :param cmap: string corresponding to matplotlib colourmap
+            :param show: If ``True`` (the default), show the plot
+            """
+
+            fig, ax = plot.plumes_3d(
+                self, elev=elev, azim=azim, roll=roll, dist=dist, cmap=cmap
+            )
+
+            if show:
+                fig.show()
+
 
 def read_netcdf(
     files, fields=None, surface_radius=6370.0, test_lateral_points=False, cat=False
