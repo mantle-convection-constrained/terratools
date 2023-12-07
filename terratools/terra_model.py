@@ -13,6 +13,7 @@ import pickle
 from . import geographic
 from . import plot
 from . import flow_conversion
+from . import plume_detection
 
 from .lookup_tables import TABLE_FIELDS, SeismicLookupTable, MultiTables
 from .properties.profiles import prem_pressure
@@ -39,6 +40,7 @@ _SCALAR_FIELDS = {
     "qp": "P-wave quality factor [unitless]",
     "qs": "S-wave quality factor [unitless]",
     "visc": "Viscosity [Pas]",
+    "mage": "Time of last melting [yr]",
     "sigma_z": "Radial Stress [Pa]",
     "h_cmb": "CMB heat flux [mW/m^2]",
 }
@@ -74,6 +76,7 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vs_an": ("vs_anelastic",),
     "density": ("density",),
     "visc": ("viscosity",),
+    "mage": ("meltage",),
     "sigma_z": ("radial_stress",),
     "h_cmb": ("cmb_heat_flux",),
 }
@@ -100,6 +103,18 @@ class FieldNameError(Exception):
 
     def __init__(self, field):
         self.message = f"'{field}' is not a valid TerraModel field name"
+        super().__init__(self.message)
+
+
+class PlumeFieldError(Exception):
+    """
+    Exception type raised when correct fields not available for plume detection
+    """
+
+    def __init__(self, field):
+        self.message = (
+            f"'{field}' is required as a field in the TerraModel for plume detection."
+        )
         super().__init__(self.message)
 
 
@@ -1585,6 +1600,292 @@ class TerraModel:
             flow_enu[:, point] = flow_enu_point
 
         self.set_field(field="u_enu", values=flow_enu)
+
+    def detect_plumes(
+        self,
+        depth_range=(400, 2600),
+        algorithm="HDBSCAN",
+        n_init="auto",
+        epsilon=150,
+        minsamples=150,
+    ):
+        """
+        Uses the temperature and velocity fields to detect mantle plumes.
+        Our scheme is a two stage process, first plume-like regions identified
+        using a K-means clustering algorithm, then the resultant points are
+        spatially clustered using a density based clustering algorithm to identify
+        individual plumes. An inner 'plumes' class is created within the TerraModel to
+        store information pertaining to detected plumes.
+
+        :param depth_range: (min_depth, max_depth) over which to look for plumes
+        :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
+        :param n_init: Number of times to run k-means with different starting centroids
+        :param epsilon: Threshold distance parameter for DBSCAN, min_cluster_size for HDBSCAN
+        :param minsamples: Minimum number of samples in a neighbourhood for DBSCAN and HDBSCAN
+        :return: none
+        """
+
+        # First we need to check that we have the correct fields
+        fields = self.field_names()
+        if "t" not in fields:
+            raise PlumeFieldError("t")
+        if "u_enu" not in fields:
+            if "u_xyz" in fields:
+                print("adding geographic flow velocities")
+                self.add_geog_flow()
+            else:
+                raise PlumeFieldError("u_xyz")
+
+        # Perform K-means analysis save the binary locations of plumes
+        print("k-means analysis")
+        #        self._kmeans_plms=plume_detection.plume_kmeans(self,depth_range=depth_range)
+        kmeans, plm_layers, plm_depths = plume_detection.plume_kmeans(
+            self, depth_range=depth_range, n_init=n_init
+        )
+
+        # Now the density based clustering to identify individual plumes
+        print("density based clustering")
+        clust_result = plume_detection.plume_dbscan(
+            self,
+            kmeans,
+            algorithm=algorithm,
+            epsilon=epsilon,
+            minsamples=minsamples,
+            depth_range=depth_range,
+        )
+
+        # Initialize Plumes inner class
+        self.plumes = self.Plumes(kmeans, plm_layers, plm_depths, clust_result, self)
+
+    class Plumes:
+        """
+        An inner class of TerraModel, this class hold information pertaining to plumes
+        which have been detected using the `model.detect_plumes` method.
+        """
+
+        def __init__(self, kmeans, plm_layers, plm_depths, clust_result, model):
+            """
+            Initialise new plumes inner class
+
+            :param kmeans: Array of shape (nps,maxlyr-minlyr+1) where nps is the number
+                of points in radial layer of a TerraModel and minlyr and maxlyr are the
+                min and max layers over which we searched for plumes. Array contains binary information on whether a plume was detected.
+            :param plm_layers: Layers of the TerraModel over which we searched for plumes
+            :param plm_depths: Depths corresponding to the plm_layers
+            :param clust_result: Cluster labels assigned by the spatial clustering
+            :param model: TerraModel, needed to access fields in the inner class
+            :return: none
+            """
+            self._kmeans_plms = kmeans
+            self.plm_lyrs_range = plm_layers
+            self.plm_depth_range = plm_depths
+            self._plm_clusts = clust_result[0]
+            self.n_plms = clust_result[1]
+            self.n_noise = clust_result[2]
+            self._model = model
+
+            # Get lon and lat locations for points in plumes
+            pnts_in_plm = np.argwhere(self._kmeans_plms)
+            pnts = np.zeros((np.shape(pnts_in_plm)[0], 3))
+            n = 0
+            for i, d in enumerate(plm_depths):
+                boolarr = self._kmeans_plms[:, i].astype(dtype=bool)
+                pnts[n : (n + np.sum(boolarr)), 0] = model.get_lateral_points()[0][
+                    boolarr
+                ]  # fill lons
+                pnts[n : (n + np.sum(boolarr)), 1] = s = model.get_lateral_points()[1][
+                    boolarr
+                ]  # fill lats
+                pnts[n : (n + np.sum(boolarr)), 2] = self.plm_depth_range[
+                    i
+                ]  # fill depths
+                n = n + np.sum(boolarr)
+
+            self._pnts_plms = pnts
+
+            self.plm_depths = {}
+            for plumeID in range(self.n_plms):
+                plume_nth = self._pnts_plms[self._plm_clusts == plumeID]
+                self.plm_depths[plumeID] = np.unique(plume_nth[:, 2])
+
+            # Add the lon,lat,depth of points assoicated with each plume
+            self.plm_coords = {}
+            for plumeID in range(self.n_plms):
+                pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                deps = np.unique(self.plm_depths[plumeID])
+                self.plm_coords[plumeID] = {}
+                for d, dep in enumerate(deps):
+                    self.plm_coords[plumeID][d] = pnts_plmid[pnts_plmid[:, 2] == dep]
+
+        def calc_centroids(self):
+            """
+            Method calculates the centroids of each plume at each layer
+            that the plume has been detected.
+
+            :param: none
+            :return: none
+            """
+
+            self.centroids = {}
+            for plumeID in range(self.n_plms):
+                self.centroids[plumeID] = plume_detection.plume_centroids(plumeID, self)
+
+        def radial_field(self, field):
+            """
+            Method to find the values of a given field at points which have been
+            detected as plumes.
+
+            :param field: A field which exists in the TerraModel.
+            :return: none
+            """
+
+            if field not in self._model.field_names():
+                raise FieldNameError(field)
+
+            # initialise dictionary which will store the plume fields
+            if not hasattr(self, "plm_flds"):
+                self.plm_flds = {}
+
+            # create mask from kmeans outputs
+            minlyr = np.min(self.plm_lyrs_range)
+            maxlyr = np.max(self.plm_lyrs_range)
+            mask = np.transpose(self._kmeans_plms.astype(dtype=bool))
+
+            self.plm_flds[field] = {}
+            fld = np.flip(self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0)[
+                mask
+            ]
+
+            if _is_vector_field(field):
+                for i in range(np.shape(self._model.get_field(field))[-1]):
+                    fld = np.flip(
+                        self._model.get_field(field)[minlyr : maxlyr + 1, :, i], axis=0
+                    )[mask]
+                    self.plm_flds[field][i] = {}
+
+                    for plumeID in range(self.n_plms):
+                        fld_plm = fld[
+                            self._plm_clusts == plumeID
+                        ]  # get data for this plume
+                        pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                        deps = np.unique(self.plm_depths[plumeID])
+                        self.plm_flds[field][i][plumeID] = {}
+
+                        for d, dep in enumerate(deps):
+                            self.plm_flds[field][i][plumeID][d] = fld_plm[
+                                pnts_plmid[:, 2] == dep
+                            ]  # get points at this depth
+
+            else:
+                fld = np.flip(
+                    self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0
+                )[mask]
+
+                for plumeID in range(self.n_plms):
+                    fld_plm = fld[
+                        self._plm_clusts == plumeID
+                    ]  # get data for this plume
+                    pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                    deps = np.unique(self.plm_depths[plumeID])
+                    self.plm_flds[field][plumeID] = {}
+
+                    for d, dep in enumerate(deps):
+                        self.plm_flds[field][plumeID][d] = fld_plm[
+                            pnts_plmid[:, 2] == dep
+                        ]  # get points at this depth
+
+        def plot_kmeans_stack(
+            self,
+            centroids=0,
+            delta=None,
+            extent=(-180, 180, -90, 90),
+            method="nearest",
+            coastlines=True,
+            show=True,
+        ):
+            """
+            Create a heatmap of vertically stacked results of k-means analysis
+
+            :param centroids: layer for which to plot centroids, eg 0 will plot
+                plot the centroid of the uppermost layer for each plume, None
+                will cause to not plot centorids.
+            :param delta: Grid spacing of plot in degrees
+            :param extent: Tuple giving the longitude and latitude extent of
+                plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+                in degrees
+            :param method: May be one of: "nearest" (plot nearest value to each
+                plot grid point); or "mean" (mean value in each pixel)
+            :param coastlines: If ``True`` (default), plot coastlines.
+                This may lead to a segfault on machines where cartopy is not
+                installed in the recommended way.  In this case, pass ``False``
+                to avoid this.
+            :param show: If ``True`` (the default), show the plot
+            :returns: figure and axis handles
+            """
+
+            if not hasattr(self, "centroids"):
+                print("calculating centroid of plume layers")
+                self.calc_centroids()
+
+            sumkmeans = np.sum(self._kmeans_plms, axis=1)
+            lon, lat = self._model.get_lateral_points()
+            label = "n-layers plume detected"
+            radius = 0.0
+
+            fig, ax = plot.layer_grid(
+                lon,
+                lat,
+                radius,
+                sumkmeans,
+                delta=delta,
+                extent=extent,
+                label=label,
+                method=method,
+                coastlines=coastlines,
+            )
+
+            mindep = np.min(self.plm_depth_range)
+            maxdep = np.max(self.plm_depth_range)
+
+            ax.set_title(f"Depth range {int(mindep)} - {int(maxdep)} km")
+
+            if centroids != None:
+                for p in range(self.n_plms):
+                    lon, lat, rad = self.centroids[p][centroids, :]
+                    plot.point(ax, lon, lat, text=p)
+
+            if show:
+                fig.show()
+
+            return fig, ax
+
+        def plot_plumes_3d(
+            self,
+            elev=10,
+            azim=70,
+            roll=0,
+            dist=20,
+            cmap="terrain",
+            show=True,
+        ):
+            """
+            Call to generate 3D scatter plot of points which constitute plumes
+            coloured by plumeID
+
+            :param elev: camera elevation (degrees)
+            :param azim: camera azimuth (degrees)
+            :param roll: camera roll (degrees)
+            :param dist: camera distance (unitless)
+            :param cmap: string corresponding to matplotlib colourmap
+            :param show: If ``True`` (the default), show the plot
+            """
+
+            fig, ax = plot.plumes_3d(
+                self, elev=elev, azim=azim, roll=roll, dist=dist, cmap=cmap
+            )
+
+            if show:
+                fig.show()
 
 
 class TerraModelLayer(TerraModel):
