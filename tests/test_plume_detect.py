@@ -27,7 +27,7 @@ class TestPlumeDetect(unittest.TestCase):
             )
             model = terra_model.read_netcdf(filenames)
 
-        # run plume detection abd calculate centroids at each layer
+        # run plume detection and calculate centroids at each layer
         model.detect_plumes()
         model.plumes.calc_centroids()
         model.plumes.radial_field("t")

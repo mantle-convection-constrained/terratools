@@ -69,8 +69,8 @@ model.detect_plumes()
 
 # %% [markdown]
 """
-We can pass in arguments to change the depth range over which we look for plumes and
-the (`depth_range`), the number of times that k-means is run with different initial
+We can pass in arguments to change the depth range over which we look for plumes
+(`depth_range`), the number of times that k-means is run with different initial
 centroids (`n-init`), the spatial clustering algorithm which is used (`algorithm`),
 the threshold distance if using `algorithm="DBSCAN"` or minimum cluster size if using
 `algorithm="HDBSCAN"`, and the minium number of samples in a neighbourhood (`min_samples`).
@@ -102,11 +102,11 @@ model.plumes.calc_centroids()
 
 # %% [markdown]
 """
-Lets print the centroids for the plume with plumeID = 1. The columns are lon, lat, depth.
+We can get the centroids for the plume with plumeID = 1. The columns are lon, lat, depth.
 """
 # %%
 
-print(model.plumes.centroids[1])
+plm1_centroids = model.plumes.centroids[1]
 
 
 # %% [markdown]
@@ -125,16 +125,16 @@ which the plume was detected is
 """
 # %%
 
-model.plumes.plm_flds["t"][1][0]
+plm1_top_temp = model.plumes.plm_flds["t"][1][0]
 
 # %% [markdown]
 """
-We can print the corresponding coordinates for these points. Columns are
+We can get the corresponding coordinates for these points. Columns are
 lon, lat, depth.
 """
 # %%
 
-model.plumes.plm_coords[1][0]
+plm1_top_coords = model.plumes.plm_coords[1][0]
 
 # %% [markdown]
 """
