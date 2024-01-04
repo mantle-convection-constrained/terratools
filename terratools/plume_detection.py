@@ -246,8 +246,8 @@ def plume_centroids(plumeID, plm_obj):
 
     # Calculate the centroids of each layer
     for i, j in enumerate(plume_nth_depths):
-        mask=plume_nth[:,2]==j
-        plume_nth_depth=plume_nth[mask]
+        mask = plume_nth[:, 2] == j
+        plume_nth_depth = plume_nth[mask]
         lon_cent, lat_cent = get_centre(plume_nth_depth[:, 0], plume_nth_depth[:, 1])
 
         plume_nth_centroids[i, 0] = lon_cent
