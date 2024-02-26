@@ -54,7 +54,7 @@ All fields are defined in space by two indices:
   [terra_model.TerraModel.get_radii][terratools.terra_model.TerraModel.get_radii].
   For a model `m`, the `i`th layer is therfore at radius `m.get_radii()[i]`.
 - The second index gives the lateral
-  ([global geographic](reference_frames#Global-geographic)) position on the unit
+  ([global geographic](reference_frames.md#Global-geographic)) position on the unit
   sphere of the point.
   [terra_model.TerraModel.get_lateral_points][terratools.terra_model.TerraModel.get_lateral_points]
   returns a tuple of `lon, lat`, where `lon` and `lat` are both the global
