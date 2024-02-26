@@ -146,13 +146,13 @@ def convert_layer(files, newfile_suff="convert", replace=False):
     Converts old single layer files into new format which includes depth dimension
 
     :param files: list of files to convert
-    :type  files: list of strings
+    :type files: list of strings
 
     :param newfile_suff: string to append to new files
-    :type  newfile_suff: str
+    :type newfile_suff: str
 
     :param replace: toggle replacement of old files
-    :type  replace: bool
+    :type replace: bool
     """
 
     for file in files:

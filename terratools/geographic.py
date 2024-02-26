@@ -160,12 +160,12 @@ def angular_step(lon, lat, azimuth, distance, radians=False):
     :param lon: Longitude of starting point
     :type lon: float or numpy array
     :param lat: Latitude of starting point
-    :type lon: float or numpy array
+    :type lat: float or numpy array
     :param azimuth: Azimuth along which to travel from starting point
-    :type lon: float or numpy array
+    :type azimuth: float or numpy array
     :param distance: Great circle distance between starting and final points
         in terms of angle subtended between them at the centre of the sphere
-    :type lon: float or numpy array
+    :type distance: float or numpy array
     :param radians: If ``True``, input angles are in radians and the output
         is in radians also; otherwise all input and output are in degrees.
     :type radians: book

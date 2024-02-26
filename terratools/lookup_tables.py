@@ -354,11 +354,11 @@ class MultiTables:
         """
         Class to take in and process multiple tables at once.
 
-        :param tables: dictionary with keys describing the lookup table composition (e.g. "basalt")
+        :param lookuptables: dictionary with keys describing the lookup table composition (e.g. "basalt")
             whose values are either:
             * the associated lookup table filename to be read in
             * a ``SeismicLookupTable`` object
-        :type tables: dictionary
+        :type loookuptables: dictionary
 
         :return: multitable object.
         """

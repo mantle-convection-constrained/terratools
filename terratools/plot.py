@@ -54,7 +54,7 @@ def layer_grid(
         This works around an issue with Cartopy when
         installed in certain situations.  See
         https://github.com/SciTools/cartopy/issues/879 for details.
-    :param **kwargs: Extra keyword arguments passed to
+    :param **subplots_kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
     """
@@ -215,10 +215,10 @@ def spectral_heterogeneity(
     :param lmin: minimum spherical harmonic degree to plot
     :param lmax: maximum spherical harmonic degree to plot
     :param saveplot: flag to save figure
-    :param saveplot: path under which to save figure
+    :param savepath: path under which to save figure
     :param lyrmin: minimum layer to plot
     :param lyrmax: maximum layer to plot
-    :param **subplot_kwargs: Extra keyword arguments passed to
+    :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
     """
@@ -274,7 +274,6 @@ def plumes_3d(
     :param roll: camera roll (degrees)
     :param dist: camera distance (unitless)
     :param cmap: string corresponding to matplotlib colourmap
-    :param show: If ``True`` (the default), show the plot
     """
 
     nplms = plmobj.n_plms
@@ -338,7 +337,7 @@ def point(
     :param text: string to label point
     :param textcolor: color of text
     :param fontsize: fontsize for text:
-    :param **subplot_kwargs: Extra keyword arguments passed to
+    :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
     """
     transform = ccrs.PlateCarree()
