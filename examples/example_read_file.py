@@ -35,7 +35,7 @@ model = read_netcdf([path])
 Terra output files are currently written out serially, that is one file per process. Some
 users may find it convenient to concatenate files from a dump into a single file using
 `ncecat`, a tool which is available through the NetCDF operators package. Terratools also
-supports reading concatenated files ``model = read_netcdf(file,cat=True)``.
+supports reading concatenated files `model = read_netcdf(file,cat=True)`.
 """
 # %%
 

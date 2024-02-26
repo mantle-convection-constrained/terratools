@@ -73,9 +73,10 @@ We can pass in arguments to change the depth range over which we look for plumes
 (`depth_range`), the number of times that k-means is run with different initial
 centroids (`n-init`), the spatial clustering algorithm which is used (`algorithm`),
 the threshold distance if using `algorithm="DBSCAN"` or minimum cluster size if using
-`algorithm="HDBSCAN"`, and the minium number of samples in a neighbourhood (`min_samples`).
+`algorithm="HDBSCAN"`, and the minium number of samples in a neighbourhood (`minsamples`).
 
 For example, we could choose to look for plumes over a depth range of 500 km - 2000 km
+by setting `depth_range=(500,2000)`
 """
 # %%
 

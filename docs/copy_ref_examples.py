@@ -14,6 +14,7 @@ examples = [
     "example_attenuation",
     "example_convert", 
     "example_add_adiabat",
+    "example_plume_detect",
     "example_lookup_tables",
     "example_plot_map",
     "example_plot_flowfield",
