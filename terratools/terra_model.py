@@ -43,6 +43,19 @@ _SCALAR_FIELDS = {
     "mage": "Time of last melting [yr]",
     "sigma_z": "Radial Stress [Pa]",
     "h_cmb": "CMB heat flux [mW/m^2]",
+    "he3": "He3 [mols]",
+    "he4": "He4 [mols]",
+    "ar36": "Ar36 [mols]",
+    "ar40": "Ar40 [mols]",
+    "k40": "K40 [mols]",
+    "pb204": "Pb204 [mols]",
+    "pb206": "Pb206 [mols]",
+    "pb207": "Pb207 [mols]",
+    "pb208": "Pb208 [mols]",
+    "th232": "Th232 [mols]",
+    "u235": "U235 [mols]",
+    "u238": "U238 [mols]",
+    "h2o": "H2O [mols]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -79,6 +92,19 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "mage": ("meltage",),
     "sigma_z": ("radial_stress",),
     "h_cmb": ("cmb_heat_flux",),
+    "he3": ("He3",),
+    "he4": ("He4",),
+    "ar36": ("Ar36",),
+    "ar40": ("Ar40",),
+    "k40": ("K40",),
+    "pb204": ("Pb204",),
+    "pb206": ("Pb206",),
+    "pb207": ("Pb207",),
+    "pb208": ("Pb208",),
+    "th232": ("Th232",),
+    "u235": ("U235",),
+    "u238": ("U238",),
+    "h2o": ("H2O",),
 }
 
 
