@@ -56,6 +56,7 @@ _SCALAR_FIELDS = {
     "u235": "U235 [mols]",
     "u238": "U238 [mols]",
     "h2o": "H2O [mols]",
+    "ppv": "pPv adundance [%]",
 }
 
 # These are 'vector' fields which contain more than one component
@@ -105,6 +106,7 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "u235": ("U235",),
     "u238": ("U238",),
     "h2o": ("H2O",),
+    "ppv": ("pPv",),
 }
 
 
