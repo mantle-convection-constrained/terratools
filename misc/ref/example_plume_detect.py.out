@@ -1,0 +1,9 @@
+dict_keys(['u_xyz', 't', 'c_hist'])
+dict_keys(['u_xyz', 't', 'c_hist', 'u_enu'])
+k-means analysis
+density based clustering
+Detected 3 plumes with 212 noise points
+k-means analysis
+density based clustering
+Detected 2 plumes with 230 noise points
+2

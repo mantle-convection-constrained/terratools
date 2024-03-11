@@ -16,7 +16,7 @@ fi
 echo "--- Indenting all TerraTools header and source files"
 
 # Run black autoformatter, require version from 2022
-find terratools contrib tests examples \( -name '*.py' \) -print | xargs -n 1 -P 10 -I {} bash -c 'black --required-version 22 "$@"' _ {}
+find terratools contrib tests examples \( -name '*.py' \) -print | xargs -n 1 -P 10 -I {} bash -c 'black --required-version 23 "$@"' _ {}
 
 # remove execute permission on source files:
 find terratools contrib tests examples \( -name '*.py' \) -print | xargs -n 50 -P 10 chmod -x

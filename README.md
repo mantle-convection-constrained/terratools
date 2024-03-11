@@ -4,7 +4,8 @@ TerraTools is released under an MIT License.
 
 Homepage: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
 Documentation: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
-Source code: [https://github.com/mantle-convection-constrained/terratools](https://github.com/mantle-convection-constrained/terratools)
+Source code: [https://github.com/mantle-convection-constrained/terratools](https://github.com/mantle-convection-constrained/terratools)<br>
+DOI for this version: [10.5281/zenodo.10797186](https://zenodo.org/records/10797186)
 
 ## Citing TerraTools
 We are currently writing a paper for submission to JOSS. Watch this space.

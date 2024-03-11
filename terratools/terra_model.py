@@ -13,6 +13,7 @@ import pickle
 from . import geographic
 from . import plot
 from . import flow_conversion
+from . import plume_detection
 
 from .lookup_tables import TABLE_FIELDS, SeismicLookupTable, MultiTables
 from .properties.profiles import prem_pressure
@@ -39,19 +40,36 @@ _SCALAR_FIELDS = {
     "qp": "P-wave quality factor [unitless]",
     "qs": "S-wave quality factor [unitless]",
     "visc": "Viscosity [Pas]",
+    "mage": "Time of last melting [yr]",
+    "sigma_z": "Radial Stress [Pa]",
+    "h_cmb": "CMB heat flux [mW/m^2]",
+    "he3": "He3 [mols]",
+    "he4": "He4 [mols]",
+    "ar36": "Ar36 [mols]",
+    "ar40": "Ar40 [mols]",
+    "k40": "K40 [mols]",
+    "pb204": "Pb204 [mols]",
+    "pb206": "Pb206 [mols]",
+    "pb207": "Pb207 [mols]",
+    "pb208": "Pb208 [mols]",
+    "th232": "Th232 [mols]",
+    "u235": "U235 [mols]",
+    "u238": "U238 [mols]",
+    "h2o": "H2O [mols]",
+    "ppv": "pPv adundance [%]",
 }
 
 # These are 'vector' fields which contain more than one component
 # at each node of the grid.
 _VECTOR_FIELDS = {
     "u_xyz": "Flow field in Cartesian coordinates (three components) [m/s]",
-    "u_geog": "Flow field in geographic coordinates (three components) [m/s]",
+    "u_enu": "Flow field in geographic coordinates (three components) [m/s]",
     "c_hist": "Composition histogram (_nc components) [unitles]",
 }
 
 _VECTOR_FIELD_NCOMPS = {
     "u_xyz": 3,
-    "u_geog": 3,
+    "u_enu": 3,
     "c_hist": None,
 }
 
@@ -72,6 +90,23 @@ _FIELD_NAME_TO_VARIABLE_NAME = {
     "vs_an": ("vs_anelastic",),
     "density": ("density",),
     "visc": ("viscosity",),
+    "mage": ("meltage",),
+    "sigma_z": ("radial_stress",),
+    "h_cmb": ("cmb_heat_flux",),
+    "he3": ("He3",),
+    "he4": ("He4",),
+    "ar36": ("Ar36",),
+    "ar40": ("Ar40",),
+    "k40": ("K40",),
+    "pb204": ("Pb204",),
+    "pb206": ("Pb206",),
+    "pb207": ("Pb207",),
+    "pb208": ("Pb208",),
+    "th232": ("Th232",),
+    "u235": ("U235",),
+    "u238": ("U238",),
+    "h2o": ("H2O",),
+    "ppv": ("pPv",),
 }
 
 
@@ -81,6 +116,12 @@ _VARIABLE_NAME_TO_FIELD_NAME = {}
 for key, vals in _FIELD_NAME_TO_VARIABLE_NAME.items():
     for val in vals:
         _VARIABLE_NAME_TO_FIELD_NAME[val] = key
+
+# Mapping of field name to default colour scale
+_FIELD_COLOUR_SCALE = {
+    field: ("turbo_r" if field.startswith("v") or field == "density" else "turbo")
+    for field in _SCALAR_FIELDS
+}
 
 
 class FieldNameError(Exception):
@@ -93,6 +134,18 @@ class FieldNameError(Exception):
         super().__init__(self.message)
 
 
+class PlumeFieldError(Exception):
+    """
+    Exception type raised when correct fields not available for plume detection
+    """
+
+    def __init__(self, field):
+        self.message = (
+            f"'{field}' is required as a field in the TerraModel for plume detection."
+        )
+        super().__init__(self.message)
+
+
 class NoFieldError(Exception):
     """
     Exception type raised when trying to access a field which is not present
@@ -100,6 +153,17 @@ class NoFieldError(Exception):
 
     def __init__(self, field):
         self.message = f"Model does not contain field {field}"
+        super().__init__(self.message)
+
+
+class NoSphError(Exception):
+    """
+    Exception type raised when trying to access spherical harmonics which have
+    not yet been calculated.
+    """
+
+    def __init__(self, field):
+        self.message = f"Spherical hamronic coefficients for {field} have not yet been calculated, use `calc_spherical_harmonics`"
         super().__init__(self.message)
 
 
@@ -135,6 +199,17 @@ class SizeError(Exception):
 
     def __init__(self):
         self.message = f"Input params lons, lats, field mut be of same length"
+        super().__init__(self.message)
+
+
+class LayerMethodError(Exception):
+    """
+    Exception type raised when trying to call incompatible TerraModel method for
+    a TerraModelLayer object
+    """
+
+    def __init__(self, name):
+        self.message = f"Method {name} is incompatible with TerraModelLayer objects"
         super().__init__(self.message)
 
 
@@ -647,12 +722,14 @@ class TerraModel:
         replacing any existing field data.
 
         :param field: Name of field
-        :param array: numpy.array containing the field.  For scalars it
+        :type field: str
+        :param values: numpy.array containing the field.  For scalars it
             should have dimensions corresponding to (nlayers, npts),
             where nlayers is the number of layers and npts is the number
             of lateral points.  For multi-component fields, it should
             have dimensions (nlayers, npts, ncomps), where ncomps is the
             number of components
+        :type values: numpy.array
         """
         _check_field_name(field)
         array = np.array(values, dtype=VALUE_TYPE)
@@ -737,6 +814,29 @@ class TerraModel:
         """
         self._check_has_field(field)
         return self._fields[field]
+
+    def get_spherical_harmonics(self, field):
+        """
+        Return the spherical harmonic coefficients and power per l (and maps if calculated) or raise NoSphError
+
+        :param field: Name of field
+        :type field: str
+
+        :returns: dictionary containing spherical harmonic coefficients and power per l
+                  at each layer
+        """
+        if self._check_has_sph(field):
+            return self._sph[field]
+
+    def _check_has_sph(self, field):
+        """
+        Return True or False if spherical harmonics for the given field
+        have been calcualted or not.
+        """
+        if field in self._sph.keys():
+            return True
+        else:
+            raise NoSphError(field)
 
     def _check_has_field(self, field):
         """
@@ -826,11 +926,11 @@ class TerraModel:
         """
         return self._radius
 
-    def mean_1d_profile(self, field):
+    def mean_radial_profile(self, field):
         """
-        Return the mean of the given field at each radius
+        Return the mean of the given field at each radius.
 
-        :param field: name of field.
+        :param field: name of field
         :type field: str
 
         :returns profile: mean values of field at each radius.
@@ -845,32 +945,46 @@ class TerraModel:
 
         return profile
 
-    def get_1d_profile(self, field, lon, lat):
+    def radial_profile(self, lon, lat, field, method="nearest"):
         """
-        Return the 1d profile of the given field
-        at a given latitude and longitude point.
+        Return the radial profile of the given field
+        at a given longitude and latitude point.
 
-        :param field: name of field.
+        :param lon: Longitude at which to get radial profile.
+        :type lon: float
+
+        :param lat: Latitude at which to get radial profile.
+        :type lat: float
+
+        :param field: Name of field.
         :type field: str
 
-        :param field: latitude to get 1d profile.
-        :type field: float
-
-        :param field: longitude to get 1d profile.
-        :type field: float
+        :param method: Method by which the lateral points are evaluated.
+            if ``method`` is ``"nearest"`` (the default), the nearest
+            point to (lon, lat) is found.  If ``method`` is ``"triangle"``,
+            then triangular interpolation is used to calculate the value
+            of the field at the exact (lon, lat) point.
+        :type method: str
 
         :returns profile: values of field for each radius
-                          at a given latitude and longitude.
+                          at a given longitude and latitude.  The radii
+                          of each point can be obtained using
+                          ``TerraModel.get_radii()``.
         :rtype profile: 1d numpy array of floats.
         """
 
-        i = self.nearest_index(lon, lat)
+        if method == "nearest":
+            i = self.nearest_index(lon, lat)
+            # shape is [nradii, npoints]
+            field_values = self.get_field(field)
+            # Ensure we return a copy, since this isn't a 'get_'ter
+            profile = field_values[:, i].copy()
 
-        # shape is [nradii, npoints]
-        field_values = self.get_field(field)
-
-        # take mean across the radii layers
-        profile = field_values[:, i]
+        else:
+            radii = self.get_radii()
+            lons = lon * np.ones_like(radii)
+            lats = lat * np.ones_like(radii)
+            profile = self.evaluate(lons, lats, radii, field, method=method)
 
         return profile
 
@@ -1012,77 +1126,70 @@ class TerraModel:
         """
         return self._surface_radius - depth
 
-    def _pixelise(self, signal, nside, lons, lats):
+    def calc_spherical_harmonics(
+        self, field, nside=2**6, lmax=16, savemap=False, use_pixel_weights=False
+    ):
         """
-        Grid input data to healpix grid
-        :param signal: input data length n
-        :param nside: healpy param, number of sides for healpix grid
-        :param lons: input longitudes length n
-        :param lats: input latitudes length n
-        :returns: healpix grid
-        """
-        npix = hp.nside2npix(nside)
-        pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
-        amap = np.zeros(npix)
-        count = np.zeros(npix)
-        nsample = len(signal)
-        for i in range(nsample):
-            pix = pixnum[i]
-            amap[pix] += signal[i]
-            count[pix] += 1.0
-        for i in range(npix):
-            if count[i] > 0:
-                amap[i] = amap[i] / count[i]
-            else:
-                amap[i] = hp.UNSEEN
-        return amap
+        Function to calculate spherical harmonic coefficients for given global field.
+        Model is re-gridded to an equal area healpix grid of size nside (see
+        https://healpix.sourceforge.io/ for details) and then expanded to spherical
+        harmonic coefficients up to degree lmax, with pixels being uniformally weighted
+        by 4pi/n_pix (see https://healpy.readthedocs.io/en/latest/index.html for details).
 
-    def hp_sph(self, field, fname, nside=2**6, lmax=16, savemap=False):
-        """
-        :param field: input field of shape (nr, nps)
-        :param fname: string, name under which to save spherical harmonic
-            coefficients and power spectra ``data.sph[fname]``
+        :param field: input field
+        :type field: str
+
         :param nside: healpy param, number of sides for healpix grid, power
                       of 2 less than 2**30 (default 2**6)
+        :type nside: int (power of 2)
+
         :param lmax: maximum spherical harmonic degree (default 16)
+        :type lmax: int
+
         :param savemap: Default (``False``) do not save the healpix map
+        :type savemap: bool
         """
+
+        field_values = self.get_field(field)
 
         lons, lats = self.get_lateral_points()
 
         # Check that lon, lat and field are same length
         if (
             len(lons) != len(lats)
-            or len(lats) != field.shape[1]
-            or len(lons) != field.shape[1]
+            or len(lats) != field_values.shape[1]
+            or len(lons) != field_values.shape[1]
         ):
             raise (SizeError)
 
         nr = len(self.get_radii())
         hp_ir = {}
         for r in range(nr):
-            hpmap = self._pixelise(field[r, :], nside, lons, lats)
+            hpmap = _pixelise(field_values[r, :], nside, lons, lats)
             power_per_l = hp.sphtfunc.anafast(hpmap, lmax=lmax)
-            hp_coeffs = hp.sphtfunc.map2alm(hpmap, lmax=lmax, use_pixel_weights=True)
+            hp_coeffs = hp.sphtfunc.map2alm(
+                hpmap, lmax=lmax, use_pixel_weights=use_pixel_weights
+            )
             if savemap:
                 hp_ir[r] = {
-                    "map": hmap,
-                    "power per l": power_per_l,
+                    "map": hpmap,
+                    "power_per_l": power_per_l,
                     "coeffs": hp_coeffs,
                 }
             else:
-                hp_ir[r] = {"power per l": power_per_l, "coeffs": hp_coeffs}
+                hp_ir[r] = {"power_per_l": power_per_l, "coeffs": hp_coeffs}
         try:
-            self.sph[fname] = hp_ir
+            self._sph[field] = hp_ir
         except:
-            self.sph = {}
-            self.sph[fname] = hp_ir
+            self._sph = {}
+            self._sph[field] = hp_ir
 
     def plot_hp_map(
         self,
-        fname,
+        field,
         index=None,
         radius=None,
+        depth=False,
         nside=2**6,
         title=None,
         delta=None,
@@ -1093,21 +1200,40 @@ class TerraModel:
     ):
         """
         Create heatmap of a field recreated from the spherical harmonic coefficients
-        :param fname: name of field as created using ``data.hp_sph()``
+        :param field: name of field as created using ``data.calc_spherical_harmonics()``
+        :type field: str
+
         :param index: index of layer to plot
+        :type index: int
+
         :param radius: radius to plot (nearest model radius is shown)
+        :type radius: float
+
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
+        :type nside: int (power of 2)
+
         :param title: name of field to be included in title
+        :type title: str
+
         :param delta: Grid spacing of plot in degrees
+        :type delta: float
+
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
+        :type extent: tuple of length 4
+
         :param method: May be one of: "nearest" (plot nearest value to each
             plot grid point); or "mean" (mean value in each pixel)
+        :type method: str
+
         :param show: If True (the default), show the plot
-        :param **subplot_kwargs: Extra keyword arguments passed to
+        :type show: bool
+
+        :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
+
         :returns: figure and axis handles
         """
 
@@ -1124,20 +1250,19 @@ class TerraModel:
             layer_index = index
             layer_radius = radii[index]
 
+        dat = self.get_spherical_harmonics(field)[layer_index]["coeffs"]
         npix = hp.nside2npix(nside)
         radii = self.get_radii()
         rad = radii[layer_index]
-        lmax = len(self.sph[fname][layer_index]["power per l"]) - 1
-        hp_remake = hp.sphtfunc.alm2map(
-            self.sph[fname][layer_index]["coeffs"], nside=nside, lmax=lmax
-        )
+        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
+        hp_remake = hp.sphtfunc.alm2map(dat, nside=nside, lmax=lmax)
 
         lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
         mask = lon > 180.0
         lon2 = (lon - 360) * mask
         lon = lon2 + lon * ~mask
         if title == None:
-            label = fname
+            label = field
         else:
             label = title
 
@@ -1145,7 +1270,10 @@ class TerraModel:
             lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
 
-        ax.set_title(f"Depth {int(max(radii))-int(layer_radius)} km")
+        if depth:
+            ax.set_title(f"Depth = {int(layer_radius)} km")
+        else:
+            ax.set_title(f"Radius = {int(layer_radius)} km")
 
         if show:
             fig.show()
@@ -1154,7 +1282,7 @@ class TerraModel:
 
     def plot_spectral_heterogeneity(
         self,
-        fname,
+        field,
         title=None,
         saveplot=False,
         savepath=None,
@@ -1168,24 +1296,44 @@ class TerraModel:
         """
         Plot spectral heterogenity maps of the given field, that is the power
         spectrum over depth.
-        :param fname: name of field to plot as created using model.hp_sph()
-        :param title: title of plot (string)
+        :param field: name of field to plot as created using model.calc_spherical_harmonics()
+        :type field: str
+
+        :param title: title of plot
+        :type title: str
+
         :param saveplot: flag to save an image of the plot to file
+        :type saveplot: bool
+
         :param savepath: path under which to save plot to
+        :type savepath: str
+
         :param lmin: minimum spherical harmonic degree to plot (default=1)
+        :type lmin: int
+
         :param lmax: maximum spherical harmonic degree to plot (default to plot all)
+        :type lmax: int
+
         :param lyrmin: min layer to plot (default omits boundary)
+        :type lyrmin: int
+
         :param lyrmax: max layer to plot (default omits boundary)
+        :type lyrmax: int
+
         :param show: if True (default) show the plot
-        :param **subplot_kwargs: Extra keyword arguments passed to
+        :type show: bool
+
+        :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
+
         :returns: figure and axis handles
         """
-        nr = len(self.sph[fname])
-        lmax_dat = len(self.sph[fname][0]["power per l"]) - 1
+        dat = self.get_spherical_harmonics(field)
+        nr = len(dat)
+        lmax_dat = len(dat[0]["power_per_l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
         for r in range(nr):
-            powers[r, :] = self.sph[fname][r]["power per l"][:]
+            powers[r, :] = dat[r]["power_per_l"][:]
 
         if lmax == None or lmax > lmax_dat:
             lmax = lmax_dat
@@ -1298,6 +1446,138 @@ class TerraModel:
 
         return fig, ax
 
+    def plot_section(
+        self,
+        field,
+        lon,
+        lat,
+        azimuth,
+        distance,
+        minradius=None,
+        maxradius=None,
+        delta_distance=1,
+        delta_radius=50,
+        method="nearest",
+        levels=25,
+        cmap=None,
+        show=True,
+    ):
+        """
+        Create a plot of a cross-section through a model for one
+        of the fields in the model.
+
+        :param field: Name of field to plot
+        :type field: str
+
+        :param lon: Longitude of starting point of section in degrees
+        :type lon: float
+
+        :param lat: Latitude of starting point of section in degrees
+        :type lat: float
+
+        :param azimuth: Azimuth of cross section at starting point in degrees
+        :type azimuth: float
+
+        :param distance: Distance of cross section, given as the angle
+            subtended at the Earth's centre between the starting and
+            end points of the section, in degrees.
+        :type distance: float
+
+        :param minradius: Minimum radius to plot in km.  If this is smaller
+            than the minimum radius in the model, the model's value is used.
+        :type minradius: float
+
+        :param maxradius: Maximum radius to plot in km.  If this is larger
+            than the maximum radius in the model, the model's value is used.
+        :type maxradius: float
+
+        :param method: May be one of "nearest" (default) or "triangle",
+            controlling how points are calculated at each plotting grid
+            point.  "nearest" simply finds the nearest model point to the
+            required grid points; "triangle" perform triangular interpolation
+            around the grid point.
+        :type method: str
+
+        :param delta_distance: Grid spacing in lateral distance, expressed
+            in units of degrees of angle subtended about the centre of the
+            Earth.  Default 1°.
+        :type delta_distance: float
+
+        :param delta_radius: Grid spacing in radial directions in km.  Default
+            50 km.
+        :type delta_radius: float
+
+        :param levels: Number of levels or set of levels to plot
+        :type levels: int or set of floats
+
+        :param cmap: Colour map to be used (default "turbo")
+        :type cmap: str
+
+        :param show: If `True` (default), show the plot
+        :type show: bool
+
+        :returns: figure and axis handles
+        """
+        if not _is_scalar_field(field):
+            raise ValueError(f"Cannot plot non-scalr field '{field}'")
+        if not self.has_field(field) and not self.has_lookup_tables():
+            raise ValueError(
+                f"Model does not contain field '{field}', not does it "
+                + "contain lookup tables with which to compute it"
+            )
+
+        model_radii = self.get_radii()
+        min_model_radius = np.min(model_radii)
+        max_model_radius = np.max(model_radii)
+
+        if minradius is None:
+            minradius = min_model_radius
+        if maxradius is None:
+            maxradius = max_model_radius
+
+        # For user-supplied numbers, clip them to lie in the range
+        # min_model_radius to max_model_radius
+        minradius = np.clip(minradius, min_model_radius, max_model_radius)
+        maxradius = np.clip(maxradius, min_model_radius, max_model_radius)
+
+        # Catch cases where both values are above or below the model and
+        # which have been clipped
+        if minradius >= maxradius:
+            raise ValueError("minradius must be less than maxradius")
+
+        # Allow us to plot at least two points
+        if (maxradius - minradius) / 2 < delta_radius:
+            delta_radius = (maxradius - minradius) / 2
+        radii = np.arange(minradius, maxradius, delta_radius)
+        distances = np.arange(0, distance, delta_distance)
+
+        nradii = len(radii)
+        ndistances = len(distances)
+
+        grid = np.empty((ndistances, nradii))
+        for i, distance in enumerate(distances):
+            this_lon, this_lat = geographic.angular_step(lon, lat, azimuth, distance)
+            for j, radius in enumerate(radii):
+                if self.has_field(field):
+                    grid[i, j] = self.evaluate(
+                        this_lon, this_lat, radius, field, method=method
+                    )
+                elif self.has_lookup_tables():
+                    grid[i, j] = self.evaluate_from_lookup_tables(
+                        this_lon, this_lat, radius, field, method=method
+                    )
+
+        label = _SCALAR_FIELDS[field]
+
+        if cmap is None:
+            cmap = _FIELD_COLOUR_SCALE[field]
+
+        fig, ax = plot.plot_section(
+            distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
+        )
+
+        return fig, ax
+
     def add_adiabat(self):
         """
         Add a theoretical adiabat to the temperatures in the
@@ -1322,7 +1602,7 @@ class TerraModel:
 
     def add_geog_flow(self):
         """
-        Add the field u_geog which holds the flow vector which
+        Add the field u_enu which holds the flow vector which
         has been rotated from cartesian to geographical.
 
         :param: none
@@ -1331,25 +1611,332 @@ class TerraModel:
 
         flow_xyz = self.get_field("u_xyz")
 
-        flow_geog = np.zeros(flow_xyz.shape)
+        flow_enu = np.zeros(flow_xyz.shape)
 
         for point in range(self._npts):
-            lat = self._lat[point]
             lon = self._lon[point]
+            lat = self._lat[point]
 
             # get flow vector for one lon, lat
             # at all radii
             flows_point_all_radii = flow_xyz[:, point]
 
             # rotate vectors
-            flow_geog_point = flow_conversion.rotate_vector(
+            flow_enu_point = flow_conversion.rotate_vector(
                 lon=lon, lat=lat, vec=flows_point_all_radii
             )
 
             # populate array with rotated vectors
-            flow_geog[:, point] = flow_geog_point
+            flow_enu[:, point] = flow_enu_point
 
-        self.set_field(field="u_geog", values=flow_geog)
+        self.set_field(field="u_enu", values=flow_enu)
+
+    def detect_plumes(
+        self,
+        depth_range=(400, 2600),
+        algorithm="HDBSCAN",
+        n_init="auto",
+        epsilon=150,
+        minsamples=150,
+    ):
+        """
+        Uses the temperature and velocity fields to detect mantle plumes.
+        Our scheme is a two stage process, first plume-like regions identified
+        using a K-means clustering algorithm, then the resultant points are
+        spatially clustered using a density based clustering algorithm to identify
+        individual plumes. An inner 'plumes' class is created within the TerraModel to
+        store information pertaining to detected plumes.
+
+        :param depth_range: (min_depth, max_depth) over which to look for plumes
+        :param algorithm: Spatial clustering algorithm - 'DBSCAN' and 'HDBSCAN' supported
+        :param n_init: Number of times to run k-means with different starting centroids
+        :param epsilon: Threshold distance parameter for DBSCAN, min_cluster_size for HDBSCAN
+        :param minsamples: Minimum number of samples in a neighbourhood for DBSCAN and HDBSCAN
+        :return: none
+        """
+
+        # First we need to check that we have the correct fields
+        fields = self.field_names()
+        if "t" not in fields:
+            raise PlumeFieldError("t")
+        if "u_enu" not in fields:
+            if "u_xyz" in fields:
+                print("adding geographic flow velocities")
+                self.add_geog_flow()
+            else:
+                raise PlumeFieldError("u_xyz")
+
+        # Perform K-means analysis save the binary locations of plumes
+        print("k-means analysis")
+        #        self._kmeans_plms=plume_detection.plume_kmeans(self,depth_range=depth_range)
+        kmeans, plm_layers, plm_depths = plume_detection.plume_kmeans(
+            self, depth_range=depth_range, n_init=n_init
+        )
+
+        # Now the density based clustering to identify individual plumes
+        print("density based clustering")
+        clust_result = plume_detection.plume_dbscan(
+            self,
+            kmeans,
+            algorithm=algorithm,
+            epsilon=epsilon,
+            minsamples=minsamples,
+            depth_range=depth_range,
+        )
+
+        # Initialize Plumes inner class
+        self.plumes = self.Plumes(kmeans, plm_layers, plm_depths, clust_result, self)
+
+    class Plumes:
+        """
+        An inner class of TerraModel, this class hold information pertaining to plumes
+        which have been detected using the `model.detect_plumes` method.
+        """
+
+        def __init__(self, kmeans, plm_layers, plm_depths, clust_result, model):
+            """
+            Initialise new plumes inner class
+
+            :param kmeans: Array of shape (nps,maxlyr-minlyr+1) where nps is the number
+                of points in radial layer of a TerraModel and minlyr and maxlyr are the
+                min and max layers over which we searched for plumes. Array contains binary information on whether a plume was detected.
+            :param plm_layers: Layers of the TerraModel over which we searched for plumes
+            :param plm_depths: Depths corresponding to the plm_layers
+            :param clust_result: Cluster labels assigned by the spatial clustering
+            :param model: TerraModel, needed to access fields in the inner class
+            :return: none
+            """
+            self._kmeans_plms = kmeans
+            self.plm_lyrs_range = plm_layers
+            self.plm_depth_range = plm_depths
+            self._plm_clusts = clust_result[0]
+            self.n_plms = clust_result[1]
+            self.n_noise = clust_result[2]
+            self._model = model
+
+            # Get lon and lat locations for points in plumes
+            pnts_in_plm = np.argwhere(self._kmeans_plms)
+            pnts = np.zeros((np.shape(pnts_in_plm)[0], 3))
+            n = 0
+            for i, d in enumerate(plm_depths):
+                boolarr = self._kmeans_plms[:, i].astype(dtype=bool)
+                pnts[n : (n + np.sum(boolarr)), 0] = model.get_lateral_points()[0][
+                    boolarr
+                ]  # fill lons
+                pnts[n : (n + np.sum(boolarr)), 1] = s = model.get_lateral_points()[1][
+                    boolarr
+                ]  # fill lats
+                pnts[n : (n + np.sum(boolarr)), 2] = self.plm_depth_range[
+                    i
+                ]  # fill depths
+                n = n + np.sum(boolarr)
+
+            self._pnts_plms = pnts
+
+            self.plm_depths = {}
+            for plumeID in range(self.n_plms):
+                plume_nth = self._pnts_plms[self._plm_clusts == plumeID]
+                self.plm_depths[plumeID] = np.unique(plume_nth[:, 2])
+
+            # Add the lon,lat,depth of points assoicated with each plume
+            self.plm_coords = {}
+            for plumeID in range(self.n_plms):
+                pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                deps = np.unique(self.plm_depths[plumeID])
+                self.plm_coords[plumeID] = {}
+                for d, dep in enumerate(deps):
+                    self.plm_coords[plumeID][d] = pnts_plmid[pnts_plmid[:, 2] == dep]
+
+        def calc_centroids(self):
+            """
+            Method calculates the centroids of each plume at each layer
+            that the plume has been detected.
+
+            :param: none
+            :return: none
+            """
+
+            self.centroids = {}
+            for plumeID in range(self.n_plms):
+                self.centroids[plumeID] = plume_detection.plume_centroids(plumeID, self)
+
+        def radial_field(self, field):
+            """
+            Method to find the values of a given field at points which have been
+            detected as plumes.
+
+            :param field: A field which exists in the TerraModel.
+            :return: none
+            """
+
+            if field not in self._model.field_names():
+                raise FieldNameError(field)
+
+            # initialise dictionary which will store the plume fields
+            if not hasattr(self, "plm_flds"):
+                self.plm_flds = {}
+
+            # create mask from kmeans outputs
+            minlyr = np.min(self.plm_lyrs_range)
+            maxlyr = np.max(self.plm_lyrs_range)
+            mask = np.transpose(self._kmeans_plms.astype(dtype=bool))
+
+            self.plm_flds[field] = {}
+            fld = np.flip(self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0)[
+                mask
+            ]
+
+            if _is_vector_field(field):
+                for i in range(np.shape(self._model.get_field(field))[-1]):
+                    fld = np.flip(
+                        self._model.get_field(field)[minlyr : maxlyr + 1, :, i], axis=0
+                    )[mask]
+                    self.plm_flds[field][i] = {}
+
+                    for plumeID in range(self.n_plms):
+                        fld_plm = fld[
+                            self._plm_clusts == plumeID
+                        ]  # get data for this plume
+                        pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                        deps = np.unique(self.plm_depths[plumeID])
+                        self.plm_flds[field][i][plumeID] = {}
+
+                        for d, dep in enumerate(deps):
+                            self.plm_flds[field][i][plumeID][d] = fld_plm[
+                                pnts_plmid[:, 2] == dep
+                            ]  # get points at this depth
+
+            else:
+                fld = np.flip(
+                    self._model.get_field(field)[minlyr : maxlyr + 1, :], axis=0
+                )[mask]
+
+                for plumeID in range(self.n_plms):
+                    fld_plm = fld[
+                        self._plm_clusts == plumeID
+                    ]  # get data for this plume
+                    pnts_plmid = self._pnts_plms[self._plm_clusts == plumeID]
+                    deps = np.unique(self.plm_depths[plumeID])
+                    self.plm_flds[field][plumeID] = {}
+
+                    for d, dep in enumerate(deps):
+                        self.plm_flds[field][plumeID][d] = fld_plm[
+                            pnts_plmid[:, 2] == dep
+                        ]  # get points at this depth
+
+        def plot_kmeans_stack(
+            self,
+            centroids=0,
+            delta=None,
+            extent=(-180, 180, -90, 90),
+            method="nearest",
+            coastlines=True,
+            show=True,
+        ):
+            """
+            Create a heatmap of vertically stacked results of k-means analysis
+
+            :param centroids: layer for which to plot centroids, eg 0 will plot
+                plot the centroid of the uppermost layer for each plume, None
+                will cause to not plot centorids.
+            :param delta: Grid spacing of plot in degrees
+            :param extent: Tuple giving the longitude and latitude extent of
+                plot, in the form (min_lon, max_lon, min_lat, max_lat), all
+                in degrees
+            :param method: May be one of: "nearest" (plot nearest value to each
+                plot grid point); or "mean" (mean value in each pixel)
+            :param coastlines: If ``True`` (default), plot coastlines.
+                This may lead to a segfault on machines where cartopy is not
+                installed in the recommended way.  In this case, pass ``False``
+                to avoid this.
+            :param show: If ``True`` (the default), show the plot
+            :returns: figure and axis handles
+            """
+
+            if not hasattr(self, "centroids"):
+                print("calculating centroid of plume layers")
+                self.calc_centroids()
+
+            sumkmeans = np.sum(self._kmeans_plms, axis=1)
+            lon, lat = self._model.get_lateral_points()
+            label = "n-layers plume detected"
+            radius = 0.0
+
+            fig, ax = plot.layer_grid(
+                lon,
+                lat,
+                radius,
+                sumkmeans,
+                delta=delta,
+                extent=extent,
+                label=label,
+                method=method,
+                coastlines=coastlines,
+            )
+
+            mindep = np.min(self.plm_depth_range)
+            maxdep = np.max(self.plm_depth_range)
+
+            ax.set_title(f"Depth range {int(mindep)} - {int(maxdep)} km")
+
+            if centroids != None:
+                for p in range(self.n_plms):
+                    lon, lat, rad = self.centroids[p][centroids, :]
+                    plot.point(ax, lon, lat, text=p)
+
+            if show:
+                fig.show()
+
+            return fig, ax
+
+        def plot_plumes_3d(
+            self,
+            elev=10,
+            azim=70,
+            roll=0,
+            dist=20,
+            cmap="terrain",
+            show=True,
+        ):
+            """
+            Call to generate 3D scatter plot of points which constitute plumes
+            coloured by plumeID
+
+            :param elev: camera elevation (degrees)
+            :param azim: camera azimuth (degrees)
+            :param roll: camera roll (degrees)
+            :param dist: camera distance (unitless)
+            :param cmap: string corresponding to matplotlib colourmap
+            :param show: If ``True`` (the default), show the plot
+            """
+
+            fig, ax = plot.plumes_3d(
+                self, elev=elev, azim=azim, roll=roll, dist=dist, cmap=cmap
+            )
+
+            if show:
+                fig.show()
+
+
+class TerraModelLayer(TerraModel):
+    """
+    A subclass of the TerraModel superclass, TerraModelLayer is for storing 2D layer
+    information which is written out of a TERRA simulation. Typically this might be some
+    boundary information, eg CMB heat flux or radial surface radial stresses, but could be
+    from any radial layer of the simulation in principle.
+
+    Methods of the TerraModel class which are not compatible with TerraModelLayer are
+    overwritten and will raise a LayerMethodError exception
+    """
+
+    def add_adiabat(self):
+        raise LayerMethodError(self.add_adiabat.__name__)
+
+    def get_1d_profile(self, *args):
+        raise LayerMethodError(self.get_1d_profile.__name__)
+
+    def plot_section(self, *args, **kwargs):
+        raise LayerMethodError(self.plot_section.__name__)
 
 
 def read_netcdf(
@@ -1364,7 +1951,8 @@ def read_netcdf(
         fields are read in.
     :param surface_radius: Radius of the surface of the model in km
         (default 6370 km)
-    :returns: a new TerraModel
+    :returns: a new `TerraModel` or `TerraModelLayer`, depending on
+        the contents of the file
     """
     if len(files) == 0:
         raise ValueError("files argument cannot be empty")
@@ -1415,6 +2003,8 @@ def read_netcdf(
         nlayers = nc.dimensions["depths"].size
         _r = np.array(surface_radius - nc["depths"][:], dtype=COORDINATE_TYPE)
         nfiles = nc.dimensions["record"].size
+        if "composition_fractions" in nc.variables:
+            ncomps = nc.dimensions["compositions"].size + 1
 
     # Passed to constructor
     _fields = {}
@@ -1429,18 +2019,17 @@ def read_netcdf(
         nc = netCDF4.Dataset(file)
 
     for file_number in range(nfiles):
-
         # read in next file if not loading from concatenated file
         if not cat:
             file = files[file_number]
             nc = netCDF4.Dataset(file)
 
         # Check the file has the right things
-
-        for dimension in ("nps", "depths", "compositions"):
-            assert (
-                dimension in nc.dimensions
-            ), f"Can't find {dimension} in dimensions of file {file}"
+        if len(nc["depths"][:]) != 1:
+            for dimension in ("nps", "depths", "compositions"):
+                assert (
+                    dimension in nc.dimensions
+                ), f"Can't find {dimension} in dimensions of file {file}"
 
         # Number of lateral points in this file
         npts = nc.dimensions["nps"].size
@@ -1596,7 +2185,12 @@ def read_netcdf(
                 # Handle case that indices are in different order in file
                 # compared to TerraModel
                 for icomp in range(ncomps - 1):
-                    _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    if not cat:
+                        _fields[field_name][:, npts_range, icomp] = nc[var][icomp, :, :]
+                    else:
+                        _fields[field_name][:, npts_range, icomp] = nc[var][
+                            file_number, icomp, :, :
+                        ]
 
                 # Calculate final composition fraction slice using the property
                 # that all composition fractions must sum to 1
@@ -1641,15 +2235,24 @@ def read_netcdf(
             raise ValueError(
                 f"field {field_name} has an unexpected number of dimensions ({ndims})"
             )
-
-    return TerraModel(
-        r=_r,
-        lon=_lon,
-        lat=_lat,
-        fields=_fields,
-        c_histogram_names=_c_hist_names,
-        c_histogram_values=_c_hist_values,
-    )
+    if len(_r) == 1:
+        return TerraModelLayer(
+            r=_r,
+            lon=_lon,
+            lat=_lat,
+            fields=_fields,
+            c_histogram_names=_c_hist_names,
+            c_histogram_values=_c_hist_values,
+        )
+    else:
+        return TerraModel(
+            r=_r,
+            lon=_lon,
+            lat=_lat,
+            fields=_fields,
+            c_histogram_names=_c_hist_names,
+            c_histogram_values=_c_hist_values,
+        )
 
 
 def load_model_from_pickle(filename):
@@ -1750,6 +2353,32 @@ def _is_valid_field_name(field):
     Return True if field is a valid name of a field in a TerraModel.
     """
     return field in _ALL_FIELDS.keys()
+
+
+def _pixelise(signal, nside, lons, lats):
+    """
+    Grid input data to healpix grid
+    :param signal: input data length n
+    :param nside: healpy param, number of sides for healpix grid
+    :param lons: input longitudes length n
+    :param lats: input latitudes length n
+    :returns: healpix grid
+    """
+    npix = hp.nside2npix(nside)
+    pixnum = hp.ang2pix(nside, lons, lats, lonlat=True)
+    amap = np.zeros(npix)
+    count = np.zeros(npix)
+    nsample = len(signal)
+    for i in range(nsample):
+        pix = pixnum[i]
+        amap[pix] += signal[i]
+        count[pix] += 1.0
+    for i in range(npix):
+        if count[i] > 0:
+            amap[i] = amap[i] / count[i]
+        else:
+            amap[i] = hp.UNSEEN
+    return amap
 
 
 def _variable_names_from_field(field):

@@ -1,0 +1,12 @@
+We haven't kept a good changelog up to v1.0, but main features are summarised here.
+
+  ## [1.0.0] - 2024-03-08
+
+_First release._
+  - Read TERRA NetCDF files into a TerraModel object (or TerraModelLayer object if single layer)
+  - Built in methods provide simple access to scalar and vector fields
+  - Methods for plotting profiles, layers, slices and flow fields
+  - Calculate spherical harmonic coefficients of field using Healpy
+  - Tools for generating tables of seismic properties for arbitrary compositions
+  - Predict seismic properties of TerraModel
+  - Method for detecting mantle plume in TerraModel 

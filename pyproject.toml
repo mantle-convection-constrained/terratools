@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "terratools"
-version = "0.2.0"
+version = "1.0.0"
 description = "Tools to read, analyse and visualise models written by the TERRA mantle convection code."
 authors = [
   "James Panton <pantonjc@cardiff.ac.uk>", 
@@ -26,14 +26,15 @@ netcdf4 = "^1"
 matplotlib = "^3.5"
 scikit-learn = "^1.1.2"
 healpy = "^1.16.2"
+pooch = "^1.7"
 
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.5.0"
-black = "^22.10.0"
+black = "^23.9.1"
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.12.0"
+black = "^23.9.1"
 cartopy = "^0.21.1"
 
 [build-system]
