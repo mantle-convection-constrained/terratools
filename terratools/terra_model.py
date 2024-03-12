@@ -124,6 +124,15 @@ _FIELD_COLOUR_SCALE = {
 }
 
 
+class NewFieldNameError(Exception):
+    """
+    Exception type raised when trying to use an incorrect field name
+    """
+
+    def __init__(self, field):
+        self.message = f"for new field '{field}' you must also pass `label='label'`."
+        super().__init__(self.message)
+
 class FieldNameError(Exception):
     """
     Exception type raised when trying to use an incorrect field name
@@ -736,7 +745,7 @@ class TerraModel:
         self._check_field_shape(array, field, scalar=_is_scalar_field(field))
         self._fields[field] = np.array(array, dtype=VALUE_TYPE)
 
-    def new_field(self, name, ncomps=None):
+    def new_field(self, name, label=None, ncomps=None):
         """
         Create a new, empty field with key ``name``.
 
@@ -744,12 +753,25 @@ class TerraModel:
         :param ncomps: Number of components for a multicomponent field.
         :returns: the new field
         """
-        _check_field_name(name)
+        global _SCALAR_FIELDS, _VECTOR_FIELDS, _ALL_FIELDS, _VECTOR_FIELD_NCOMPS
         if ncomps is not None and ncomps < 1:
             raise ValueError(f"ncomps cannot be less than 1 (is {ncomps})")
 
         is_vector = _is_vector_field(name)
         ncomps_expected = _expected_vector_field_ncomps(name) if is_vector else None
+        if not is_vector and ncomps is not None and ncomps > 1:
+            is_vector=True
+            ncomps_expected=ncomps
+
+        if label==None: 
+            _check_new_field_name(name)
+        elif is_vector:
+            _VECTOR_FIELDS[name]=label
+            _VECTOR_FIELD_NCOMPS[name]=ncomps
+        else:
+            _SCALAR_FIELDS[name]=label
+
+        _ALL_FIELDS = {**_SCALAR_FIELDS, **_VECTOR_FIELDS}
 
         nlayers = self._nlayers
         npts = self._npts
@@ -2402,6 +2424,13 @@ def _field_name_from_variable(field):
         field_name = None
     return field_name
 
+
+def _check_new_field_name(field):
+    """
+    If field is not currently a valid field name, raise a NewFieldNameError
+    """
+    if not _is_valid_field_name(field):
+        raise NewFieldNameError(field)
 
 def _check_field_name(field):
     """
