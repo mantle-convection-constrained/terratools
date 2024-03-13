@@ -1,6 +1,6 @@
 # %% [markdown]
 """
-# example_add_adiabat
+# example_plume_detect
 
 This example demonstrates how to read in terra output in NetCDF format
 and detect plumes based on temperature and radial velocity.
