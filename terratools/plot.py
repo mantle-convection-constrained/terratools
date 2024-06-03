@@ -199,6 +199,8 @@ def plot_section(
 
     :returns: figure and axis handles
     """
+    if fig==None or ax==None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     if fig == None or ax == None:
         fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
