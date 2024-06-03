@@ -1404,9 +1404,14 @@ class TerraModel:
         index=None,
         depth=False,
         delta=None,
+        fig=None,
+        ax=None,
         extent=(-180, 180, -90, 90),
         method="nearest",
         coastlines=True,
+        cmap=None,
+        vmin=None,
+        vmax=None,
         show=True,
     ):
         """
@@ -1449,7 +1454,12 @@ class TerraModel:
         values = self.get_field(field)[layer_index]
         label = _SCALAR_FIELDS[field]
 
-        fig, ax = plot.layer_grid(
+        if cmap is None:
+            cmap = _FIELD_COLOUR_SCALE[field]
+
+        fig, ax, cbar = plot.layer_grid(
+            fig,
+            ax,
             lon,
             lat,
             layer_radius,
@@ -1459,6 +1469,9 @@ class TerraModel:
             label=label,
             method=method,
             coastlines=coastlines,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax
         )
 
         if depth:
@@ -1467,7 +1480,7 @@ class TerraModel:
         if show:
             fig.show()
 
-        return fig, ax
+        return fig, ax, cbar
 
     def plot_section(
         self,
@@ -1476,6 +1489,8 @@ class TerraModel:
         lat,
         azimuth,
         distance,
+        fig=None,
+        ax=None,
         minradius=None,
         maxradius=None,
         delta_distance=1,
@@ -1595,11 +1610,11 @@ class TerraModel:
         if cmap is None:
             cmap = _FIELD_COLOUR_SCALE[field]
 
-        fig, ax = plot.plot_section(
-            distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
+        fig, ax, cbar = plot.plot_section(
+            fig, ax, distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
         )
 
-        return fig, ax
+        return fig, ax, cbar
 
     def add_adiabat(self):
         """
@@ -1854,6 +1869,8 @@ class TerraModel:
             extent=(-180, 180, -90, 90),
             method="nearest",
             coastlines=True,
+            fig=None,
+            ax=None,
             show=True,
         ):
             """
@@ -1886,6 +1903,8 @@ class TerraModel:
             radius = 0.0
 
             fig, ax = plot.layer_grid(
+                fig,
+                ax,
                 lon,
                 lat,
                 radius,

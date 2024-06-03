@@ -22,6 +22,8 @@ import sys
 
 
 def layer_grid(
+    fig,
+    ax,
     lon,
     lat,
     radius,
@@ -31,7 +33,10 @@ def layer_grid(
     label=None,
     method="nearest",
     coastlines=True,
-    **subplots_kwargs,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+    **subplots_kwargs
 ):
     """
     Take a set of arbitrary points in longitude and latitude, each
@@ -61,10 +66,11 @@ def layer_grid(
     if not _CARTOPY_INSTALLED:
         sys.stderr.write("layer_grid require cartopy to be installed")
         raise _CARTOPY_NOT_INSTALLED_EXCEPTION
-
-    fig, ax = plt.subplots(
-        subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
-    )
+    
+    if fig==None or ax==None:
+        fig, ax = plt.subplots(
+            subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
+        )
 
     if len(extent) != 4:
         raise ValueError("extent must contain four values")
@@ -108,8 +114,15 @@ def layer_grid(
     grid = np.flip(grid, axis=0)
 
     transform = ccrs.PlateCarree()
+    #ax.set_extent(extent,crs=transform)
+   
+    if cmap is None:
+        cmap = 'viridis'
 
-    contours = ax.imshow(grid, transform=transform, extent=extent)
+    vmin=np.min(grid) if vmin==None else vmin
+    vmax=np.max(grid) if vmax==None else vmax  
+
+    contours = ax.imshow(grid, transform=transform, extent=extent, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_title(f"Radius {int(radius)} km")
     ax.set_xlabel(f"{label}", fontsize=12)
 
@@ -129,11 +142,19 @@ def layer_grid(
     if coastlines:
         ax.coastlines()
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def plot_section(
-    distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
+    fig, 
+    ax, 
+    distances, 
+    radii, 
+    grid, 
+    label=None, 
+    show=True, 
+    levels=25, 
+    cmap="turbo"
 ):
     """
     Create a plot of a cross-section.
@@ -170,7 +191,6 @@ def plot_section(
     min_distance = np.min(distances_radians)
     max_distance = np.max(distances_radians)
 
-    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
     contours = ax.contourf(distances_radians, radii, grid.T, levels=levels, cmap=cmap)
     ax.set_rorigin(0)
     ax.set_thetalim(min_distance, max_distance)
@@ -192,7 +212,7 @@ def plot_section(
     if show:
         plt.show()
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def spectral_heterogeneity(
