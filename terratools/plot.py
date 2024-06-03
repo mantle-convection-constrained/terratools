@@ -22,8 +22,6 @@ import sys
 
 
 def layer_grid(
-    fig,
-    ax,
     lon,
     lat,
     radius,
@@ -36,6 +34,8 @@ def layer_grid(
     cmap=None,
     vmin=None,
     vmax=None,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """
@@ -59,6 +59,11 @@ def layer_grid(
         This works around an issue with Cartopy when
         installed in certain situations.  See
         https://github.com/SciTools/cartopy/issues/879 for details.
+    :param cmap: colour map
+    :param vmin: minimum value to show on plot
+    :param vamx: maximum value to show on plot
+    :param fig: figure handle
+    :param ax: axis handle
     :param **subplots_kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
@@ -148,7 +153,15 @@ def layer_grid(
 
 
 def plot_section(
-    distances, radii, grid, label=None, show=True, levels=25, cmap="turbo", fig=None, ax=None
+    distances,
+    radii,
+    grid,
+    label=None,
+    show=True,
+    levels=25,
+    cmap="turbo",
+    fig=None,
+    ax=None
 ):
     """
     Create a plot of a cross-section.
@@ -178,9 +191,18 @@ def plot_section(
     :param show: If `True` (default), show the plot
     :type show: bool
 
+    :param fig: figure handle
+    :type fig: matplotlib.figure.Figure
+
+    :param ax: axis handle
+    :type ax: matplotlib.axes._axes.Axes
+
     :returns: figure and axis handles
     """
     if fig==None or ax==None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+
+    if fig == None or ax == None:
         fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     distances_radians = np.radians(distances)
@@ -221,8 +243,8 @@ def spectral_heterogeneity(
     savepath,
     lyrmin,
     lyrmax,
-    fig,
-    ax,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """

@@ -633,7 +633,7 @@ class TestModelHealpy(unittest.TestCase):
     def test_plot_spectral_heterogeneity(self):
         model = dummy_model(with_fields=True)
         model.calc_spherical_harmonics("t")
-        fig, ax = model.plot_spectral_heterogeneity("t", lyrmin=0, lyrmax=-1)
+        fig, ax, cbar = model.plot_spectral_heterogeneity("t", lyrmin=0, lyrmax=-1)
         self.assertIsInstance(fig, Figure)
         self.assertEqual(ax.get_xlabel(), "L")
         self.assertEqual(ax.get_ylabel(), "Depth (km)")
@@ -674,7 +674,7 @@ class TestBoundingIndices(unittest.TestCase):
 class TestPlotSection(unittest.TestCase):
     def test_plot_section(self):
         model = dummy_model(with_fields=True)
-        fig, ax = model.plot_section("t", 10, 20, 30, 120, show=False)
+        fig, ax, cbar = model.plot_section("t", 10, 20, 30, 120, show=False)
         self.assertIsInstance(fig, Figure)
         self.assertIsInstance(ax, PolarAxes)
 
@@ -682,7 +682,7 @@ class TestPlotSection(unittest.TestCase):
         model = dummy_model(with_fields=True)
         radii = model.get_radii()
         radius_diff = radii[-1] - radii[0]
-        fig, ax = model.plot_section(
+        fig, ax, cbar = model.plot_section(
             "t", 10, 20, 30, 120, delta_radius=radius_diff + 1, show=False
         )
         self.assertIsInstance(fig, Figure)
@@ -705,19 +705,19 @@ if _CARTOPY_INSTALLED:
 
         def test_plot_layer_radius(self):
             model = dummy_model(with_fields=True)
-            fig, ax = model.plot_layer("t", 4000, show=False)
+            fig, ax, cbar = model.plot_layer("t", 4000, show=False)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 
         def test_plot_layer_depth(self):
             model = dummy_model(with_fields=True)
-            fig, ax = model.plot_layer("t", 100, depth=True, show=False)
+            fig, ax, cbar = model.plot_layer("t", 100, depth=True, show=False)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 
         def test_plot_layer_index(self):
             model = dummy_model(with_fields=True)
-            fig, ax = model.plot_layer("t", index=2, depth=True, show=False)
+            fig, ax, cbar = model.plot_layer("t", index=2, depth=True, show=False)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 
@@ -725,7 +725,7 @@ if _CARTOPY_INSTALLED:
         def test_plot_hp_map(self):
             model = dummy_model(with_fields=True)
             model.calc_spherical_harmonics("t")
-            fig, ax = model.plot_hp_map("t", index=1)
+            fig, ax, cbar = model.plot_hp_map("t", index=1)
             self.assertIsInstance(fig, Figure)
             self.assertIsInstance(ax, GeoAxesSubplot)
 

@@ -1342,7 +1342,15 @@ class TerraModel:
             label = title
 
         fig, ax, cbar = plot.layer_grid(
-            fig, ax, lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
+            lon,
+            lat,
+            rad,
+            hp_remake,
+            delta=delta,
+            extent=extent,
+            label=label,
+            fig=fig,
+            ax=ax,
         )
 
         if depth:
@@ -1415,7 +1423,9 @@ class TerraModel:
         if _is_vector_field(field) and v_field_ind == None:
             print("v_field_ind not supplied, defaulting to 0")
             v_field_ind = 0
-        dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
+            dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
+        else:
+            dat = self.get_spherical_harmonics(f"{field}")
         nr = len(dat)
         lmax_dat = len(dat[0]["power_per_l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
@@ -1438,8 +1448,8 @@ class TerraModel:
             savepath,
             lyrmin,
             lyrmax,
-            fig,
-            ax,
+            fig=fig,
+            ax=ax,
             **subplots_kwargs,
         )
 
@@ -1540,8 +1550,6 @@ class TerraModel:
             cmap = "viridis"
 
         fig, ax, cbar = plot.layer_grid(
-            fig,
-            ax,
             lon,
             lat,
             layer_radius,
@@ -1554,6 +1562,8 @@ class TerraModel:
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            fig=fig,
+            ax=ax,
         )
 
         if depth:
@@ -2012,9 +2022,7 @@ class TerraModel:
             label = "n-layers plume detected"
             radius = 0.0
 
-            fig, ax = plot.layer_grid(
-                fig,
-                ax,
+            fig, ax, cbar = plot.layer_grid(
                 lon,
                 lat,
                 radius,
@@ -2024,6 +2032,8 @@ class TerraModel:
                 label=label,
                 method=method,
                 coastlines=coastlines,
+                fig=fig,
+                ax=ax,
             )
 
             mindep = np.min(self.plm_depth_range)
@@ -2039,7 +2049,7 @@ class TerraModel:
             if show:
                 fig.show()
 
-            return fig, ax
+            return fig, ax, cbar
 
         def plot_plumes_3d(
             self,
