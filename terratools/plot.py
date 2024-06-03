@@ -161,7 +161,7 @@ def plot_section(
     levels=25,
     cmap="turbo",
     fig=None,
-    ax=None,
+    ax=None
 ):
     """
     Create a plot of a cross-section.
