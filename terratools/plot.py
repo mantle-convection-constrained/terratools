@@ -43,6 +43,8 @@ def layer_grid(
     with a different value, and create a grid of these values, which
     is then plotted on a map.
 
+    :param fig: figure handle
+    :param ax: axis handle
     :param lon: Set of longitudes in degrees
     :param lat: Set of latitudes in degrees
     :param radius: Radius of layer in km
@@ -159,6 +161,12 @@ def plot_section(
     """
     Create a plot of a cross-section.
 
+    :param fig: figure handle
+    :type fig: matplotlib.figure.Figure
+
+    :param ax: axis handle
+    :type ax: matplotlib.axes._axes.Axes
+
     :param distances: Distances along cross section, given as the angle
         subtended at the Earth's centre between the starting and
         end points of the section, in degrees.
@@ -186,6 +194,9 @@ def plot_section(
 
     :returns: figure and axis handles
     """
+
+    if fig==None or ax==None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     distances_radians = np.radians(distances)
     min_distance = np.min(distances_radians)
