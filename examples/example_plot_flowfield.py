@@ -66,7 +66,7 @@ geographic vector is defined as positive [east, north, up].
 """
 
 # %%
-fig, ax, cbar = plt.subplots()
+fig, ax = plt.subplots()
 max_zvel = np.nanmax(flow_velocity[2, :, :])
 psm = ax.pcolor(
     glon, glat, flow_velocity[2, :, :], vmin=-max_zvel, vmax=max_zvel, cmap="seismic"
