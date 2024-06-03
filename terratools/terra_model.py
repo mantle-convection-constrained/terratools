@@ -1213,6 +1213,8 @@ class TerraModel:
         index=None,
         radius=None,
         depth=False,
+        fig=None,
+        ax=None,
         nside=2**6,
         title=None,
         delta=None,
@@ -1231,6 +1233,15 @@ class TerraModel:
 
         :param radius: radius to plot (nearest model radius is shown)
         :type radius: float
+        
+        :param depth: interpret radius as depth 
+        :type depth: bool
+
+        :param fig: figure handle
+        :type fig: matplotlib.figure.Figure
+
+        :param ax: axis handle
+        :type ax: matplotlib.axes._axes.Axes
 
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
@@ -1257,7 +1268,7 @@ class TerraModel:
         :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
 
-        :returns: figure and axis handles
+        :returns: figure, axis and colourbar handles
         """
 
         if radius is None and index is None:
@@ -1289,8 +1300,8 @@ class TerraModel:
         else:
             label = title
 
-        fig, ax = plot.layer_grid(
-            lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
+        fig, ax, cbar = plot.layer_grid(
+            fig, ax, lon, lat, rad, hp_remake, delta=delta, extent=extent, label=label
         )
 
         if depth:
@@ -1301,7 +1312,7 @@ class TerraModel:
         if show:
             fig.show()
 
-        return fig, ax
+        return fig, ax, cbar
 
     def plot_spectral_heterogeneity(
         self,
@@ -1309,6 +1320,8 @@ class TerraModel:
         title=None,
         saveplot=False,
         savepath=None,
+        fig=None,
+        ax=None,
         lmin=1,
         lmax=None,
         lyrmin=1,
@@ -1331,6 +1344,12 @@ class TerraModel:
         :param savepath: path under which to save plot to
         :type savepath: str
 
+        :param fig: figure handle
+        :type fig: matplotlib.figure.Figure
+
+        :param ax: axis handle
+        :type ax: matplotlib.axes._axes.Axes
+
         :param lmin: minimum spherical harmonic degree to plot (default=1)
         :type lmin: int
 
@@ -1349,7 +1368,7 @@ class TerraModel:
         :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
 
-        :returns: figure and axis handles
+        :returns: figure, axis, colourbar handles
         """
         dat = self.get_spherical_harmonics(field)
         nr = len(dat)
@@ -1364,7 +1383,7 @@ class TerraModel:
         radii = self.get_radii()
         depths = self.get_radii()[-1] - radii
 
-        fig, ax = plot.spectral_heterogeneity(
+        fig, ax, cbar = plot.spectral_heterogeneity(
             powers,
             title,
             depths,
@@ -1374,13 +1393,15 @@ class TerraModel:
             savepath,
             lyrmin,
             lyrmax,
+            fig,
+            ax,
             **subplots_kwargs,
         )
 
         if show:
             fig.show()
 
-        return fig, ax
+        return fig, ax, cbar
 
     def calc_bulk_composition(self):
         """
@@ -1425,6 +1446,8 @@ class TerraModel:
             field exactly at a layer index
         :param depth: If True, interpret the radius as a depth instead
         :param delta: Grid spacing of plot in degrees
+        :param fig: figure handle
+        :param ax: axis handle
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
@@ -1521,6 +1544,12 @@ class TerraModel:
             end points of the section, in degrees.
         :type distance: float
 
+        :param fig: figure handle
+        :type fig: matplotlib.figure.Figure
+
+        :param ax: axis handle
+        :type ax: matplotlib.axes._axes.Axes
+
         :param minradius: Minimum radius to plot in km.  If this is smaller
             than the minimum radius in the model, the model's value is used.
         :type minradius: float
@@ -1554,7 +1583,7 @@ class TerraModel:
         :param show: If `True` (default), show the plot
         :type show: bool
 
-        :returns: figure and axis handles
+        :returns: figure,axis and colourbar handles
         """
         if not _is_scalar_field(field):
             raise ValueError(f"Cannot plot non-scalr field '{field}'")

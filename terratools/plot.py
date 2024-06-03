@@ -225,6 +225,8 @@ def spectral_heterogeneity(
     savepath,
     lyrmin,
     lyrmax,
+    fig,
+    ax,
     **subplots_kwargs,
 ):
     """
@@ -238,15 +240,18 @@ def spectral_heterogeneity(
     :param savepath: path under which to save figure
     :param lyrmin: minimum layer to plot
     :param lyrmax: maximum layer to plot
+    :param fig: figure handle
+    :param ax: axis handle
     :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
-    :returns: tuple of figure and axis handles, respectively
+    :returns: tuple of figure, axis and cbar handles, respectively
     """
 
     logged = np.log(indat[lyrmin:lyrmax, lmin : lmax + 1])
     deps = depths[lyrmin:lyrmax]
 
-    fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
+    if fig==None or ax==None:
+        fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
 
     plotmin = np.min(logged)
     plotmax = np.max(logged)
@@ -272,7 +277,7 @@ def spectral_heterogeneity(
             f"{savepath}/powers_{title}.pdf", format="pdf", dpi=200, bbox_inches="tight"
         )
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def plumes_3d(
