@@ -1423,7 +1423,9 @@ class TerraModel:
         if _is_vector_field(field) and v_field_ind == None:
             print("v_field_ind not supplied, defaulting to 0")
             v_field_ind = 0
-        dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
+            dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
+        else:
+            dat = self.get_spherical_harmonics(f"{field}")
         nr = len(dat)
         lmax_dat = len(dat[0]["power_per_l"]) - 1
         powers = np.zeros((nr, lmax_dat + 1))
