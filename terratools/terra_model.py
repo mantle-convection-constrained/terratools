@@ -526,7 +526,7 @@ class TerraModel:
         return self._fields.keys()
 
     def evaluate(
-        self, lon, lat, r, field, method="triangle", depth=False, v_field_ind=None
+        self, lon, lat, r, field, method="triangle", depth=False
     ):
         """
         Evaluate the value of field at radius r km, latitude lat degrees
@@ -559,10 +559,6 @@ class TerraModel:
         _check_field_name(field)
         self._check_has_field(field)
 
-        if _is_vector_field(field) and v_field_ind == None:
-            print("v_field_ind not supplied, defaulting to 0")
-            v_field_ind = 0
-
         if method not in ("triangle", "nearest"):
             raise ValueError("method must be one of 'triangle' or 'nearest'")
 
@@ -586,11 +582,7 @@ class TerraModel:
             r = self.to_radius(r)
 
         lons, lats = self.get_lateral_points()
-        array = (
-            self.get_field(field)
-            if _is_scalar_field(field)
-            else self.get_field(field)[:, :, v_field_ind]
-        )
+        array = self.get_field(field)
 
         # Find bounding layers
         ilayer1, ilayer2 = _bounding_indices(r, radii)
@@ -1698,14 +1690,14 @@ class TerraModel:
             this_lon, this_lat = geographic.angular_step(lon, lat, azimuth, distance)
             for j, radius in enumerate(radii):
                 if self.has_field(field):
-                    grid[i, j] = self.evaluate(
+                    result = self.evaluate(
                         this_lon,
                         this_lat,
                         radius,
                         field,
                         method=method,
-                        v_field_ind=v_field_ind,
                     )
+                    grid[i, j] = (result if _is_scalar_field(field) else result[v_field_ind])
                 elif self.has_lookup_tables():
                     grid[i, j] = self.evaluate_from_lookup_tables(
                         this_lon, this_lat, radius, field, method=method
@@ -1721,8 +1713,6 @@ class TerraModel:
             cmap = "viridis"
 
         fig, ax, cbar = plot.plot_section(
-            fig,
-            ax,
             distances,
             radii,
             grid,
@@ -1730,6 +1720,8 @@ class TerraModel:
             levels=levels,
             show=show,
             label=label,
+            fig=fig,
+            ax=ax
         )
 
         return fig, ax, cbar

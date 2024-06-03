@@ -148,7 +148,7 @@ def layer_grid(
 
 
 def plot_section(
-    fig, ax, distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
+    distances, radii, grid, label=None, show=True, levels=25, cmap="turbo", fig=None, ax=None
 ):
     """
     Create a plot of a cross-section.
@@ -180,6 +180,8 @@ def plot_section(
 
     :returns: figure and axis handles
     """
+    if fig==None or ax==None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     distances_radians = np.radians(distances)
     min_distance = np.min(distances_radians)
