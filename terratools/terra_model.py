@@ -1233,8 +1233,8 @@ class TerraModel:
 
         :param radius: radius to plot (nearest model radius is shown)
         :type radius: float
-        
-        :param depth: interpret radius as depth 
+
+        :param depth: interpret radius as depth
         :type depth: bool
 
         :param fig: figure handle
@@ -1494,7 +1494,7 @@ class TerraModel:
             coastlines=coastlines,
             cmap=cmap,
             vmin=vmin,
-            vmax=vmax
+            vmax=vmax,
         )
 
         if depth:
@@ -1640,7 +1640,15 @@ class TerraModel:
             cmap = _FIELD_COLOUR_SCALE[field]
 
         fig, ax, cbar = plot.plot_section(
-            fig, ax, distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
+            fig,
+            ax,
+            distances,
+            radii,
+            grid,
+            cmap=cmap,
+            levels=levels,
+            show=show,
+            label=label,
         )
 
         return fig, ax, cbar
