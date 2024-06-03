@@ -22,8 +22,6 @@ import sys
 
 
 def layer_grid(
-    fig,
-    ax,
     lon,
     lat,
     radius,
@@ -36,6 +34,8 @@ def layer_grid(
     cmap=None,
     vmin=None,
     vmax=None,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """
@@ -43,8 +43,6 @@ def layer_grid(
     with a different value, and create a grid of these values, which
     is then plotted on a map.
 
-    :param fig: figure handle
-    :param ax: axis handle
     :param lon: Set of longitudes in degrees
     :param lat: Set of latitudes in degrees
     :param radius: Radius of layer in km
@@ -61,6 +59,11 @@ def layer_grid(
         This works around an issue with Cartopy when
         installed in certain situations.  See
         https://github.com/SciTools/cartopy/issues/879 for details.
+    :param cmap: colour map
+    :param vmin: minimum value to show on plot
+    :param vamx: maximum value to show on plot
+    :param fig: figure handle
+    :param ax: axis handle
     :param **subplots_kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
@@ -150,16 +153,18 @@ def layer_grid(
 
 
 def plot_section(
-    fig, ax, distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
+    distances,
+    radii,
+    grid,
+    label=None,
+    show=True,
+    levels=25,
+    cmap="turbo",
+    fig=None,
+    ax=None,
 ):
     """
     Create a plot of a cross-section.
-
-    :param fig: figure handle
-    :type fig: matplotlib.figure.Figure
-
-    :param ax: axis handle
-    :type ax: matplotlib.axes._axes.Axes
 
     :param distances: Distances along cross section, given as the angle
         subtended at the Earth's centre between the starting and
@@ -185,6 +190,12 @@ def plot_section(
 
     :param show: If `True` (default), show the plot
     :type show: bool
+
+    :param fig: figure handle
+    :type fig: matplotlib.figure.Figure
+
+    :param ax: axis handle
+    :type ax: matplotlib.axes._axes.Axes
 
     :returns: figure and axis handles
     """
@@ -230,8 +241,8 @@ def spectral_heterogeneity(
     savepath,
     lyrmin,
     lyrmax,
-    fig,
-    ax,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """
