@@ -36,7 +36,7 @@ def layer_grid(
     cmap=None,
     vmin=None,
     vmax=None,
-    **subplots_kwargs
+    **subplots_kwargs,
 ):
     """
     Take a set of arbitrary points in longitude and latitude, each
@@ -66,8 +66,8 @@ def layer_grid(
     if not _CARTOPY_INSTALLED:
         sys.stderr.write("layer_grid require cartopy to be installed")
         raise _CARTOPY_NOT_INSTALLED_EXCEPTION
-    
-    if fig==None or ax==None:
+
+    if fig == None or ax == None:
         fig, ax = plt.subplots(
             subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
         )
@@ -114,15 +114,17 @@ def layer_grid(
     grid = np.flip(grid, axis=0)
 
     transform = ccrs.PlateCarree()
-    #ax.set_extent(extent,crs=transform)
-   
+    # ax.set_extent(extent,crs=transform)
+
     if cmap is None:
-        cmap = 'viridis'
+        cmap = "viridis"
 
-    vmin=np.min(grid) if vmin==None else vmin
-    vmax=np.max(grid) if vmax==None else vmax  
+    vmin = np.min(grid) if vmin == None else vmin
+    vmax = np.max(grid) if vmax == None else vmax
 
-    contours = ax.imshow(grid, transform=transform, extent=extent, cmap=cmap, vmin=vmin, vmax=vmax)
+    contours = ax.imshow(
+        grid, transform=transform, extent=extent, cmap=cmap, vmin=vmin, vmax=vmax
+    )
     ax.set_title(f"Radius {int(radius)} km")
     ax.set_xlabel(f"{label}", fontsize=12)
 
@@ -146,15 +148,7 @@ def layer_grid(
 
 
 def plot_section(
-    fig, 
-    ax, 
-    distances, 
-    radii, 
-    grid, 
-    label=None, 
-    show=True, 
-    levels=25, 
-    cmap="turbo"
+    fig, ax, distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
 ):
     """
     Create a plot of a cross-section.
@@ -250,7 +244,7 @@ def spectral_heterogeneity(
     logged = np.log(indat[lyrmin:lyrmax, lmin : lmax + 1])
     deps = depths[lyrmin:lyrmax]
 
-    if fig==None or ax==None:
+    if fig == None or ax == None:
         fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
 
     plotmin = np.min(logged)

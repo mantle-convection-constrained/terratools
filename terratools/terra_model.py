@@ -525,7 +525,9 @@ class TerraModel:
         """
         return self._fields.keys()
 
-    def evaluate(self, lon, lat, r, field, method="triangle", depth=False, v_field_ind=None):
+    def evaluate(
+        self, lon, lat, r, field, method="triangle", depth=False, v_field_ind=None
+    ):
         """
         Evaluate the value of field at radius r km, latitude lat degrees
         and longitude lon degrees.
@@ -556,10 +558,10 @@ class TerraModel:
         """
         _check_field_name(field)
         self._check_has_field(field)
-        
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
+
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
 
         if method not in ("triangle", "nearest"):
             raise ValueError("method must be one of 'triangle' or 'nearest'")
@@ -584,7 +586,11 @@ class TerraModel:
             r = self.to_radius(r)
 
         lons, lats = self.get_lateral_points()
-        array = (self.get_field(field) if _is_scalar_field(field) else self.get_field(field)[:,:,v_field_ind])
+        array = (
+            self.get_field(field)
+            if _is_scalar_field(field)
+            else self.get_field(field)[:, :, v_field_ind]
+        )
 
         # Find bounding layers
         ilayer1, ilayer2 = _bounding_indices(r, radii)
@@ -1154,7 +1160,13 @@ class TerraModel:
         return self._surface_radius - depth
 
     def calc_spherical_harmonics(
-        self, field, nside=2**6, lmax=16, savemap=False, use_pixel_weights=False, v_field_ind=None
+        self,
+        field,
+        nside=2**6,
+        lmax=16,
+        savemap=False,
+        use_pixel_weights=False,
+        v_field_ind=None,
     ):
         """
         Function to calculate spherical harmonic coefficients for given global field.
@@ -1176,12 +1188,16 @@ class TerraModel:
         :param savemap: Default (``False``) do not save the healpix map
         :type savemap: bool
         """
-        
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
 
-        field_values = (self.get_field(field) if _is_scalar_field(field) else self.get_field(field)[:,:,v_field_ind])
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
+
+        field_values = (
+            self.get_field(field)
+            if _is_scalar_field(field)
+            else self.get_field(field)[:, :, v_field_ind]
+        )
 
         lons, lats = self.get_lateral_points()
 
@@ -1248,8 +1264,8 @@ class TerraModel:
 
         :param radius: radius to plot (nearest model radius is shown)
         :type radius: float
-        
-        :param depth: interpret radius as depth 
+
+        :param depth: interpret radius as depth
         :type depth: bool
 
         :param fig: figure handle
@@ -1285,9 +1301,9 @@ class TerraModel:
 
         :returns: figure, axis and colourbar handles
         """
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
 
         if radius is None and index is None:
             raise ValueError("Either radius or index must be given")
@@ -1303,14 +1319,25 @@ class TerraModel:
             layer_radius = radii[index]
         if _is_scalar_field(field):
             dat = self.get_spherical_harmonics(field)[layer_index]["coeffs"]
-            lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
+            lmax = (
+                len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
+            )
         elif _is_vector_field(field):
-            dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")[layer_index]["coeffs"]
-            lmax = len(self.get_spherical_harmonics(f"{field}{v_field_ind}")[layer_index]["power_per_l"]) - 1
+            dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")[layer_index][
+                "coeffs"
+            ]
+            lmax = (
+                len(
+                    self.get_spherical_harmonics(f"{field}{v_field_ind}")[layer_index][
+                        "power_per_l"
+                    ]
+                )
+                - 1
+            )
         npix = hp.nside2npix(nside)
         radii = self.get_radii()
         rad = radii[layer_index]
-#        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
+        #        lmax = len(self.get_spherical_harmonics(field)[layer_index]["power_per_l"]) - 1
         hp_remake = hp.sphtfunc.alm2map(dat, nside=nside, lmax=lmax)
 
         lon, lat = hp.pix2ang(nside, np.arange(0, npix), lonlat=True)
@@ -1318,7 +1345,7 @@ class TerraModel:
         lon2 = (lon - 360) * mask
         lon = lon2 + lon * ~mask
         if title == None:
-            label = (field if _is_scalar_field(field) else f"{field}{v_field_ind}")
+            label = field if _is_scalar_field(field) else f"{field}{v_field_ind}"
         else:
             label = title
 
@@ -1393,9 +1420,9 @@ class TerraModel:
 
         :returns: figure, axis, colourbar handles
         """
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
         dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
         nr = len(dat)
         lmax_dat = len(dat[0]["power_per_l"]) - 1
@@ -1488,9 +1515,9 @@ class TerraModel:
         :param show: If ``True`` (the default), show the plot
         :returns: figure and axis handles
         """
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
 
         if radius is None and index is None:
             raise ValueError("Either radius or index must be given")
@@ -1504,16 +1531,22 @@ class TerraModel:
 
             layer_index = index
             layer_radius = radii[index]
-            
+
         lon, lat = self.get_lateral_points()
-        values = (self.get_field(field)[layer_index] if _is_scalar_field(field) else self.get_field(field)[layer_index,:,v_field_ind])
-        label = (_SCALAR_FIELDS[field] if _is_scalar_field(field) else _VECTOR_FIELDS[field])
+        values = (
+            self.get_field(field)[layer_index]
+            if _is_scalar_field(field)
+            else self.get_field(field)[layer_index, :, v_field_ind]
+        )
+        label = (
+            _SCALAR_FIELDS[field] if _is_scalar_field(field) else _VECTOR_FIELDS[field]
+        )
 
         if cmap is None and _is_scalar_field(field):
             cmap = _FIELD_COLOUR_SCALE[field]
         else:
-            cmap = 'viridis'
-            
+            cmap = "viridis"
+
         fig, ax, cbar = plot.layer_grid(
             fig,
             ax,
@@ -1528,7 +1561,7 @@ class TerraModel:
             coastlines=coastlines,
             cmap=cmap,
             vmin=vmin,
-            vmax=vmax
+            vmax=vmax,
         )
 
         if depth:
@@ -1614,7 +1647,7 @@ class TerraModel:
 
         :param cmap: Colour map to be used (default "turbo")
         :type cmap: str
-        
+
         :param v_field_ind: Index for component of vector field to plot
         :type v_field_ind: int
 
@@ -1623,9 +1656,9 @@ class TerraModel:
 
         :returns: figure,axis and colourbar handles
         """
-        if _is_vector_field(field) and v_field_ind==None:
-            print('v_field_ind not supplied, defaulting to 0')
-            v_field_ind=0
+        if _is_vector_field(field) and v_field_ind == None:
+            print("v_field_ind not supplied, defaulting to 0")
+            v_field_ind = 0
         if not self.has_field(field) and not self.has_lookup_tables():
             raise ValueError(
                 f"Model does not contain field '{field}', nor does it "
@@ -1666,22 +1699,37 @@ class TerraModel:
             for j, radius in enumerate(radii):
                 if self.has_field(field):
                     grid[i, j] = self.evaluate(
-                        this_lon, this_lat, radius, field, method=method, v_field_ind=v_field_ind
+                        this_lon,
+                        this_lat,
+                        radius,
+                        field,
+                        method=method,
+                        v_field_ind=v_field_ind,
                     )
                 elif self.has_lookup_tables():
                     grid[i, j] = self.evaluate_from_lookup_tables(
                         this_lon, this_lat, radius, field, method=method
                     )
 
-        label = (_SCALAR_FIELDS[field] if _is_scalar_field(field) else _VECTOR_FIELDS[field])
+        label = (
+            _SCALAR_FIELDS[field] if _is_scalar_field(field) else _VECTOR_FIELDS[field]
+        )
 
         if cmap is None and _is_scalar_field(field):
             cmap = _FIELD_COLOUR_SCALE[field]
         else:
-            cmap = 'viridis'
+            cmap = "viridis"
 
         fig, ax, cbar = plot.plot_section(
-            fig, ax, distances, radii, grid, cmap=cmap, levels=levels, show=show, label=label
+            fig,
+            ax,
+            distances,
+            radii,
+            grid,
+            cmap=cmap,
+            levels=levels,
+            show=show,
+            label=label,
         )
 
         return fig, ax, cbar
