@@ -31,6 +31,11 @@ def layer_grid(
     label=None,
     method="nearest",
     coastlines=True,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """
@@ -54,6 +59,11 @@ def layer_grid(
         This works around an issue with Cartopy when
         installed in certain situations.  See
         https://github.com/SciTools/cartopy/issues/879 for details.
+    :param cmap: colour map
+    :param vmin: minimum value to show on plot
+    :param vamx: maximum value to show on plot
+    :param fig: figure handle
+    :param ax: axis handle
     :param **subplots_kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
@@ -62,9 +72,10 @@ def layer_grid(
         sys.stderr.write("layer_grid require cartopy to be installed")
         raise _CARTOPY_NOT_INSTALLED_EXCEPTION
 
-    fig, ax = plt.subplots(
-        subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
-    )
+    if fig == None or ax == None:
+        fig, ax = plt.subplots(
+            subplot_kw={"projection": ccrs.EqualEarth(), **subplots_kwargs}
+        )
 
     if len(extent) != 4:
         raise ValueError("extent must contain four values")
@@ -108,8 +119,17 @@ def layer_grid(
     grid = np.flip(grid, axis=0)
 
     transform = ccrs.PlateCarree()
+    # ax.set_extent(extent,crs=transform)
 
-    contours = ax.imshow(grid, transform=transform, extent=extent)
+    if cmap is None:
+        cmap = "viridis"
+
+    vmin = np.min(grid) if vmin == None else vmin
+    vmax = np.max(grid) if vmax == None else vmax
+
+    contours = ax.imshow(
+        grid, transform=transform, extent=extent, cmap=cmap, vmin=vmin, vmax=vmax
+    )
     ax.set_title(f"Radius {int(radius)} km")
     ax.set_xlabel(f"{label}", fontsize=12)
 
@@ -129,11 +149,19 @@ def layer_grid(
     if coastlines:
         ax.coastlines()
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def plot_section(
-    distances, radii, grid, label=None, show=True, levels=25, cmap="turbo"
+    distances,
+    radii,
+    grid,
+    label=None,
+    show=True,
+    levels=25,
+    cmap="turbo",
+    fig=None,
+    ax=None,
 ):
     """
     Create a plot of a cross-section.
@@ -163,14 +191,22 @@ def plot_section(
     :param show: If `True` (default), show the plot
     :type show: bool
 
+    :param fig: figure handle
+    :type fig: matplotlib.figure.Figure
+
+    :param ax: axis handle
+    :type ax: matplotlib.axes._axes.Axes
+
     :returns: figure and axis handles
     """
+
+    if fig == None or ax == None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     distances_radians = np.radians(distances)
     min_distance = np.min(distances_radians)
     max_distance = np.max(distances_radians)
 
-    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
     contours = ax.contourf(distances_radians, radii, grid.T, levels=levels, cmap=cmap)
     ax.set_rorigin(0)
     ax.set_thetalim(min_distance, max_distance)
@@ -192,7 +228,7 @@ def plot_section(
     if show:
         plt.show()
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def spectral_heterogeneity(
@@ -205,6 +241,8 @@ def spectral_heterogeneity(
     savepath,
     lyrmin,
     lyrmax,
+    fig=None,
+    ax=None,
     **subplots_kwargs,
 ):
     """
@@ -218,15 +256,18 @@ def spectral_heterogeneity(
     :param savepath: path under which to save figure
     :param lyrmin: minimum layer to plot
     :param lyrmax: maximum layer to plot
+    :param fig: figure handle
+    :param ax: axis handle
     :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
-    :returns: tuple of figure and axis handles, respectively
+    :returns: tuple of figure, axis and cbar handles, respectively
     """
 
     logged = np.log(indat[lyrmin:lyrmax, lmin : lmax + 1])
     deps = depths[lyrmin:lyrmax]
 
-    fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
+    if fig == None or ax == None:
+        fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
 
     plotmin = np.min(logged)
     plotmax = np.max(logged)
@@ -252,7 +293,7 @@ def spectral_heterogeneity(
             f"{savepath}/powers_{title}.pdf", format="pdf", dpi=200, bbox_inches="tight"
         )
 
-    return fig, ax
+    return fig, ax, cbar
 
 
 def plumes_3d(

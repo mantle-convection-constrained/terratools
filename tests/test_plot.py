@@ -71,7 +71,7 @@ class TestLayerGrid(unittest.TestCase):
         radius = 4000
         values = np.random.rand(n)
 
-        fig, ax = plot.layer_grid(lon, lat, radius, values)
+        fig, ax, cbar = plot.layer_grid(lon, lat, radius, values)
 
         self.assertIsInstance(fig, Figure)
         self.assertIsInstance(ax, GeoAxesSubplot)
