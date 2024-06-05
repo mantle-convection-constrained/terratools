@@ -525,9 +525,7 @@ class TerraModel:
         """
         return self._fields.keys()
 
-    def evaluate(
-        self, lon, lat, r, field, method="triangle", depth=False
-    ):
+    def evaluate(self, lon, lat, r, field, method="triangle", depth=False):
         """
         Evaluate the value of field at radius r km, latitude lat degrees
         and longitude lon degrees.
@@ -1377,7 +1375,7 @@ class TerraModel:
         lyrmax=-1,
         v_field_ind=None,
         show=True,
-        **subplots_kwargs,
+        **kwargs,
     ):
         """
         Plot spectral heterogenity maps of the given field, that is the power
@@ -1420,9 +1418,10 @@ class TerraModel:
 
         :returns: figure, axis, colourbar handles
         """
-        if _is_vector_field(field) and v_field_ind == None:
-            print("v_field_ind not supplied, defaulting to 0")
-            v_field_ind = 0
+        if _is_vector_field(field):
+            if v_field_ind == None:
+                print("v_field_ind not supplied, defaulting to 0")
+                v_field_ind = 0
             dat = self.get_spherical_harmonics(f"{field}{v_field_ind}")
         else:
             dat = self.get_spherical_harmonics(f"{field}")
@@ -1450,7 +1449,7 @@ class TerraModel:
             lyrmax,
             fig=fig,
             ax=ax,
-            **subplots_kwargs,
+            **kwargs,
         )
 
         if show:
@@ -1707,7 +1706,9 @@ class TerraModel:
                         field,
                         method=method,
                     )
-                    grid[i, j] = (result if _is_scalar_field(field) else result[v_field_ind])
+                    grid[i, j] = (
+                        result if _is_scalar_field(field) else result[v_field_ind]
+                    )
                 elif self.has_lookup_tables():
                     grid[i, j] = self.evaluate_from_lookup_tables(
                         this_lon, this_lat, radius, field, method=method
@@ -1731,7 +1732,7 @@ class TerraModel:
             show=show,
             label=label,
             fig=fig,
-            ax=ax
+            ax=ax,
         )
 
         return fig, ax, cbar
