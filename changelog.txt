@@ -19,4 +19,8 @@ _First release._
   ## [1.0.2] - 2024-03-12
 
   - Patch to allow adding of new fields with arbitrary name to the TerraModel.
- 
+
+  ## [1.1.0]  - 2024-06-06
+
+  - Allowing passing fig and ax handles to plotting functions.
+  - Return colorbar from plotting functions if requested with `return_cbar=True`
