@@ -72,7 +72,7 @@ We can plot the power spectra of the for fields as a function of depth using:
 """
 # %%
 
-fig, ax, cmap = model.plot_spectral_heterogeneity("c", lyrmin=0, lyrmax=-1, show=False)
+fig, ax = model.plot_spectral_heterogeneity("c", lyrmin=0, lyrmax=-1, show=False)
 plt.show()
 
 # %% [markdown]

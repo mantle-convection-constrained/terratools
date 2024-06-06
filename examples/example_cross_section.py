@@ -58,7 +58,7 @@ interpolation, and only plot the field near the surface:
 """
 
 # %%
-fig, ax, cbar = model.plot_section(
+fig, ax = model.plot_section(
     "t",
     lon=0,
     lat=-30,

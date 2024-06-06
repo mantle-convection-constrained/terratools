@@ -42,7 +42,7 @@ Plotting depth slices in terratools is very easy. First we show a basic plot for
 # %%
 
 # Note we set depth=True to define the depth as 2800
-fig, ax, cbar = model.plot_layer(field="t", radius=2800, depth=True, show=False)
+fig, ax = model.plot_layer(field="t", radius=2800, depth=True, show=False)
 fig.set_size_inches(8, 6)
 ax.set_title("Temperature field at 2800 km depth")
 plt.show()
@@ -58,7 +58,7 @@ We can do the same thing with other scalar fields such as the bulk composition.
 model.calc_bulk_composition()
 
 # Note bulk composition is in the "c" field.
-fig, ax, cbar = model.plot_layer(field="c", radius=2800, depth=True, show=False)
+fig, ax = model.plot_layer(field="c", radius=2800, depth=True, show=False)
 fig.set_size_inches(8, 6)
 ax.set_title("Bulk composition at 2800 km depth")
 plt.show()
@@ -71,7 +71,7 @@ Rather than defining a radius, we can give an index for the layer we want to plo
 
 # %%
 
-fig, ax, cbar = model.plot_layer(field="t", index=10, show=False)
+fig, ax = model.plot_layer(field="t", index=10, show=False)
 fig.set_size_inches(8, 6)
 ax.set_title("Temperature at the index 10.")
 plt.show()
@@ -84,9 +84,7 @@ We can also change the sampling resolution by varying the delta argument.
 # %%
 
 # plot with intervals of 5 degrees on longitude and latitude.
-fig, ax, cbar = model.plot_layer(
-    field="t", radius=2800, depth=True, delta=5, show=False
-)
+fig, ax = model.plot_layer(field="t", radius=2800, depth=True, delta=5, show=False)
 fig.set_size_inches(8, 6)
 ax.set_title("Temperature on a 5$^{\circ}$ grid at 2800 km depth.")
 plt.show()
@@ -107,7 +105,7 @@ max_la = 30
 
 region = (min_lo, max_lo, min_la, max_la)
 
-fig, ax, cbar = model.plot_layer(
+fig, ax = model.plot_layer(
     field="t", radius=2800, depth=True, show=False, extent=region
 )
 fig.set_size_inches(8, 6)
