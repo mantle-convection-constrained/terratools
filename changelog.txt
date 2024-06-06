@@ -24,3 +24,6 @@ _First release._
 
   - Allowing passing fig and ax handles to plotting functions.
   - Return colorbar from plotting functions if requested with `return_cbar=True`
+  - Calculate spherical harmonics for single component of vector field
+  - Plotting of single component of vector fields
+

@@ -208,6 +208,8 @@ def plot_section(
 
     :returns: figure and axis handles
     """
+    if fig == None or ax == None:
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
 
     if fig == None or ax == None:
         fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
@@ -256,7 +258,7 @@ def spectral_heterogeneity(
     fig=None,
     ax=None,
     return_cbar=False,
-    **subplots_kwargs,
+    **kwargs,
 ):
     """
     Creates a contour plot from the power spectrum over depth
@@ -281,12 +283,9 @@ def spectral_heterogeneity(
     deps = depths[lyrmin:lyrmax]
 
     if fig == None or ax == None:
-        fig, ax = plt.subplots(figsize=(8, 6), **subplots_kwargs)
+        fig, ax = plt.subplots(figsize=(8, 6))
 
-    plotmin = np.min(logged)
-    plotmax = np.max(logged)
-    levels = np.linspace(plotmin, plotmax, 10)
-    cs = ax.contourf(np.arange(lmin, lmax + 1), deps, logged, levels=levels)
+    cs = ax.contourf(np.arange(lmin, lmax + 1), deps, logged, **kwargs)
     ax.set_ylabel("Depth (km)", fontsize=12)
     ax.set_xlabel("L", fontsize=12)
     ax.set_xlim(lmin - 1, lmax + 1)
