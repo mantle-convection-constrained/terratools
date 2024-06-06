@@ -1244,6 +1244,9 @@ class TerraModel:
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
 
+        :param return_cbar: flag to return colorbar
+        :type ax: bool
+
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
         :type nside: int (power of 2)
@@ -1368,6 +1371,9 @@ class TerraModel:
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
 
+        :param return_cbar: flag to return colorbar
+        :type return_cbar: bool
+
         :param lmin: minimum spherical harmonic degree to plot (default=1)
         :type lmin: int
 
@@ -1475,6 +1481,7 @@ class TerraModel:
         :param delta: Grid spacing of plot in degrees
         :param fig: figure handle
         :param ax: axis handle
+        :param return_cbar: flag to return colorbar
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
@@ -1585,6 +1592,9 @@ class TerraModel:
 
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
+
+        :param return_cbar: flag to return colorbar
+        :type return_cbar: bool
 
         :param minradius: Minimum radius to plot in km.  If this is smaller
             than the minimum radius in the model, the model's value is used.
@@ -1971,6 +1981,9 @@ class TerraModel:
                 This may lead to a segfault on machines where cartopy is not
                 installed in the recommended way.  In this case, pass ``False``
                 to avoid this.
+            :param fig: figure handle
+            :param ax: axis handle
+            :param return_cbar: flag to return colorbar
             :param show: If ``True`` (the default), show the plot
             :returns: figure and axis handles
             """

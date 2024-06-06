@@ -271,6 +271,7 @@ def spectral_heterogeneity(
     :param lyrmax: maximum layer to plot
     :param fig: figure handle
     :param ax: axis handle
+    :param return_cbar: flag to return colorbar
     :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
     :returns: tuple of figure, axis and cbar handles, respectively
