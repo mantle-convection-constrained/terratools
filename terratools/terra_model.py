@@ -1215,6 +1215,7 @@ class TerraModel:
         depth=False,
         fig=None,
         ax=None,
+        return_cbar=False,
         nside=2**6,
         title=None,
         delta=None,
@@ -1242,6 +1243,9 @@ class TerraModel:
 
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
+
+        :param return_cbar: flag to return colorbar
+        :type ax: bool
 
         :param nside: healpy param, number of sides for healpix grid, power
             of 2 less than 2**30 (default 2**6)
@@ -1300,7 +1304,7 @@ class TerraModel:
         else:
             label = title
 
-        fig, ax, cbar = plot.layer_grid(
+        returned = plot.layer_grid(
             lon,
             lat,
             rad,
@@ -1310,7 +1314,12 @@ class TerraModel:
             label=label,
             fig=fig,
             ax=ax,
+            return_cbar=return_cbar,
         )
+
+        fig = returned[0]
+        ax = returned[1]
+        cbar = returned[2] if return_cbar else None
 
         if depth:
             ax.set_title(f"Depth = {int(layer_radius)} km")
@@ -1320,7 +1329,10 @@ class TerraModel:
         if show:
             fig.show()
 
-        return fig, ax, cbar
+        if return_cbar:
+            return fig, ax, cbar
+        else:
+            return fig, ax
 
     def plot_spectral_heterogeneity(
         self,
@@ -1330,6 +1342,7 @@ class TerraModel:
         savepath=None,
         fig=None,
         ax=None,
+        return_cbar=False,
         lmin=1,
         lmax=None,
         lyrmin=1,
@@ -1357,6 +1370,9 @@ class TerraModel:
 
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
+
+        :param return_cbar: flag to return colorbar
+        :type return_cbar: bool
 
         :param lmin: minimum spherical harmonic degree to plot (default=1)
         :type lmin: int
@@ -1391,7 +1407,7 @@ class TerraModel:
         radii = self.get_radii()
         depths = self.get_radii()[-1] - radii
 
-        fig, ax, cbar = plot.spectral_heterogeneity(
+        returned = plot.spectral_heterogeneity(
             powers,
             title,
             depths,
@@ -1403,13 +1419,21 @@ class TerraModel:
             lyrmax,
             fig=fig,
             ax=ax,
+            return_cbar=return_cbar,
             **subplots_kwargs,
         )
+
+        fig = returned[0]
+        ax = returned[1]
+        cbar = returned[2] if return_cbar else None
 
         if show:
             fig.show()
 
-        return fig, ax, cbar
+        if return_cbar:
+            return fig, ax, cbar
+        else:
+            return fig, ax
 
     def calc_bulk_composition(self):
         """
@@ -1435,6 +1459,7 @@ class TerraModel:
         delta=None,
         fig=None,
         ax=None,
+        return_cbar=False,
         extent=(-180, 180, -90, 90),
         method="nearest",
         coastlines=True,
@@ -1456,6 +1481,7 @@ class TerraModel:
         :param delta: Grid spacing of plot in degrees
         :param fig: figure handle
         :param ax: axis handle
+        :param return_cbar: flag to return colorbar
         :param extent: Tuple giving the longitude and latitude extent of
             plot, in the form (min_lon, max_lon, min_lat, max_lat), all
             in degrees
@@ -1488,7 +1514,7 @@ class TerraModel:
         if cmap is None:
             cmap = _FIELD_COLOUR_SCALE[field]
 
-        fig, ax, cbar = plot.layer_grid(
+        returned = plot.layer_grid(
             lon,
             lat,
             layer_radius,
@@ -1503,7 +1529,12 @@ class TerraModel:
             vmax=vmax,
             fig=fig,
             ax=ax,
+            return_cbar=return_cbar,
         )
+
+        fig = returned[0]
+        ax = returned[1]
+        cbar = returned[2] if return_cbar else None
 
         if depth:
             ax.set_title(f"Depth {int(layer_radius)} km")
@@ -1511,7 +1542,10 @@ class TerraModel:
         if show:
             fig.show()
 
-        return fig, ax, cbar
+        if return_cbar:
+            return fig, ax, cbar
+        else:
+            return fig, ax
 
     def plot_section(
         self,
@@ -1522,6 +1556,7 @@ class TerraModel:
         distance,
         fig=None,
         ax=None,
+        return_cbar=False,
         minradius=None,
         maxradius=None,
         delta_distance=1,
@@ -1557,6 +1592,9 @@ class TerraModel:
 
         :param ax: axis handle
         :type ax: matplotlib.axes._axes.Axes
+
+        :param return_cbar: flag to return colorbar
+        :type return_cbar: bool
 
         :param minradius: Minimum radius to plot in km.  If this is smaller
             than the minimum radius in the model, the model's value is used.
@@ -1647,7 +1685,7 @@ class TerraModel:
         if cmap is None:
             cmap = _FIELD_COLOUR_SCALE[field]
 
-        fig, ax, cbar = plot.plot_section(
+        returned = plot.plot_section(
             distances,
             radii,
             grid,
@@ -1657,9 +1695,17 @@ class TerraModel:
             label=label,
             fig=fig,
             ax=ax,
+            return_cbar=return_cbar,
         )
 
-        return fig, ax, cbar
+        fig = returned[0]
+        ax = returned[1]
+        cbar = returned[2] if return_cbar else None
+
+        if return_cbar:
+            return fig, ax, cbar
+        else:
+            return fig, ax
 
     def add_adiabat(self):
         """
@@ -1916,6 +1962,7 @@ class TerraModel:
             coastlines=True,
             fig=None,
             ax=None,
+            return_cbar=False,
             show=True,
         ):
             """
@@ -1934,6 +1981,9 @@ class TerraModel:
                 This may lead to a segfault on machines where cartopy is not
                 installed in the recommended way.  In this case, pass ``False``
                 to avoid this.
+            :param fig: figure handle
+            :param ax: axis handle
+            :param return_cbar: flag to return colorbar
             :param show: If ``True`` (the default), show the plot
             :returns: figure and axis handles
             """
@@ -1947,7 +1997,7 @@ class TerraModel:
             label = "n-layers plume detected"
             radius = 0.0
 
-            fig, ax, cbar = plot.layer_grid(
+            returned = plot.layer_grid(
                 lon,
                 lat,
                 radius,
@@ -1959,7 +2009,12 @@ class TerraModel:
                 coastlines=coastlines,
                 fig=fig,
                 ax=ax,
+                return_cbar=return_cbar,
             )
+
+            fig = returned[0]
+            ax = returned[1]
+            cbar = returned[2] if return_cbar else None
 
             mindep = np.min(self.plm_depth_range)
             maxdep = np.max(self.plm_depth_range)
@@ -1974,7 +2029,10 @@ class TerraModel:
             if show:
                 fig.show()
 
-            return fig, ax, cbar
+            if return_cbar:
+                return fig, ax, cbar
+            else:
+                return fig, ax
 
         def plot_plumes_3d(
             self,
