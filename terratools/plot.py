@@ -36,6 +36,7 @@ def layer_grid(
     vmax=None,
     fig=None,
     ax=None,
+    return_cbar=False,
     **subplots_kwargs,
 ):
     """
@@ -64,6 +65,7 @@ def layer_grid(
     :param vamx: maximum value to show on plot
     :param fig: figure handle
     :param ax: axis handle
+    :param return_cbar: return the colourbar
     :param **subplots_kwargs: Extra keyword arguments passed to
         `matplotlib.pyplot.subplots`
     :returns: tuple of figure and axis handles, respectively
@@ -149,7 +151,10 @@ def layer_grid(
     if coastlines:
         ax.coastlines()
 
-    return fig, ax, cbar
+    if return_cbar:
+        return fig, ax, cbar
+    else:
+        return fig, ax
 
 
 def plot_section(
@@ -162,6 +167,7 @@ def plot_section(
     cmap="turbo",
     fig=None,
     ax=None,
+    return_cbar=False,
 ):
     """
     Create a plot of a cross-section.
@@ -197,6 +203,9 @@ def plot_section(
     :param ax: axis handle
     :type ax: matplotlib.axes._axes.Axes
 
+    :param return_cbar: return the colourbar
+    :type return_cbar: bool
+
     :returns: figure and axis handles
     """
     if fig == None or ax == None:
@@ -230,7 +239,10 @@ def plot_section(
     if show:
         plt.show()
 
-    return fig, ax, cbar
+    if return_cbar:
+        return fig, ax, cbar
+    else:
+        return fig, ax
 
 
 def spectral_heterogeneity(
@@ -245,6 +257,7 @@ def spectral_heterogeneity(
     lyrmax,
     fig=None,
     ax=None,
+    return_cbar=False,
     **kwargs,
 ):
     """
@@ -260,6 +273,7 @@ def spectral_heterogeneity(
     :param lyrmax: maximum layer to plot
     :param fig: figure handle
     :param ax: axis handle
+    :param return_cbar: flag to return colorbar
     :param **subplots_kwargs: Extra keyword arguments passed to
             `matplotlib.pyplot.subplots`
     :returns: tuple of figure, axis and cbar handles, respectively
@@ -292,7 +306,10 @@ def spectral_heterogeneity(
             f"{savepath}/powers_{title}.pdf", format="pdf", dpi=200, bbox_inches="tight"
         )
 
-    return fig, ax, cbar
+    if return_cbar:
+        return fig, ax, cbar
+    else:
+        return fig, ax
 
 
 def plumes_3d(
