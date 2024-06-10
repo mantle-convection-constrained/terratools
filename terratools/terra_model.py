@@ -415,8 +415,7 @@ class TerraModel:
 
         # Use PREM for pressure if a function is not supplied
         if pressure_func is None:
-            _pressure = prem_pressure()
-            self._pressure_func = lambda r: _pressure(1000 * self.to_depth(r))
+            self._pressure_func = self.pressure_func_prem
         else:
             self._pressure_func = pressure_func
 
@@ -484,6 +483,10 @@ class TerraModel:
             # Convert to MultiTables if not already
             if not isinstance(self._lookup_tables, MultiTables):
                 self._lookup_tables = MultiTables(self._lookup_tables)
+
+    def pressure_func_prem(self, r):
+        _pressure = prem_pressure()
+        return _pressure(1000 * self.to_depth(r))
 
     def __repr__(self):
         return f"""TerraModel:
