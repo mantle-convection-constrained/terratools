@@ -39,7 +39,7 @@ The effects of anelasticity on shear wave velocity are incorporated
 using a model for the S-wave quality factor $Q_S$ that varies with
 pressure $P$ and temperature $T$ as
 $$
-Q_S(\omega,z,T) = Q_0 \omega \alpha \exp \left(\alpha g \frac{T_m(z)}{T} \right)
+Q_S(\omega,z,T) = Q_0 \omega^\alpha \exp \left(\alpha g \frac{T_m(z)}{T} \right)
 $$
 where
 $\omega$ is frequency, $\alpha$ is exponential frequency dependence,
