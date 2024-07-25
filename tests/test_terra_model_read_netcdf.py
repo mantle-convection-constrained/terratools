@@ -202,6 +202,17 @@ class TestTerraModelReadNetCDF(unittest.TestCase):
             np.all(fields["c_hist"][1, :, :] == model.get_field("c_hist")[:, :, 1])
         )
 
+    def test_terra_model_read_netcdf_no_composition(self):
+        file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "model_no_c_hist.comp"
+        )
+        m = terra_model.read_netcdf([file])
+        self.assertTrue(m.has_field("t"))
+        self.assertTrue(m.has_field("u_xyz"))
+        self.assertTrue(not m.has_field("c_hist"))
+        self.assertTrue(np.all(m.get_field("u_xyz") == 0))
+        self.assertTrue(np.all(m.get_field("t") == 0))
+
 
 if __name__ == "__main__":
     import sys
