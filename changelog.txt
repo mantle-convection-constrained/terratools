@@ -27,3 +27,6 @@ _First release._
   - Calculate spherical harmonics for single component of vector field
   - Plotting of single component of vector fields
 
+  ## [1.1.1-DEV]
+
+  - Fix bug in reading model files without composition
