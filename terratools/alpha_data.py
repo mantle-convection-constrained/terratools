@@ -28,7 +28,7 @@ def alpha(eos, model):
     :type model: TerraModel
     """
     alph_eos = {
-        "murnghan": [
+        "murnaghan": [
             3.7904e-05,
             3.6672e-05,
             3.5511e-05,
