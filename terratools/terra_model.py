@@ -2142,7 +2142,12 @@ class TerraModel:
                 fig.show()
 
         def buoyancy_flux(
-            self, rad, eos="incompressible", alpha_fixed=2.0e-5, depth=False
+            self,
+            rad,
+            eos="incompressible",
+            alpha_fixed=2.0e-5,
+            depth=False,
+            print_flux=False,
         ):
             """
             Call to calculate buoyancy flux of plumes at each radial layer where
@@ -2244,9 +2249,10 @@ class TerraModel:
                             * self.plm_flds["u_enu"][2][plume][plind][i]
                             * sa
                         )  # multiply by area
-                    print(
-                        f"plumeID = {plume}   Plume buoyancy flux = {flux_bg} kg/s "
-                    )  # , {flux/3500} $m^{3} s^{-1}$')
+                    if print_flux:
+                        print(
+                            f"plumeID = {plume}   Plume buoyancy flux = {flux_bg} kg/s "
+                        )  # , {flux/3500} $m^{3} s^{-1}$')
                     self.flux[plume] = {"tav": flux, "tav_bg": flux_bg}
 
             # Finally calculate total positive buoyancy flux in layer and see print fraction contribution by plume
