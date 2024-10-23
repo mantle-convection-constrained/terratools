@@ -2307,6 +2307,9 @@ def read_netcdf(
         for field in fields:
             _check_field_name(field)
 
+    # Initial assumption that file does not contain composition histogram
+    ncomps = 0
+
     # Total number of lateral points and number of layers,
     # allowing us to preallocate arrays.  Consistency is checked on the next pass.
     npts_total = 0
@@ -2371,10 +2374,14 @@ def read_netcdf(
 
         # Check the file has the right things
         if len(nc["depths"][:]) != 1:
-            for dimension in ("nps", "depths", "compositions"):
+            for dimension in ("nps", "depths"):
                 assert (
                     dimension in nc.dimensions
                 ), f"Can't find {dimension} in dimensions of file {file}"
+            if ncomps > 0:
+                assert (
+                    "compositions" in nc.dimensions
+                ), f"Can't find compositions in dimensions of file {file}"
 
         # Number of lateral points in this file
         npts = nc.dimensions["nps"].size

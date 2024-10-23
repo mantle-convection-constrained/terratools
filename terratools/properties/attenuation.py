@@ -65,7 +65,7 @@ class AttenuationModelGoes(object):
         using a model for the S-wave quality factor $Q_S$ that varies with
         pressure $P$ and temperature $T$ as
 
-        $Q_S(\\omega,z,T) = Q_0 \\omega \\alpha \\exp(\\alpha g T_m(z) / T)$
+        $Q_S(\\omega,z,T) = Q_0 \\omega^\\alpha \\exp(\\alpha g T_m(z) / T)$
 
         where $\\omega$ is frequency,
         $\\alpha$ is exponential frequency dependence,
