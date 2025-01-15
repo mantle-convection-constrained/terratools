@@ -30,7 +30,7 @@ def Simon_Glatzel_lower_mantle_Fiquet(pressure):
     are chosen using published values
     [@Herzberg2000].
 
-    :param pressure: Pressure (GPa)
+    :param pressure: Pressure (Pa)
     :type pressure: float or numpy array
 
     :return: Solidus temperature (K)
@@ -52,14 +52,14 @@ def peridotite_solidus(pressure):
 
     This curve is continuous with pressure, but not differentiable.
 
-    :param pressure: Pressure (GPa)
+    :param pressure: Pressure (Pa)
     :type pressure: float or numpy array
 
     :return: Solidus temperature (K)
     :rtype: float or numpy array
     """
     # interpolation between Hirschmann (2000) at 0 GPa
-    # and Herzberg et al (2000) at 2.7GPa
+    # and Herzberg et al (2000) at 2.7 GPa
 
     if np.isscalar(pressure):
         if pressure < 2.7e9:
