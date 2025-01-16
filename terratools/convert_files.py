@@ -1,9 +1,9 @@
 import netCDF4 as nc4
 import sys
 import os
+import shutil
 import stat
 import numpy as np
-from distutils.spawn import find_executable
 
 
 class FileTypeError(Exception):
@@ -237,7 +237,7 @@ def _touch(path):
 def _tool_exists(toolname):
     """Check whether `toolname` exists on PATH."""
 
-    return find_executable(toolname) is not None
+    return shutil.which(toolname) is not None
 
 
 if __name__ == "__main__":
