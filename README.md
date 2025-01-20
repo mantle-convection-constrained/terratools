@@ -12,39 +12,71 @@ We are currently have a JOSS Paper in review, watch [this space](https://github.
 
 ## Installation
 
-### Pre-installation
+### Requirements
+TerraTools requires Python version 3.8 or newer.
 
-Before installing TerraTools, first install and/or upgrade your version of pip:
+If you want to use the map plotting functions (such as `TerraModel.plot_layer`), make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html).
+
+* If you are using Python 3.9 or above,
+  [installing Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html)
+  can be done with `pip install cartopy`, `conda add cartopy`, `poetry add cartopy`
+  or equivalent.
+* If you have to use Python 3.8, installation of Cartopy using pip requires
+  [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/v0.21/installing.html#required-dependencies).
+  On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
+  ```sh
+  export DYLD_LIBRARY_PATH=/opt/homebrew/opt/geos/lib/
+  ```
+
+### Pre-installation
+If you are using a Conda-like package manager (e.g.,
+[Miniconda](https://docs.anaconda.com/miniconda/) or
+[Mamba](https://mamba.readthedocs.io/en/latest/)), we recommend always
+[creating a new environment](https://mamba.readthedocs.io/en/latest/user_guide/concepts.html#concepts)
+for each project you are working on into which you install TerraTools.
+For instance:
+```sh
+conda create -n amazing_mantle_convection_project python=3.11
+conda activate amazing_mantle_convection_project
 ```
-python -m ensurepip --upgrade
-```
-If you want to use the map plotting functions (such as `TerraModel.plot_layer`), make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html), as installation of Cartopy using pip requires [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/latest/installing.html). On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
-```
-export DYLD_LIBRARY_PATH=/opt/homebrew/opt/geos/lib/
-```
+
+This is entirely optional but often prevents issues with dependency version
+conflicts.
 
 ### Installing the latest released version
 
-To install the latest released version of TerraTools, please use:
+#### Installation with `pip`
+Before installing TerraTools with `pip`, first install and/or upgrade your
+version of pip:
+```sh
+python -m ensurepip --upgrade
 ```
+
+To install the latest released version of TerraTools, then do:
+```sh
 python -m pip install terratools
 ```
+
+#### Installation with dependency management systems
+If you use a dependency management system such as
+[Poetry](https://python-poetry.org/) or [Pipenv](https://pipenv.pypa.io/en/latest/)
+you should add `terratools` as a dependency of your project.
 
 ### Installing the development version
 
 You can also install the latest development version of TerraTools from source. To do this, first clone the repository onto your local machine using git:
-```
-git clone git@github.com:mantle-convection-constrained/terratools.git
+```sh
+git clone https://github.com/mantle-convection-constrained/terratools.git
 ```
 Then navigate to the top level directory and install in development mode:
-```
+```sh
 cd terratools; python -m pip install -ve .
 ```
 
 ### Post-installation
 
 Finally, check you have a fully working installation:
-```
+```sh
 python -c "import terratools"
 ```
 

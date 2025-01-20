@@ -86,7 +86,7 @@ We can also change the sampling resolution by varying the delta argument.
 # plot with intervals of 5 degrees on longitude and latitude.
 fig, ax = model.plot_layer(field="t", radius=2800, depth=True, delta=5, show=False)
 fig.set_size_inches(8, 6)
-ax.set_title("Temperature on a 5$^{\circ}$ grid at 2800 km depth.")
+ax.set_title("Temperature on a 5$^{\\circ}$ grid at 2800 km depth.")
 plt.show()
 
 
