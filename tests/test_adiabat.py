@@ -15,12 +15,12 @@ class TestAdiabat(unittest.TestCase):
 
         # upper mantle
         t1_compare = ((depth * 0.5) + 1600) * (
-            1 - (1 / (1 + (np.exp((-1 * depth - 660) / 60))))
+            1 - (1 / (1 + (np.exp(-1 * (depth - 660) / 60))))
         )
 
         # lower mantle
         t2_compare = ((-0.00002 * depth**2) + (0.4 * depth) + 1700) * (
-            1 / (1 + (np.exp((-1 * depth - 660) / 60)))
+            1 / (1 + (np.exp(-1 * (depth - 660) / 60)))
         )
 
         # combined
@@ -36,10 +36,10 @@ class TestAdiabat(unittest.TestCase):
         depth = radii.max() - radii[0]
 
         t1 = ((-0.00002 * depth**2) + (0.4 * depth) + 1700) * (
-            1 / (1 + (np.exp((-1 * depth - 660) / 60)))
+            1 / (1 + (np.exp(-1 * (depth - 660) / 60)))
         )
         t2 = ((depth * 0.5) + 1600) * (
-            1 - (1 / (1 + (np.exp((-1 * depth - 660) / 60))))
+            1 - (1 / (1 + (np.exp(-1 * (depth - 660) / 60))))
         )
 
         adiabat = t1 + t2 - 1600
