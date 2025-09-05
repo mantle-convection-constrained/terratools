@@ -2648,7 +2648,7 @@ def _calculate_adiabat(depth):
     quad = (-0.00002 * depth**2) + (0.4 * depth) + 1700
 
     # smooth transition between linear and quadratic
-    sig = 1 / (1 + (np.exp((-1 * depth - 660) / 60)))
+    sig = 1 / (1 + (np.exp(-1 * (depth - 660) / 60)))
 
     # 1600, the potential temperature, is removed
     # so only the adiabat relative to the potential temp

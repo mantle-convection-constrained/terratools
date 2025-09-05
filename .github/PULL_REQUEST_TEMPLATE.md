@@ -14,4 +14,4 @@ Pull Request Checklist. Please read and check each box with an X. Delete any par
 
 * [ ] I have tested my new feature locally to ensure it is correct.
 * [ ] I have created a testcase for the new feature/benchmark in the [tests/](../blob/main/tests/) directory.
-* [ ] I have added a changelog entry in the [doc/changes](../blob/main/doc/changes) directory that will inform other users of my change.
+* [ ] I have added a changelog entry in the [changelog](../blob/main/changelog.txt) file that will inform other users of my change.
