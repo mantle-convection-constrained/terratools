@@ -6,7 +6,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   indent:
     name: indent
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-latest]
 
     strategy:
       matrix:
@@ -34,7 +34,7 @@ jobs:
 
   test:
     name: test
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-latest]
 
     strategy:
       matrix:
@@ -60,7 +60,7 @@ jobs:
 
   test_cartopy:
     name: Test no Cartopy
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-latest]
 
     strategy:
       matrix:
