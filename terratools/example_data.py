@@ -18,6 +18,7 @@ _EXAMPLE_DATA = pooch.create(
     path=pooch.os_cache("terratools"),
     base_url="doi:10.6084/m9.figshare.24100362.v3",
     registry=None,
+    retry_if_failed=3,
 )
 
 _EXAMPLE_DATA.load_registry_from_doi()
