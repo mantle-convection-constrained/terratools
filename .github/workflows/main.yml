@@ -6,16 +6,16 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   indent:
     name: indent
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-latest]
 
     strategy:
       matrix:
         python-versions: ['3.10']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-versions }}
     - name: make indent
@@ -34,19 +34,20 @@ jobs:
 
   test:
     name: test
+
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        python-versions: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-versions: ['3.9', '3.10', '3.11', '3.12']
         os:
-          - ubuntu-20.04
+          - ubuntu-latest
           - macos-14
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-versions }}
     - name: setup
@@ -63,19 +64,20 @@ jobs:
 
   test_cartopy:
     name: Test no Cartopy
+
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        python-versions: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-versions: ['3.9', '3.10', '3.11', '3.12']
         os:
-          - ubuntu-20.04
+          - ubuntu-latest
           - macos-14
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-versions }}
     - name: setup
