@@ -63,7 +63,9 @@ jobs:
       with:
         path: ${{ steps.setup.outputs.CACHE }}
         key: cache-${{ runner.os }}-${{ github.run_id }}
-        restore-keys: cache-
+        restore-keys: |
+          cache-${{ runner.os }}-  
+          cache-
     - name: test
       run: |
         PYTHON=python ./test.sh
