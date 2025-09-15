@@ -47,6 +47,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-versions }}
     - name: setup
+      id: setup
       run: |
         # cartopy requires libgeos-dev
         sudo apt update && sudo apt install --yes \
@@ -54,9 +55,24 @@ jobs:
         python -m pip install --upgrade pip
         python --version
         python -m pip list
+        python -m pip install pooch
+        echo CACHE=$(python -c 'import pooch; print(pooch.os_cache("terratools"))') >> $GITHUB_OUTPUT
+    - name: Figshare restore
+      uses: actions/cache/restore@v4
+      id: restore-from-figshare
+      with:
+        path: ${{ steps.setup.outputs.CACHE }}
+        key: cache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: cache-
     - name: test
       run: |
         PYTHON=python ./test.sh
+    - name: Figshare cache data
+      uses: actions/cache/save@v4
+      id: cache-figshare
+      with:
+        path: ${{ steps.setup.outputs.CACHE }}
+        key: cache-${{ runner.os }}-${{ github.run_id }}
 
   test_cartopy:
     name: Test no Cartopy
