@@ -15,10 +15,10 @@ The filename is then the full path to the example data file.
 import pooch
 
 # Here we encode the DOI, filenames and file md5 hashes for the data
-# files we use. These are hard coded (rather than making use of 
+# files we use. These are hard coded (rather than making use of
 # .load_registry_from_doi()) so we can avoid any interaction with
 # Figshare when testing using GitHub's CI system (as this sometimes
-# fails; we use github's caching to store the files). If adding a 
+# fails; we use github's caching to store the files). If adding a
 # new example file, this will need uploading to Figshare (which will
 # change the DOI version) and the file hash will need adding to the
 # dict below.
