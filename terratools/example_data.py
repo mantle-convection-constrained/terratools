@@ -14,14 +14,30 @@ The filename is then the full path to the example data file.
 """
 import pooch
 
+# Here we encode the DOI, filenames and file md5 hashes for the data
+# files we use. These are hard coded (rather than making use of
+# .load_registry_from_doi()) so we can avoid any interaction with
+# Figshare when testing using GitHub's CI system (as this sometimes
+# fails; we use github's caching to store the files). If adding a
+# new example file, this will need uploading to Figshare (which will
+# change the DOI version) and the file hash will need adding to the
+# dict below.
+_DATA_DOI = "doi:10.6084/m9.figshare.24100362.v3"
+_DATA_HASHES = {
+    "example_bas_table.dat": "md5:4a739e7c97d3a8ef3b0a093db4d14195",
+    "example_hzb_table.dat": "md5:ff39108fcbf228f260be4c06e01cff39",
+    "example_lhz_table.dat": "md5:d92965509e830879892fd3f8009acaeb",
+    "example_mesh_points.txt": "md5:00f3080d7df38cd4cdc80dbdaf5cdc74",
+    "example_model.nc": "md5:716000bc0b3f21050a01cfe1ade2c078",
+    "example_layer.nc": "md5:ae4e19b5599c462378b8841f6e169ce7",
+    "example_layer.tar.gz": "md5:a1bcaebb26779349b93b879ef729b776",
+}
 _EXAMPLE_DATA = pooch.create(
     path=pooch.os_cache("terratools"),
-    base_url="doi:10.6084/m9.figshare.24100362.v3",
-    registry=None,
+    base_url=_DATA_DOI,
+    registry=_DATA_HASHES,
     retry_if_failed=3,
 )
-
-_EXAMPLE_DATA.load_registry_from_doi()
 
 
 def example_bas_table():
