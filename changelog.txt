@@ -32,3 +32,4 @@ _First release._
   - Fix bug in reading model files without composition
   - Add feature for calculating plume buoyancy flux
   - Fix calculation of mantle adiabat
+  - Require Python version 3.9 or newer
