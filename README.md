@@ -2,10 +2,11 @@
 Tools to read, analyse and visualise models written by the TERRA mantle convection code.
 TerraTools is released under an MIT License.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10797185.svg)](https://doi.org/10.5281/zenodo.10797185)
+
 Homepage: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
 Documentation: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
 Source code: [https://github.com/mantle-convection-constrained/terratools](https://github.com/mantle-convection-constrained/terratools)<br>
-DOI for this version: [10.5281/zenodo.11506398](https://zenodo.org/records/11506398)
 
 ## Citing TerraTools
 We are currently have a JOSS Paper in review, watch [this space](https://github.com/openjournals/joss-reviews/issues/6488#issuecomment-1997933700).
@@ -13,20 +14,9 @@ We are currently have a JOSS Paper in review, watch [this space](https://github.
 ## Installation
 
 ### Requirements
-TerraTools requires Python version 3.8 or newer.
+TerraTools requires Python version 3.9 or newer.
 
 If you want to use the map plotting functions (such as `TerraModel.plot_layer`), make sure you have a working installation of [Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html).
-
-* If you are using Python 3.9 or above,
-  [installing Cartopy](https://scitools.org.uk/cartopy/docs/latest/installing.html)
-  can be done with `pip install cartopy`, `conda add cartopy`, `poetry add cartopy`
-  or equivalent.
-* If you have to use Python 3.8, installation of Cartopy using pip requires
-  [additional dependencies are met first](https://scitools.org.uk/cartopy/docs/v0.21/installing.html#required-dependencies).
-  On Mac machines, you may find that after you follow the instructions on that site, you still need to add the following command to your `~/.bashrc` or equivalent:
-  ```sh
-  export DYLD_LIBRARY_PATH=/opt/homebrew/opt/geos/lib/
-  ```
 
 ### Pre-installation
 If you are using a Conda-like package manager (e.g.,
