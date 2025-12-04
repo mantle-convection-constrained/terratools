@@ -60,6 +60,6 @@ terratools defines a versioned and open-source file format based upon NetCDF [@n
 
 # Acknowledgements
 
-We acknowledge funding from NERC Large Grant 'Mantle Circulation Constrained (MC²)' (NE/T012595/1).
+We acknowledge funding from NERC Large Grant 'Mantle Circulation Constrained (MC²)' (NE/T012595/1, NE/T012633/1, NE/T012684/1).
 
 # References
