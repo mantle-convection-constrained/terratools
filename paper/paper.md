@@ -54,7 +54,7 @@ terratools addresses this by providing a high-level abstraction over the details
 
 # Current functionality
 
-As well as a high-level abstraction over simulation timesteps, a number of analytical workflows come with terratools and are constantly being added to.  For instance, radial average profiles, local one-dimensional profiles, arbitrary point extraction and spherical harmonic analysis are available already.  Conversion from model parameters (temperature and composition) to seismic parameters (P- and S-wave velocities, attenuation) is supported using pre-computed conversion lookup tables, but tools to create these are also provided. We also provide tools for identifying upwelling features (mantple plumes) in simualtions. 
+As well as a high-level abstraction over simulation timesteps, a number of analytical workflows come with terratools and are constantly being added to.  For instance, radial average profiles, local one-dimensional profiles, arbitrary point extraction and spherical harmonic analysis are available already.  Conversion from model parameters (temperature and composition) to seismic parameters (P- and S-wave velocities, attenuation) is supported using pre-computed conversion lookup tables, but tools to create these are also provided. We also provide tools for identifying upwelling features (mantle plumes) in simulations.
 
 terratools defines a versioned and open-source file format based upon NetCDF [@netcdf] for TERRA models, making the exchange of simulation snapshots simpler and removing the need for different groups to rewrite file readers.  As files may be many gigabytes in size, this also enables more efficient file reading and writing, saving time.
 
