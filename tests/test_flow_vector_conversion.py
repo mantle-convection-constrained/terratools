@@ -1,4 +1,3 @@
-from cgitb import lookup
 import unittest
 import numpy as np
 from terratools.flow_conversion import rotate_vector
