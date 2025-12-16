@@ -1,41 +1,50 @@
-[tool.poetry]
+[project]
 name = "terratools"
 version = "1.2.0"
 description = "Tools to read, analyse and visualise models written by the TERRA mantle convection code."
 authors = [
-  "James Panton <pantonjc@cardiff.ac.uk>", 
-  "Andy Nowacki <a.nowacki@leeds.ac.uk>",
-  "Bob Myhill <bob.myhill@bristol.ac.uk>",
+  {name = "Andy Nowacki", email = "a.nowacki@leeds.ac.uk"},
+  {name = "James Panton", email = "jpanton@uni-koeln.de"},
+  {name = "Jamie Ward"},
+  {name = "Bob Myhill", email = "bob.myhill@bristol.ac.uk"},
+  {name = "Andrew Walker", email = "andrew.walker@earth.ox.ac.uk"},
+  {name = "James Wookey", email = "j.wookey@bristol.ac.uk"},
+  {name = "J Huw Davies", email = "daviesjh2@cardiff.ac.uk"},
+]
+maintainers = [
+  {name = "Andy Nowacki", email = "a.nowacki@leeds.ac.uk"},
+  {name = "Andrew Walker", email = "andrew.walker@earth.ox.ac.uk"},
+  {name = "Bob Myhill", email = "bob.myhill@bristol.ac.uk"},
 ]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/mantle-convection-constrained/terratools"
-repository = "https://github.com/mantle-convection-constrained/terratools"
-documentation = "https://readthedocs.org/projects/terratools"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+requires-python = ">=3.9"
+dependencies = [
+  "healpy (>=1.16.2,<2)",
+  "matplotlib (>=3.5,<4)",
+  "netcdf4 (>=1,<2)",
+  "numpy (>=1.23,<2)",
+  "pooch (>=1.7,<2)",
+  "scikit-learn (>=1.3.0,<2)",
+  "scipy  (>=1.6,<2)",
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-numpy = "^1.23"
-scipy = "^1.6"
-netcdf4 = "^1"
-matplotlib = "^3.5"
-scikit-learn = "^1.3.0"
-healpy = "^1.16.2"
-pooch = "^1.7"
+[dependency-groups]
+dev = [
+  "black (>=23.9.1,<24)",
+  "cartopy (>=0.21.1,<0.26)",
+  "ipython (>=8.5.0,<9)",
+]
 
-
-[tool.poetry.dev-dependencies]
-ipython = "^8.5.0"
-black = "^23.9.1"
-
-[tool.poetry.group.dev.dependencies]
-black = "^23.9.1"
-cartopy = "^0.21.1"
+[project.urls]
+Homepage = "https://github.com/mantle-convection-constrained/terratools"
+Repository = "https://github.com/mantle-convection-constrained/terratools"
+Documentation = "https://readthedocs.org/projects/terratools"
+"JOSS paper" = "https://doi.org/10.21105/joss.07539"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
