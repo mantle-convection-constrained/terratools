@@ -7,9 +7,31 @@ TerraTools is released under an MIT License.
 Homepage: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
 Documentation: [https://terratools.readthedocs.io/en/latest/](https://terratools.readthedocs.io/en/latest/)<br>
 Source code: [https://github.com/mantle-convection-constrained/terratools](https://github.com/mantle-convection-constrained/terratools)<br>
+Publication: [![DOI](https://joss.theoj.org/papers/10.21105/joss.07539/status.svg)](https://doi.org/10.21105/joss.07539)<br>
+
 
 ## Citing TerraTools
-We are currently have a JOSS Paper in review, watch [this space](https://github.com/openjournals/joss-reviews/issues/6488#issuecomment-1997933700).
+If you use terratools, please cite the associated
+[JOSS paper](https://doi.org/10.21105/joss.07539).  You can make use of the
+BibTeX entry below:
+
+```bibtex
+@article{terratools:2025,
+  title = {Terratools: {A} {P}ython package to analyse {TERRA} mantle convection simulations},
+  shorttitle = {Terratools},
+  author = {Nowacki, Andy and Panton, James and Ward, Jamie and Myhill, Bob and Walker, Andrew and Wookey, James and Davies, J. Huw},
+  year = 2025,
+  month = dec,
+  journal = {Journal of Open Source Software},
+  volume = {10},
+  number = {116},
+  pages = {7539},
+  issn = {2475-9066},
+  doi = {10.21105/joss.07539},
+  urldate = {2025-12-16},
+  langid = {english}
+}
+```
 
 ## Installation
 
