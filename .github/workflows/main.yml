@@ -58,7 +58,7 @@ jobs:
         python -m pip install pooch
         echo CACHE=$(python -c 'import pooch; print(pooch.os_cache("terratools"))') >> $GITHUB_OUTPUT
     - name: Figshare restore
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       id: restore-from-figshare
       with:
         path: ${{ steps.setup.outputs.CACHE }}
@@ -70,7 +70,7 @@ jobs:
       run: |
         PYTHON=python ./test.sh
     - name: Figshare cache data
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       id: cache-figshare
       with:
         path: ${{ steps.setup.outputs.CACHE }}
