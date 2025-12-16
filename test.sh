@@ -20,6 +20,7 @@ fi
 # Quietly install terratools in development mode
 echo "Installing TerraTools in development mode ..."
 $PYTHON -m pip install -q -e '.[dev]'
+$PYTHON -m pip install -q cartopy
 echo ""
 
 function testit {
