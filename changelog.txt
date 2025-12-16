@@ -27,9 +27,13 @@ _First release._
   - Calculate spherical harmonics for single component of vector field
   - Plotting of single component of vector fields
 
-  ## [1.2.0]
+  ## [1.2.0] - 2025-09-22
 
   - Fix bug in reading model files without composition
   - Add feature for calculating plume buoyancy flux
   - Fix calculation of mantle adiabat
   - Require Python version 3.9 or newer
+
+  ## [1.2.1] - 2025-12-16
+
+  - Fix bug in tests
