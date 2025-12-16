@@ -81,9 +81,19 @@ You can also install the latest development version of TerraTools from source. T
 git clone https://github.com/mantle-convection-constrained/terratools.git
 ```
 Then navigate to the top level directory and install in development mode:
-```sh
-cd terratools; python -m pip install -ve .
-```
+
+- Using `pip` (`-e` for an 'editable' development install and the `.[dev]` group for the extra development dependencies):
+  ```sh
+   cd terratools; python -m pip install -ve '.[dev]'
+  ```
+- Using Poetry:
+  ```sh
+  cd terratools; poetry install --all-extras
+  ```
+- Using `uv` (install dev dependencies by default):
+  ```sh
+  cd terratools; uv sync
+  ```
 
 ### Post-installation
 

@@ -204,9 +204,9 @@ def plume_dbscan(
         # MINCLUST=150
         # MINSAMPLE=150
 
-        density_scan = HDBSCAN(min_cluster_size=epsilon, min_samples=minsamples).fit(
-            pnts_norm
-        )
+        density_scan = HDBSCAN(
+            min_cluster_size=epsilon, min_samples=minsamples, copy=True
+        ).fit(pnts_norm)
 
     else:
         raise AlgorithmError(algorithm)

@@ -10,7 +10,7 @@ build:
     pre_build:
       - python -m pip install --upgrade pip
       - python -m pip install -r docs/requirements.txt
-      - python -m pip install .
+      - python -m pip install '.[dev]'
       - python docs/copy_ref_examples.py
 
 mkdocs:
