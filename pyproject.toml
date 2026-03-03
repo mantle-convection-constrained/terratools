@@ -1,6 +1,6 @@
 [project]
 name = "terratools"
-version = "1.2.0"
+version = "1.2.1"
 description = "Tools to read, analyse and visualise models written by the TERRA mantle convection code."
 authors = [
   {name = "Andy Nowacki", email = "a.nowacki@leeds.ac.uk"},
