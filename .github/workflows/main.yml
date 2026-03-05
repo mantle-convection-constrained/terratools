@@ -19,7 +19,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ matrix.python-versions }}
     - name: make indent
@@ -28,7 +28,7 @@ jobs:
         ./contrib/utilities/indent
         git diff > changes-astyle.diff
     - name: archive indent results
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: changes-astyle.diff
         path: changes-astyle.diff
@@ -49,7 +49,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ matrix.python-versions }}
     - name: setup
@@ -64,7 +64,7 @@ jobs:
         python -m pip install pooch
         echo CACHE=$(python -c 'import pooch; print(pooch.os_cache("terratools"))') >> $GITHUB_OUTPUT
     - name: Figshare restore
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
       id: restore-from-figshare
       with:
         path: ${{ steps.setup.outputs.CACHE }}
@@ -76,7 +76,7 @@ jobs:
       run: |
         PYTHON=python ./test.sh
     - name: Figshare cache data
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
       id: cache-figshare
       with:
         path: ${{ steps.setup.outputs.CACHE }}
@@ -95,7 +95,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ matrix.python-versions }}
     - name: setup
