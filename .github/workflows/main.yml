@@ -3,6 +3,8 @@ name: test
 
 on: [push, pull_request, workflow_dispatch]
 
+permissions: {}
+
 jobs:
   indent:
     name: indent
@@ -14,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
       uses: actions/setup-python@v6
       with:
@@ -42,6 +46,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
       uses: actions/setup-python@v6
       with:
@@ -86,6 +92,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-versions }}
       uses: actions/setup-python@v6
       with:
